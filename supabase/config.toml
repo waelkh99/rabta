@@ -1,0 +1,7 @@
+project_id = "rabta"
+
+[functions.meta-webhook]
+# Meta does not send an auth token, so Supabase's default JWT check has to be
+# off. The HMAC signature check inside the function is what protects the
+# endpoint instead — see signature.ts.
+verify_jwt = false
