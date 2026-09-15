@@ -132,6 +132,51 @@ in every widget. Adding it after the fact means revisiting every screen.
 
 ---
 
+### 2026-09-15 — Sellers connect through Facebook Login for Business only
+
+Instagram is connected through the seller's Facebook Page, not through
+Instagram's own login. One connection flow covers both platforms.
+
+Meta offers two ways to reach Instagram messaging:
+
+- **Instagram API with Instagram Login** — the seller signs in with Instagram
+  and no Facebook Page is involved. Uses `instagram_business_manage_messages`.
+- **Instagram API with Facebook Login** — the seller signs in with Facebook and
+  their Instagram account must be linked to a Page. Uses
+  `instagram_manage_messages` and `pages_show_list`.
+
+We use the second.
+
+**Why:** Phase One covers Messenger as well, and Messenger requires Facebook
+Login for Business regardless. Supporting Instagram Login too would mean a
+second OAuth flow, a second token type and a second send API to build and
+maintain in `send-message` — close to twice the connection work — to serve
+sellers who could instead link a Page once.
+
+One button that connects everything is also the better first five minutes for a
+non-technical seller than being asked to choose between two login options whose
+difference they have no way to judge.
+
+**Consequences:**
+
+- A seller whose Instagram is not linked to a Facebook Page cannot connect
+  until they link it. We cannot do this for them, so the connect screen has to
+  explain it clearly when it happens. This is the main cost of the decision.
+- Instagram messages are sent and received through the Messenger Platform's
+  Instagram Messaging API, not Instagram's own messaging API.
+- Permissions requested at connection time:
+  `pages_show_list`, `pages_messaging`, `pages_manage_metadata`,
+  `pages_read_engagement`, `instagram_basic`, `instagram_manage_messages`,
+  and `business_management`, which `pages_messaging` depends on.
+- `pages_manage_metadata` is what allows subscribing an account to our webhook.
+  Without it messages never arrive.
+
+**Reconsider if** real sellers turn out to be blocked by the Page requirement
+often enough to matter. Adding Instagram Login later is additive — `platform`
+is already an open set — so this is not a one-way door.
+
+---
+
 ## Platform constraints
 
 These are not choices. They are limits Meta imposes, recorded here so they are
@@ -163,6 +208,20 @@ Meta returns attachment URLs that stop working after a period. Whether media is
 copied into our own storage or fetched on view is an open question, listed
 below.
 
+Measured on 15 September 2026 from a real image sent to the test Page:
+
+- The URL is on `scontent.xx.fbcdn.net` and is **publicly fetchable with no
+  access token** — a plain GET returned the PNG.
+- Its `oe=` query parameter is a hex Unix timestamp marking expiry. For that
+  delivery it was **roughly 30 days** after the message arrived.
+- The file was 5.9 MB, sent from a phone without any resizing. Storing media
+  means storing files of that size, not thumbnails.
+
+Thirty days is long enough that proxying on view is viable for recent
+conversations and guarantees nothing for older ones. Both facts — public access
+and the 30 day window — should be re-checked before relying on them, since
+neither is documented and Meta can change both.
+
 ### Access requires review, and review takes time
 
 Business verification and App Review for the messaging permissions are required
@@ -183,6 +242,13 @@ settled the cheaper they are.
   scheme. This lands at the most fragile moment in the product — a
   non-technical seller's first five minutes — so it deserves a proper answer
   rather than whatever is quickest.
+
+  Narrowed on 15 September 2026: *which* login the seller uses is now settled
+  above — Facebook Login for Business. What remains open is only how the
+  browser gets back to the desktop application afterwards. `STATUS.md`
+  proposes redirecting to an Edge Function and letting the application notice
+  through Realtime, which avoids both the loopback listener and the URI
+  scheme. Proposed, not yet agreed.
 
 - **Code signing for the Windows installer.** Unsigned applications show
   "Windows protected your PC" on first run. For an audience being asked to
