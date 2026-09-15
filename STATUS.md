@@ -122,3 +122,7 @@ Carried from `DECISIONS.md`:
 - Code signing for the Windows installer, which costs money annually.
 - The UI itself. Six principles were proposed and not yet agreed; a mockup was
   offered and not yet made.
+
+---
+
+Progress against Phase One is tracked in `CHECKLIST.md`.

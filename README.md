@@ -6,6 +6,7 @@ One inbox for customer conversations from Instagram and Facebook Messenger.
 - `DECISIONS.md` — decisions that are settled, and why
 - `WEBHOOKS.md` — the webhook service specification
 - `STATUS.md` — where the work currently stands
+- `CHECKLIST.md` — Phase One progress
 
 ---
 
