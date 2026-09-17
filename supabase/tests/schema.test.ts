@@ -105,6 +105,121 @@ describe("schema", () => {
 
 // ---------------------------------------------------------------------------
 
+describe("last message type", () => {
+  // A photo-only message has no text, so the conversation preview was null and
+  // the inbox showed a blank row. The type is recorded so the client can render
+  // a localized label without the database holding a user-facing string.
+  let db: TestDb;
+  let workspaceId: string;
+  let conversationId: string;
+
+  before(async () => {
+    db = await freshDb();
+    const seller = await createSeller(db, "lastType@example.test");
+    workspaceId = seller.workspaceId;
+    const account = await connectAccount(db, workspaceId, "messenger", "page_type");
+    conversationId = await startConversation(db, workspaceId, account, "cust_type");
+  });
+
+  after(async () => {
+    await db.close();
+  });
+
+  const summary = async () => {
+    const [row] = await db.sql(
+      `select last_message_preview, last_message_type
+       from conversations where id = $1`,
+      [conversationId],
+    );
+    return row;
+  };
+
+  const image = [{ type: "image", payload: { url: "https://scontent.xx.fbcdn.net/x.png" } }];
+
+  test("a text message is typed as text", async () => {
+    await addMessage(db, conversationId, workspaceId, {
+      mid: "ty_1",
+      direction: "inbound",
+      text: "Do you have this in blue?",
+      sentAt: at(0),
+    });
+
+    const row = await summary();
+    assert.equal(row.last_message_type, "text");
+    assert.equal(row.last_message_preview, "Do you have this in blue?");
+  });
+
+  test("a photo-only message is typed as image, and the preview stays empty", async () => {
+    await addMessage(db, conversationId, workspaceId, {
+      mid: "ty_2",
+      direction: "inbound",
+      attachments: image,
+      sentAt: at(1),
+    });
+
+    const row = await summary();
+
+    // This is the defect. Before the type column existed the row had a null
+    // preview and nothing else, so the inbox could only render a blank line.
+    assert.equal(row.last_message_preview, null);
+    assert.equal(row.last_message_type, "image");
+  });
+
+  test("text sent with an attachment previews as text", async () => {
+    await addMessage(db, conversationId, workspaceId, {
+      mid: "ty_3",
+      direction: "inbound",
+      text: "Like this one",
+      attachments: image,
+      sentAt: at(2),
+    });
+
+    const row = await summary();
+    assert.equal(row.last_message_type, "text");
+    assert.equal(row.last_message_preview, "Like this one");
+  });
+
+  test("an attachment type Meta has not told us about is stored as other", async () => {
+    await addMessage(db, conversationId, workspaceId, {
+      mid: "ty_4",
+      direction: "inbound",
+      attachments: [{ type: "reel_clip_from_the_future", payload: {} }],
+      sentAt: at(3),
+    });
+
+    const row = await summary();
+
+    // It must not fail the insert and must not come back blank either.
+    assert.equal(row.last_message_type, "other");
+  });
+
+  test("a late older message does not overwrite the newer type", async () => {
+    await addMessage(db, conversationId, workspaceId, {
+      mid: "ty_5",
+      direction: "inbound",
+      text: "sent earlier, delivered later",
+      sentAt: at(1),
+    });
+
+    const row = await summary();
+
+    // Guarded by the same out-of-order check as the preview.
+    assert.equal(row.last_message_type, "other");
+  });
+
+  test("an audio message is typed as audio", async () => {
+    await addMessage(db, conversationId, workspaceId, {
+      mid: "ty_6",
+      direction: "inbound",
+      attachments: [{ type: "audio", payload: { url: "https://scontent.xx.fbcdn.net/a.mp4" } }],
+      sentAt: at(4),
+    });
+
+    const row = await summary();
+    assert.equal(row.last_message_type, "audio");
+  });
+});
+
 describe("conversation summary trigger", () => {
   let db: TestDb;
   let workspaceId: string;

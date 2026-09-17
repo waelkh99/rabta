@@ -6,14 +6,26 @@
 // definitions — in particular the grants, without which a policy test could
 // pass merely because permission was denied, which would prove nothing.
 
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 import { PGlite } from "@electric-sql/pglite";
 
-const MIGRATION = fileURLToPath(
-  new URL("../../migrations/20260914000001_init.sql", import.meta.url),
-);
+const MIGRATIONS_DIR = new URL("../../migrations/", import.meta.url);
+
+// Every migration, in filename order — the same order `supabase db push`
+// applies them. Reading the directory rather than naming one file means a new
+// migration is covered by the suite the moment it is added, instead of
+// silently going untested.
+async function migrations(): Promise<string[]> {
+  const names = (await readdir(fileURLToPath(MIGRATIONS_DIR)))
+    .filter((name) => name.endsWith(".sql"))
+    .sort();
+
+  return Promise.all(
+    names.map((name) => readFile(fileURLToPath(new URL(name, MIGRATIONS_DIR)), "utf8")),
+  );
+}
 
 const SUPABASE_SHIM = `
   create schema if not exists auth;
@@ -59,7 +71,7 @@ export async function freshDb(): Promise<TestDb> {
   await db.waitReady;
 
   await db.exec(SUPABASE_SHIM);
-  await db.exec(await readFile(MIGRATION, "utf8"));
+  for (const sql of await migrations()) await db.exec(sql);
   await db.exec(SUPABASE_GRANTS);
 
   return {
@@ -145,18 +157,21 @@ export async function addMessage(
     mid: string;
     direction: "inbound" | "outbound";
     text?: string | null;
+    /** Meta's shape: [{ type: "image", payload: { url } }]. */
+    attachments?: unknown[];
     sentAt: string;
   },
 ): Promise<void> {
   await db.sql(
-    `insert into messages (conversation_id, workspace_id, mid, direction, text, sent_at)
-     values ($1, $2, $3, $4, $5, $6)`,
+    `insert into messages (conversation_id, workspace_id, mid, direction, text, attachments, sent_at)
+     values ($1, $2, $3, $4, $5, $6, $7)`,
     [
       conversationId,
       workspaceId,
       message.mid,
       message.direction,
       message.text ?? null,
+      JSON.stringify(message.attachments ?? []),
       message.sentAt,
     ],
   );
