@@ -59,15 +59,19 @@ read with no hard spending cap. An inbox with live listeners is exactly the
 workload that generates reads.
 
 **Consequences:** Supabase has no push notifications. This does not matter in
-Phase One, because the Windows application only needs realtime updates while it
-is running. When mobile arrives, Firebase Cloud Messaging fills the gap, called
-from a Supabase Edge Function. FCM is free at this scale.
+Phase One, because the application only needs realtime updates while the seller
+has it open in a browser tab. When mobile arrives, Firebase Cloud Messaging
+fills the gap, called from a Supabase Edge Function. FCM is free at this scale.
 
 ---
 
-### 2026-09-14 — Windows desktop first
+### 2026-09-14 — Windows desktop first — superseded 2026-09-17
 
 Phase One ships a Windows desktop application. Mobile comes later.
+
+**Superseded by the web decision dated 2026-09-17 below.** The entry is
+kept because its reasoning about keyboard and screen space still holds, and
+because its consequences are the list the web decision cancels.
 
 **Why:** Replying to customers at volume is a typing task, and a keyboard is
 far faster than a phone. The natural inbox layout — conversation list beside
@@ -177,6 +181,200 @@ is already an open set — so this is not a one-way door.
 
 ---
 
+### 2026-09-17 — The application is a website, not a Windows desktop app
+
+Phase One ships a web application, running in the browser. This supersedes the
+Windows desktop decision above. Mobile still comes later.
+
+**Why:** A seller can be using it seconds after opening a link, on whatever
+machine is in front of them, with nothing to download and nothing to install.
+For a product whose first five minutes decide whether it is adopted at all,
+removing the install step removes the largest obstacle standing in front of it.
+The original argument for desktop — a keyboard and the screen space for a
+conversation list beside an open conversation — is satisfied just as well by a
+browser on that same PC.
+
+**Consequences:**
+
+- **Connecting an account becomes the ordinary web OAuth flow, and this is the
+  largest gain.** The whole problem of getting the browser back to the
+  application after Meta's redirect — the loopback listener, the `rabta://` URI
+  scheme, and the Realtime workaround proposed in `STATUS.md` to avoid both —
+  existed only because the application was not itself in the browser. Now Meta
+  redirects to the Edge Function, the function exchanges the code and subscribes
+  the account, and then redirects the browser back to the application. There is
+  no "you can close this window" page and nothing to notice after the fact.
+- **A new hole opens where that one closed: the return redirect.** The Edge
+  Function now sends the browser somewhere after the exchange. If the
+  destination is carried in `state` and used without checking, that is an open
+  redirect on an endpoint that handles access tokens. The return origin must be
+  validated against a fixed allowlist held by the function, never taken from the
+  request. This is the one thing the web flow makes easier to get wrong.
+- The registered redirect URI stays the Edge Function's own URL in every
+  environment, so development and production do not need separate entries in the
+  Meta dashboard. Where the browser goes afterwards is the function's decision,
+  not Meta's.
+- **The installer, code signing, updates and the "Windows protected your PC"
+  warning all disappear.** That removes an annual cost, a release process, and a
+  trust problem placed immediately before the seller is asked to connect their
+  business accounts.
+- The application needs a hosted origin and a domain. That is now a Phase One
+  requirement rather than an afterthought, and it is small work compared to what
+  it replaces.
+- Notifications still only reach a seller who has the tab open. Phase One keeps
+  in-page notification and title badge, which is the same limit the desktop
+  application had. Web Push can lift it later without a native app, but it is
+  not Phase One.
+- The "Native or desktop app?" toggle in the Meta dashboard stays off, as it
+  already was. It is now straightforwardly correct rather than a subtlety that
+  needed explaining.
+- Mobile browsers get a usable inbox for free, which the desktop plan gave
+  nothing toward. This is a side effect, not a reason, and a layout built for a
+  wide screen is not a mobile product.
+
+**The Flutter web concern, measured rather than argued.** A release web build
+was produced on 17 September 2026 with Flutter 3.47.4 and it builds and runs.
+The cost is first load: the current scaffold compiles to 504 KB of gzipped
+JavaScript, and the renderer adds roughly 1.5–2 MB of gzipped WebAssembly on
+top depending on the browser. So a cold first visit is on the order of 2.5 MB
+before anything appears, cached from then on. That is the real cost of Flutter
+on the web and it does not go away. It is paid once per seller rather than
+every time, which is what makes it acceptable here — but it should be measured
+again once there is an actual interface, because the JavaScript half grows with
+the application while the renderer half does not.
+
+**Arabic and right-to-left on the web renderer: tested, and it works.** This
+was the real risk — not bundle size — because the inbox is a text-heavy,
+bidirectional, Arabic-first product and Flutter draws its own text rather than
+using the browser's. A throwaway probe was built and rendered in Chrome on
+17 September 2026, using the real Arabic message captured in
+`tests/parse.test.ts`. All five of the things that could have failed did not:
+
+- Arabic letters shape and join correctly, rather than rendering as isolated
+  forms.
+- Bidirectional text is correct. `سعر iPhone 15 Pro هو 1200 دولار؟` keeps the
+  Latin product name and the Western digits running left to right inside a
+  right-to-left sentence.
+- The Arabic question mark U+061F lands at the correct visual end.
+- Eastern Arabic numerals `١٢٣٤٥٦٧٨٩٠` render.
+- **Per-message direction works** — an English message nested inside a
+  right-to-left interface takes its own direction, which is the case
+  `CLAUDE.md` warns is easy to miss because it looks fine when testing in one
+  language.
+
+This tested the renderer, not the typography. Choosing a font with proper
+Arabic glyphs is still required, and is a separate decision recorded above.
+
+**Reconsider if** something in the real interface contradicts the probe — text
+selection, input method behaviour while typing Arabic, or screen reader
+support, none of which a static render exercises. Rebuilding this as a plain
+web application against the same Supabase backend would cost the client only;
+nothing in the backend, the schema or the webhook service assumes Flutter.
+
+---
+
+### 2026-09-17 — The inbox: layout, sort order, typeface and numerals
+
+Four interface decisions taken together, because each one constrains the
+others. Agreed by the product owner; the options and trade-offs were put side
+by side before choosing.
+
+**Two-pane layout.** The conversation list beside the open conversation.
+Filters and platform controls sit above the list rather than in a column of
+their own. Rejected: a three-pane layout, which spends a whole column on four
+links when there is one seller and two platforms; and a right-hand customer
+panel, which is the cross-channel customer profile that `CLAUDE.md` places in a
+later phase.
+
+**Sort order — revised the same day.** Newest-message-first was chosen first,
+for familiarity. On review it was replaced by a **two-group order**: the
+conversations still awaiting a reply come first, oldest wait at the top, and
+everything already answered follows below them, newest first.
+
+The original reasoning still holds for the second group and is kept there. What
+changed is the recognition that the two conventions exist because there are two
+different jobs. Personal messaging applications sort newest-first because the
+reader is under no obligation to answer everyone. Customer-service inboxes sort
+by longest wait because every item has to be served. Rabta looks like the first
+and behaves like the second.
+
+Newest-first is last-in-first-out, and a LIFO queue starves its oldest item: a
+customer can sit at the bottom indefinitely while newer messages keep arriving.
+With a hard 24-hour reply window, starvation is not slow service — it is a
+conversation that can never be answered again.
+
+**Almarai** as the single typeface, covering Arabic and Latin from one family,
+at weights 300 for previews and 700 for names. Chosen on measured clarity rather
+than on style.
+
+**Alexandria was chosen first and then reversed on evidence.** The three
+candidates were rendered as real conversation rows and their text measured at
+identical weights and sizes on 17 September. Width decides here, because a
+narrow list column shows as much of a customer's message as the typeface allows:
+
+| Typeface | Arabic 12.5/300 | Arabic 13.5/700 | Latin 12.5/300 |
+|---|---|---|---|
+| Almarai | **151.9 px** | **167.7 px** | 183.0 px |
+| Cairo | 155.0 px | 171.0 px | **172.9 px** |
+| Alexandria | 157.0 px | 175.9 px | 204.9 px |
+
+Almarai is the narrowest in Arabic, which is the language that matters most
+here, and Alexandria is the widest in both — 18% wider than Cairo in Latin. All
+three shape Arabic correctly, so none was disqualified on rendering; the
+decision came down to how much of a message survives in the column. Cairo wins
+on Latin alone and is the runner-up.
+
+Almarai also ships only 300/400/700/800 rather than a variable axis, which is an
+advantage rather than a limit: those are the weights the design uses, and fewer
+weights mean a smaller font payload on a web application whose first load
+already costs about 2.5 MB.
+
+*Superseded reasoning:* Alexandria was originally argued for on being less
+common than Cairo, and therefore less likely to look templated. That was the
+wrong criterion. Clarity in a dense bilingual list read all day is decided by
+legibility and width, not by how many other products use the face.
+
+**Western numerals (1234)** throughout, including in the Arabic interface, for
+times, counts, prices and dates. This closes the numerals question open since
+14 September.
+
+**Consequences:**
+
+- **The two-group order removes the starvation problem rather than papering
+  over it.** The conversation closest to losing its reply window is at or near
+  the top of the first group by construction, so no separate urgency marker is
+  needed to rescue it. A row state for a window about to close is still worth
+  having, but it is now a refinement rather than a defect being patched.
+- **It needs no schema change.** `last_message_at` advances on every message
+  while `last_inbound_at` advances only on inbound ones, so a conversation is
+  awaiting a reply exactly when `last_message_at = last_inbound_at`. Both
+  columns already exist and the trigger already maintains them. An index on
+  `(workspace_id, last_inbound_at)` is worth adding for the list query.
+- **The cost is that it is not what Messenger does.** The divider between the
+  groups has to carry that meaning in plain language — "waiting for a reply" —
+  so the order reads as deliberate rather than arbitrary. When the seller has
+  answered everyone the first group is empty, which is a useful thing to see
+  rather than a blank state to apologise for.
+- **Weight contrast does more for scannability than the family does.** Names at
+  700 against previews at 300 let the name detach at a glance; the same families
+  at 300/500 did not. Use 300 for previews and 700 for names. Weights below 300
+  are display-only and unusable at list sizes.
+- The width figures above are canvas measurements at fixed sizes, which is the
+  right way to compare but is not the same as the final column. Re-check once
+  the list has a real width and real customer names in it.
+- One typeface family means one font to load on a web application where first
+  load already costs ~2.5 MB. Subset it to the weights actually used.
+- Western numerals must be applied deliberately rather than inherited, since
+  some Arabic locale settings will otherwise render Eastern numerals for dates
+  and times.
+
+**Verified, not assumed:** Alexandria was rendered in Chrome on 17 September
+with the real Arabic message from `tests/parse.test.ts`. Shaping, joining,
+bidirectional text with Latin product names and Western numerals, and the Latin
+side of the family were all checked visually at display and interface sizes.
+
+---
+
 ## Platform constraints
 
 These are not choices. They are limits Meta imposes, recorded here so they are
@@ -236,31 +434,24 @@ building.
 These need answers. Several affect the data model, so the earlier they are
 settled the cheaper they are.
 
-- **How does a seller connect a Meta account on desktop?** The Meta login is a
-  web flow that redirects back to an address. Mobile has deep links for this;
-  Windows does not, so it needs either a loopback listener or a registered URI
-  scheme. This lands at the most fragile moment in the product — a
-  non-technical seller's first five minutes — so it deserves a proper answer
-  rather than whatever is quickest.
+- ~~**How does a seller connect a Meta account on desktop?**~~ **Closed
+  17 September 2026** by the decision to ship a web application. The question
+  was only ever how the browser returns to a program running outside it. It
+  does not arise when the application is the browser. The loopback listener,
+  the `rabta://` URI scheme and the Realtime workaround proposed in `STATUS.md`
+  are all dropped. What replaces it is smaller and listed as a consequence of
+  that decision: the Edge Function must validate the origin it redirects back
+  to against an allowlist.
 
-  Narrowed on 15 September 2026: *which* login the seller uses is now settled
-  above — Facebook Login for Business. What remains open is only how the
-  browser gets back to the desktop application afterwards. `STATUS.md`
-  proposes redirecting to an Edge Function and letting the application notice
-  through Realtime, which avoids both the loopback listener and the URI
-  scheme. Proposed, not yet agreed.
-
-- **Code signing for the Windows installer.** Unsigned applications show
-  "Windows protected your PC" on first run. For an audience being asked to
-  connect their business accounts, that warning is a serious trust problem.
-  Certificates cost money annually and need to be budgeted.
+- ~~**Code signing for the Windows installer.**~~ **Closed 17 September 2026.**
+  There is no installer. The annual certificate cost is removed from Phase One
+  along with it.
 
 - **Can one seller connect more than one Instagram account or Facebook Page?**
   Common for people running several shops.
 
-- **Which numerals in Arabic?** Western (1234) or Eastern Arabic (١٢٣٤) for
-  times, counts and dates. A small decision, but it should be consistent and
-  made once.
+- ~~**Which numerals in Arabic?**~~ **Closed 17 September 2026:** Western
+  (1234) everywhere, including the Arabic interface. Recorded above.
 
 - **Does Phase One link the same customer across channels?** Proposed: no. A
   customer who writes on both Instagram and Messenger is two conversations.

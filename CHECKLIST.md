@@ -7,7 +7,7 @@ scope list in `CLAUDE.md`.
 A box is ticked only when the thing has been run and seen to work, not when the
 code exists. Where something was verified, it says how.
 
-Updated 15 September 2026.
+Updated 17 September 2026.
 
 ---
 
@@ -23,7 +23,7 @@ Updated 15 September 2026.
 - [x] Out-of-order message delivery handled
 - [x] Schema applied to the live project
 
-Verified by 46 local tests and 13 checks against the live database, seeding
+Verified by 56 local tests and 13 checks against the live database, seeding
 data first so the security checks proved something.
 
 ## 2. Receiving messages
@@ -40,6 +40,9 @@ data first so the security checks proved something.
 - [x] Deployed, with secrets configured
 - [ ] Sweep that retries events which failed processing
 - [ ] Token expiry detected and the account flagged for reconnection
+- [x] A message with no text no longer renders as a blank row —
+      `last_message_type` on `conversations`, set by the trigger, client renders
+      the label. Six tests, each shown to fail against the old trigger.
 - [ ] Attachments: decide stored or fetched on view, then implement
 
 Verified by 19 checks against the deployed endpoint using genuinely signed
@@ -68,13 +71,19 @@ developers can connect. No real seller can use the product.
 
 ## 4. Connecting an account
 
-- [ ] Agree the connection flow (proposed in `STATUS.md`)
+- [x] Agree the connection flow — settled 17 September, and made much simpler
+      by the move to a web application. See `STATUS.md`.
 - [ ] `meta-oauth` function: start the flow, carrying `state`
 - [ ] `meta-oauth` callback: exchange the code server-side, store the token
-- [ ] "You can close this window" page for the browser
-- [ ] Desktop app notices the new account through Realtime
+- [ ] `/me/subscribed_apps` called once the token is stored
+- [ ] Return origin validated against an allowlist before redirecting back
+- [ ] Browser lands back in the application, signed in and carrying on
 - [ ] Connecting a second account works
 - [ ] Disconnecting an account works
+
+The allowlist item is not housekeeping. `meta-oauth` redirects the browser
+after handling an access token, and a destination taken from the request makes
+it an open redirect on the most sensitive endpoint we have.
 
 ## 5. Sending replies
 
@@ -86,14 +95,28 @@ developers can connect. No real seller can use the product.
 
 ## 6. The application
 
-- [ ] Flutter Windows build running
+- [x] Flutter web build running — `flutter build web --release` verified on
+      17 September with Flutter 3.47.4. Toolchain only; there is no interface.
+- [x] Arabic and right-to-left proven on the web renderer — shaping, bidi,
+      U+061F, Eastern numerals and per-message direction all rendered correctly
+      in Chrome on 17 September, using the real Arabic message from the
+      fixtures. Static render only; typing, selection and screen readers are
+      not covered.
+- [x] An Arabic font with proper glyphs chosen — Almarai, covering Arabic and
+      Latin from one family, at 300 for previews and 700 for names. Picked on
+      measured width against Cairo and Alexandria, not on style.
+- [ ] Almarai loading in Flutter web, subset to weights 300 and 700 only
 - [ ] Localisation set up, with no hardcoded strings
 - [ ] Arabic and English, with right-to-left layout
 - [ ] Message bubbles take direction from their own text, not the interface
 - [ ] Sign in and sign out
 - [ ] Connect an account, from the seller's point of view
-- [ ] Conversation list
-- [ ] Platform visible per conversation
+- [ ] Two-pane layout: conversation list beside the open conversation
+- [ ] Conversation list: awaiting a reply first, longest wait at the top, then
+      answered conversations newest first
+- [ ] The divider between the two groups says what it means in plain language
+- [ ] Index on `(workspace_id, last_inbound_at)` for the list query
+- [ ] Platform visible per conversation, as a mark rather than interface tinting
 - [ ] Unread state visible
 - [ ] Waiting time visible
 - [ ] Open a conversation and read its history
@@ -101,23 +124,25 @@ developers can connect. No real seller can use the product.
 - [ ] Composer reflects the reply window before the seller types
 - [ ] New messages arrive live
 - [ ] Attachments displayed
-- [ ] Local notification and taskbar badge
+- [ ] In-page notification and title badge while the tab is open
 - [ ] Empty states, loading states, and what happens when offline
+- [ ] First load is measured again once there is a real interface
 
-Six UI principles were proposed and are not yet agreed. A mockup was offered
-and not yet made. Sorting by who has waited longest, rather than newest first,
-is a real product decision still open.
+Layout, sort order, typeface and numerals were settled on 17 September — see
+`DECISIONS.md`. Six interface principles and a palette are proposed in
+`STATUS.md` and not yet agreed. No mockup has been made.
 
 ## 7. Release
 
-- [ ] Windows installer
-- [ ] Code signing certificate, which costs money annually
-- [ ] Installing on a machine that has never seen the app
-- [ ] How updates reach sellers
+- [ ] Somewhere to host the built site, and a domain
+- [ ] The application's origin added to the `meta-oauth` allowlist
+- [ ] Opening the deployed site on a machine that has never seen it
+- [ ] How a new version reaches sellers
 
-Unsigned applications show "Windows protected your PC" on first run. For an
-audience being asked to connect their business accounts, that is a trust
-problem rather than a cosmetic one.
+Shipping a website removed the installer, the code signing certificate and the
+"Windows protected your PC" warning from Phase One entirely. What is left is
+hosting, which is smaller work than what it replaced. Updates become a deploy,
+though a seller with the tab open still needs to reload to get one.
 
 ---
 
@@ -127,9 +152,9 @@ problem rather than a cosmetic one.
 - Multiple Instagram accounts or Pages per seller
 - Whether Phase One links the same customer across channels — proposed no, and
   close to settled, since Meta's customer ids are scoped to the account
-- Western or Eastern Arabic numerals
 - Attachment media: stored or fetched on view
-- The UI principles and the sorting question above
+- Where the site is hosted, and on what domain
+- The six interface principles and the palette proposed in `STATUS.md`
 
 ---
 

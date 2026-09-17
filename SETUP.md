@@ -17,6 +17,8 @@ Have these to hand. Chasing them halfway through is what makes setup drag.
       — Supabase dashboard, Settings > Database
 - [ ] A copy of **`supabase/.env`**, from a password manager
       — see "If you do not have the .env file" at the end, which is a slower path
+- [ ] The Supabase **secret key**, from the dashboard
+      — Settings > API Keys, "Publishable and secret keys" tab
 - [ ] Meta developer account, if you will be touching the Meta configuration
 
 ---
@@ -39,10 +41,10 @@ gh --version         # expect 2.100.0 or later
 Docker is **not** needed. The database and functions are hosted, and the tests
 run Postgres in-process.
 
-- [ ] Only if you will build the Windows application: install Visual Studio
-      with the **Desktop development with C++** workload. Flutter cannot
-      produce a Windows build without it, and the error when it is missing is
-      not obvious.
+Nothing further is needed to build the application. It is a website, so
+`flutter build web` works with the Flutter SDK and a browser alone — no Visual
+Studio and no C++ workload. That was a requirement while Phase One was a
+Windows application; it no longer is.
 
 ## 2. Get the code
 
@@ -73,31 +75,51 @@ project. Run `supabase db push`.
 
 ## 5. Restore the secrets
 
-`supabase/.env` is deliberately not in the repository. It holds the Meta app
-secret.
+Two files, neither in the repository, and the split matters.
+
+**`supabase/.env`** — the Meta secrets, and nothing else. This is the file
+`supabase secrets set --env-file` is pointed at, and Supabase **rejects any
+secret whose name starts with `SUPABASE_`**. Putting the Supabase credentials
+in here is what breaks that command.
 
 - [ ] Copy your saved `supabase/.env` into the `supabase/` folder
 - [ ] Confirm both values are filled in, and neither is blank:
 
 ```
-grep -c . supabase/.env          # expect 14
 grep '^META_APP_SECRET=.' supabase/.env >/dev/null && echo "app secret set"
 grep '^META_VERIFY_TOKEN=.' supabase/.env >/dev/null && echo "verify token set"
 ```
 
-- [ ] Confirm git is ignoring it:
+**`supabase/.env.local`** — the Supabase credentials, used only by local
+tooling such as `npm run events`. Nothing deployed reads it; Supabase injects
+these into deployed functions by itself.
+
+- [ ] Create it with:
 
 ```
-git check-ignore -v supabase/.env
+SUPABASE_URL=https://xejtffbpfguwvybrwqqj.supabase.co
+SUPABASE_SECRET_KEY=sb_secret_...
 ```
 
-If that prints nothing, **stop** and fix `.gitignore` before committing
-anything. Printing a line is the good outcome.
+The secret key is in the dashboard under **Settings > API Keys**, on the
+"Publishable and secret keys" tab. There is no longer a Settings > API page.
+Use a secret key rather than the legacy `service_role` key, which Supabase is
+retiring. A secret key bypasses row level security completely, so it stays on
+your machine.
+
+- [ ] Confirm git is ignoring both:
+
+```
+git check-ignore -v supabase/.env supabase/.env.local
+```
+
+Two lines printed is the good outcome. If either prints nothing, **stop** and
+fix `.gitignore` before committing anything.
 
 ## 6. Check it all works
 
 - [ ] `cd supabase && npm test`
-- [ ] 46 tests pass, in roughly two seconds
+- [ ] 56 tests pass, in roughly six seconds
 
 That is the real confirmation. It exercises signature verification, payload
 parsing, message processing, the schema, the conversation trigger and row level
@@ -144,7 +166,8 @@ one and make both sides match again:
 
 ## Before your first commit
 
-- [ ] `git status` does not list `supabase/.env`
+- [ ] `git status` does not list `supabase/.env` or `supabase/.env.local`
 
-That file holds the Meta app secret and is protected by `.gitignore` alone.
+Between them those files hold the Meta app secret and a Supabase secret key
+that bypasses row level security. Both are protected by `.gitignore` alone.
 Worth a glance before any commit that touches the `supabase/` folder.
