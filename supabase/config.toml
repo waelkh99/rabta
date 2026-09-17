@@ -5,3 +5,9 @@ project_id = "rabta"
 # off. The HMAC signature check inside the function is what protects the
 # endpoint instead — see signature.ts.
 verify_jwt = false
+
+[functions.meta-oauth]
+# The browser arrives here straight from Meta's redirect with no Supabase
+# session, so the default JWT check has to be off. The signed state parameter
+# is what protects the callback — see index.ts.
+verify_jwt = false
