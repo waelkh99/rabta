@@ -12,6 +12,7 @@ class Conversation {
     required this.id,
     required this.platform,
     required this.customerName,
+    required this.customerAvatarUrl,
     required this.preview,
     required this.lastMessageType,
     required this.lastMessageAt,
@@ -23,6 +24,12 @@ class Conversation {
   final String id;
   final String platform;
   final String? customerName;
+
+  /// Meta's own URL, which expires after about 30 days. Stored rather than
+  /// copied: the interface draws a monogram when it is missing or broken, so a
+  /// dead link costs nothing.
+  final String? customerAvatarUrl;
+
   final String? preview;
   final String? lastMessageType;
   final DateTime? lastMessageAt;
@@ -57,6 +64,7 @@ class Conversation {
         id: id,
         platform: platform,
         customerName: customerName,
+        customerAvatarUrl: customerAvatarUrl,
         preview: reply.text,
         lastMessageType: 'text',
         lastMessageAt: reply.sentAt,
@@ -72,6 +80,7 @@ class Conversation {
         id: row['id'] as String,
         platform: (row['connected_accounts']?['platform'] as String?) ?? 'messenger',
         customerName: row['customer_name'] as String?,
+        customerAvatarUrl: row['customer_avatar_url'] as String?,
         preview: row['last_message_preview'] as String?,
         lastMessageType: row['last_message_type'] as String?,
         lastMessageAt: _time(row['last_message_at']),
@@ -98,6 +107,7 @@ class SendRefused implements Exception {
 class Message {
   Message({
     required this.id,
+    required this.mid,
     required this.text,
     required this.attachments,
     required this.inbound,
@@ -105,6 +115,12 @@ class Message {
   });
 
   final String id;
+
+  /// Meta's own id for the message. The one identity our database, Meta's
+  /// echo and a reply we just sent all agree on, so it is what decides whether
+  /// two copies are the same message.
+  final String mid;
+
   final String? text;
   final List<dynamic> attachments;
   final bool inbound;
@@ -112,11 +128,34 @@ class Message {
 
   factory Message.fromRow(Map<String, dynamic> row) => Message(
         id: row['id'] as String,
+        mid: row['mid'] as String,
         text: row['text'] as String?,
         attachments: (row['attachments'] as List<dynamic>?) ?? const [],
         inbound: row['direction'] == 'inbound',
         sentAt: DateTime.parse(row['sent_at'] as String).toUtc(),
       );
+}
+
+/// The thread as it should be shown: what the database holds, plus anything
+/// sent from here that has not come back yet.
+///
+/// A reply is shown the moment Meta accepts it, and the same reply arrives
+/// again moments later as Meta's echo through the webhook. Both are the same
+/// message and `mid` is what says so — the id our database, Meta's echo and the
+/// send both agree on. The stored row wins, because it is the real one.
+///
+/// Sorted by time rather than appended, because a message Meta delivered late
+/// belongs where it was sent, not at the end.
+///
+/// Pure, so the rule that stops a reply appearing twice can be tested without
+/// a database or a widget tree.
+List<Message> mergeMessages(List<Message> stored, List<Message> pending) {
+  final known = {for (final m in stored) m.mid};
+
+  return [
+    ...stored,
+    ...pending.where((m) => !known.contains(m.mid)),
+  ]..sort((a, b) => a.sentAt.compareTo(b.sentAt));
 }
 
 /// Two groups, not one order: conversations still awaiting a reply come first
@@ -170,9 +209,9 @@ class Inbox {
     final rows = await _db
         .from('conversations')
         .select(
-          'id, customer_name, last_message_preview, last_message_type, '
-          'last_message_at, last_inbound_at, window_expires_at, unread_count, '
-          'connected_accounts!inner(platform)',
+          'id, customer_name, customer_avatar_url, last_message_preview, '
+          'last_message_type, last_message_at, last_inbound_at, '
+          'window_expires_at, unread_count, connected_accounts!inner(platform)',
         )
         .order('last_message_at', ascending: false);
 
@@ -205,6 +244,7 @@ class Inbox {
 
       return Message(
         id: mid,
+        mid: mid,
         text: text,
         attachments: const [],
         inbound: false,
@@ -236,7 +276,7 @@ class Inbox {
   Future<List<Message>> messages(String conversationId) async {
     final rows = await _db
         .from('messages')
-        .select('id, text, attachments, direction, sent_at')
+        .select('id, mid, text, attachments, direction, sent_at')
         .eq('conversation_id', conversationId)
         .order('sent_at', ascending: true);
 

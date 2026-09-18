@@ -550,6 +550,74 @@ lost: a sent reply landed with its timestamp cut off behind the composer.
 
 ---
 
+### 2026-09-18 — Who the customer is, and how the inbox stays current
+
+**The name and picture are asked for once per customer, not once per message.**
+Meta delivers a message with an opaque sender id and nothing else, so every row
+in the inbox read "Customer" — which defeats the list the whole product is built
+around. `conversations.customer_profile_fetched_at` records having asked.
+
+Without that column there are only two available behaviours, and both are
+wrong: ask on every message, which is a Graph call per message forever; or
+never ask again for a customer whose name Meta withheld, which leaves them
+nameless permanently. **A withheld name is recorded as an answer**, not as a
+failure — Meta withholds names depending on the person's own settings, so it is
+a normal outcome. An *error* records nothing and is retried.
+
+**The picture is stored as Meta's URL, not copied into our storage.** Measured
+18 September 2026: a real `profile_pic` URL carried `ext=1792333334`, about 30
+days out, and was fetchable with no access token — the same shape as attachment
+URLs, and the same 30 days. Profiles refresh at 25 days, replacing the URL
+before it breaks while a conversation is active.
+
+A dormant conversation's picture eventually dies. That is the right trade: a
+name identifies a customer, a picture decorates them, and the interface already
+draws a monogram when there is none. Copying every customer's picture into
+storage would buy a graceful failure we already have. **This is a narrower
+answer than the open attachments question** — it does not settle that one, where
+the media *is* the message.
+
+**Messenger and Instagram are asked for different fields.** `username` is an
+Instagram idea, and Graph rejects an entire request naming a field it does not
+know rather than ignoring it — so asking a Messenger id for a username loses
+the name too. The Instagram half is unverified, like everything else Instagram.
+
+**Realtime is a signal, not a source of data.** The payload is ignored: on any
+change the list is read again through the ordinary query, so everything that
+reaches the screen has passed row level security exactly as it would on a
+reload. A change feed is the last place to start trusting rows about other
+people's customers, and it costs one query per incoming message to avoid the
+question entirely.
+
+Subscribing to `conversations` alone is enough, because the trigger touches it
+on every message in either direction.
+
+**The socket has to be given the seller's token, and does not inherit it.**
+This is the trap worth recording: without `realtime.setAuth`, the subscription
+is made as the anonymous role. It connects, reports `Subscribed to PostgreSQL`
+with `status: ok`, and then delivers nothing forever — because row level
+security correctly shows the anonymous role no conversations at all. A
+successful subscription that can never fire. The token is also re-applied when
+the session refreshes, since this is a tab left open all day and an hour-old
+token would otherwise stop the inbox updating some time in the afternoon.
+
+**Consequences:**
+
+- A reply is shown the instant Meta accepts it and arrives again moments later
+  as Meta's echo. `mergeMessages` drops the duplicate on `mid`, which is the
+  one id our database, the echo and the send all agree on, and prefers the
+  stored row. It sorts by time rather than appending, because a message
+  delivered late belongs where it was sent.
+- Neither a failed refresh nor a failed profile lookup is allowed to break
+  anything. A refresh that fails leaves what is on screen alone; a profile that
+  cannot be fetched never fails the event, because the message is already
+  stored and losing it over a missing name would be a poor trade.
+- An expired access token is recorded on the account as `needs_reconnect` when
+  Meta reports code 190 on a send. That covers the sending path only — the
+  receiving path still has no detection, and remains on the checklist.
+
+---
+
 ## Platform constraints
 
 These are not choices. They are limits Meta imposes, recorded here so they are

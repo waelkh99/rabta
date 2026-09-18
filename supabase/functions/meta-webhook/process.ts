@@ -5,6 +5,12 @@
 // and surviving redelivery — can be tested without a database.
 
 import type { NormalisedMessage, Platform } from "./parse.ts";
+import {
+  type CustomerProfile,
+  profileIsStale,
+  profileRequest,
+  readProfile,
+} from "./profile.ts";
 
 export interface AccountRef {
   id: string;
@@ -30,11 +36,23 @@ export interface Store {
     workspaceId: string,
     message: NormalisedMessage,
   ): Promise<boolean>;
+
+  /** When Meta was last asked who this customer is. Null means never. */
+  profileFetchedAt(conversationId: string): Promise<string | null>;
+
+  /** The account's own token, which is what Meta answers a profile ask for. */
+  accountToken(accountId: string): Promise<string | null>;
+
+  /**
+   * Records what Meta said, including when it said nothing — so a customer
+   * whose name is withheld is not looked up again on every message.
+   */
+  saveProfile(conversationId: string, profile: CustomerProfile): Promise<void>;
 }
 
 export type Outcome =
-  | { status: "stored"; mid: string }
-  | { status: "duplicate"; mid: string }
+  | { status: "stored"; mid: string; conversationId: string; accountId: string }
+  | { status: "duplicate"; mid: string; conversationId: string; accountId: string }
   | { status: "unknown-account"; mid: string; accountExternalId: string };
 
 export async function processMessage(
@@ -65,9 +83,62 @@ export async function processMessage(
     message,
   );
 
-  return inserted
-    ? { status: "stored", mid: message.mid }
-    : { status: "duplicate", mid: message.mid };
+  return {
+    status: inserted ? "stored" : "duplicate",
+    mid: message.mid,
+    conversationId,
+    accountId: account.id,
+  };
+}
+
+/** What asking Meta about a customer came to. Returned so it can be logged. */
+export type ProfileOutcome =
+  | "fresh" // what we hold is recent enough
+  | "saved" // asked, and recorded the answer
+  | "no-token" // the account has no usable token
+  | "no-answer"; // Meta errored, or could not be reached
+
+/**
+ * Asks Meta who this customer is, when it is worth asking.
+ *
+ * Runs after the 200 has gone back to Meta, so the extra call costs the seller
+ * nothing and costs Meta no retry. It is also why a failure here must never
+ * throw: a name we could not fetch is not a reason to lose the message, which
+ * is already stored by the time this runs.
+ *
+ * `fetcher` is injected so the decisions can be tested without a network.
+ */
+export async function refreshCustomerProfile(
+  store: Store,
+  message: NormalisedMessage,
+  outcome: Outcome,
+  now: Date = new Date(),
+  fetcher: typeof fetch = fetch,
+): Promise<ProfileOutcome> {
+  if (outcome.status === "unknown-account") return "fresh";
+
+  const fetchedAt = await store.profileFetchedAt(outcome.conversationId);
+  if (!profileIsStale(fetchedAt, now)) return "fresh";
+
+  const token = await store.accountToken(outcome.accountId);
+  if (!token) return "no-token";
+
+  const url = profileRequest(message.platform, message.customerExternalId, token);
+
+  let answer: unknown = null;
+  try {
+    answer = await fetcher(url).then((response) => response.json());
+  } catch {
+    // Meta unreachable, or an answer that was not JSON. Left unrecorded so the
+    // next message tries again.
+    return "no-answer";
+  }
+
+  const profile = readProfile(answer);
+  if (!profile) return "no-answer";
+
+  await store.saveProfile(outcome.conversationId, profile);
+  return "saved";
 }
 
 // ---------------------------------------------------------------------------
@@ -162,6 +233,41 @@ export function createSupabaseStore(client: SupabaseLike): Store {
       if (error) throw new Error(`message insert failed: ${error.message}`);
 
       return Array.isArray(data) && data.length > 0;
+    },
+
+    async profileFetchedAt(conversationId) {
+      const { data, error } = await client
+        .from("conversations")
+        .select("customer_profile_fetched_at")
+        .eq("id", conversationId)
+        .maybeSingle();
+
+      if (error) throw new Error(`profile lookup failed: ${error.message}`);
+      return data?.customer_profile_fetched_at ?? null;
+    },
+
+    async accountToken(accountId) {
+      const { data, error } = await client
+        .from("account_tokens")
+        .select("access_token")
+        .eq("account_id", accountId)
+        .maybeSingle();
+
+      if (error) throw new Error(`token lookup failed: ${error.message}`);
+      return data?.access_token ?? null;
+    },
+
+    async saveProfile(conversationId, profile) {
+      const { error } = await client
+        .from("conversations")
+        .update({
+          customer_name: profile.name,
+          customer_avatar_url: profile.avatarUrl,
+          customer_profile_fetched_at: new Date().toISOString(),
+        })
+        .eq("id", conversationId);
+
+      if (error) throw new Error(`profile save failed: ${error.message}`);
     },
   };
 }

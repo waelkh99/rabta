@@ -76,16 +76,13 @@ on the first screen. Not fixed.
 
 ## Not built yet
 
-- **`send-message`.** Messages travel inbound only. Replies cannot be sent from
-  the application.
 - **Publishing the app.** The app is in development mode, so Meta only
   delivers messages from accounts holding a role on it. This is now on the
   critical path rather than a background task: Instagram cannot be verified
   until it is done.
-- **Live updates, and connecting an account from the interface.** The inbox
-  is built and running, and replying now works — see "The interface" below.
-  What it still cannot do is notice a message arriving without a reload, or
-  start the connect flow without a URL pasted by hand.
+- **Connecting an account from the interface.** The inbox is built and
+  running, replying works and new messages arrive live. What is still missing
+  is starting the connect flow without a URL pasted by hand.
 - **The font is fetched rather than bundled.** Almarai renders, but through
   `google_fonts`, which pulls it from Google's CDN at runtime. Subsetting it to
   the two weights actually used and serving it ourselves is still to do, and
@@ -461,9 +458,27 @@ spot-checks had missed; and a test that no two refusal codes share a sentence,
 because a closed window and an expired connection need different actions from
 the seller.
 
-**Customer names are missing.** Meta does not send them with the message, so
-every conversation reads as "Customer". A Graph lookup per new customer would
-fix it and has not been decided — it costs an API call and a place to put the
-result.
+**Customers are named now.** Meta sends only an opaque id with a message, so
+the name and picture are asked for separately, once per customer rather than
+once per message. Proven live on 18 September: the deployed webhook filled in
+the real name and profile picture, and a redelivery of the same event did not
+ask Meta again.
+
+The picture is stored as Meta's own URL rather than copied. Measured the same
+day, the URL lasted about 30 days and was fetchable with no access token — the
+same shape as attachment URLs. Profiles refresh at 25 days, which replaces the
+URL before it breaks while a conversation is active. A dormant conversation's
+picture eventually dies and the interface falls back to the monogram it already
+draws, which is the right trade: a name identifies a customer, a picture
+decorates them.
+
+A customer whose name Meta withholds is recorded as an answer rather than a
+failure. Without that distinction the lookup would run again on every message
+they ever send.
+
+**Instagram profiles are configured but unverified**, like everything else
+Instagram. The fields differ — `username` is asked for there and deliberately
+not on Messenger, because Graph rejects a whole request naming a field it does
+not know rather than ignoring it.
 
 Progress against Phase One is tracked in `CHECKLIST.md`.

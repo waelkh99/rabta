@@ -43,6 +43,9 @@ data first so the security checks proved something.
 - [x] A message with no text no longer renders as a blank row —
       `last_message_type` on `conversations`, set by the trigger, client renders
       the label. Six tests, each shown to fail against the old trigger.
+- [x] Customer name and picture fetched from Meta — one Graph call per
+      customer, not per message. Proven live: the deployed webhook filled in a
+      real name and picture, and a redelivery did not ask again.
 - [ ] Attachments: decide stored or fetched on view, then implement
 
 Verified by 19 checks against the deployed endpoint using genuinely signed
@@ -164,7 +167,11 @@ only; the receiving path in section 2 is still uncovered.
 - [x] Composer reflects the reply window before the seller types — a countdown
       under the box while it is open, and a plain sentence instead of a box
       once it has closed
-- [ ] New messages arrive live
+- [x] New messages arrive live — proven in a browser: a delivery to the
+      webhook moved the conversation into the waiting group, with the unread
+      dot, the wait rail and the countdown, without a reload
+- [x] Customers are named, not all called "Customer"
+
 - [x] Attachments displayed — verified against the real image delivered by Meta
 - [ ] In-page notification and title badge while the tab is open
 - [ ] Empty states, loading states, and what happens when offline — the first

@@ -12,7 +12,11 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { verifyMetaSignature } from "./signature.ts";
 import { parseWebhookPayload } from "./parse.ts";
-import { createSupabaseStore, processMessage } from "./process.ts";
+import {
+  createSupabaseStore,
+  processMessage,
+  refreshCustomerProfile,
+} from "./process.ts";
 
 const APP_SECRET = Deno.env.get("META_APP_SECRET") ?? "";
 const VERIFY_TOKEN = Deno.env.get("META_VERIFY_TOKEN") ?? "";
@@ -128,6 +132,22 @@ async function processStoredEvent(eventId: number, payload: unknown): Promise<vo
           `Event ${eventId}: message ${outcome.mid} is for account ` +
             `${outcome.accountExternalId}, which is not connected here`,
         );
+        continue;
+      }
+
+      // Who the customer is. Meta sends only an opaque id with the message, so
+      // without this every conversation in the inbox reads as "Customer" and a
+      // seller cannot tell one row from another.
+      //
+      // Deliberately not allowed to fail the event: the message is already
+      // stored, and losing it over a missing name would be a poor trade.
+      try {
+        const profile = await refreshCustomerProfile(store, message, outcome);
+        if (profile !== "fresh") {
+          console.log(`Event ${eventId}: profile ${profile} for ${outcome.conversationId}`);
+        }
+      } catch (cause) {
+        console.error(`Event ${eventId}: profile lookup failed`, cause);
       }
     }
 

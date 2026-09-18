@@ -15,6 +15,8 @@
 // is a lockup, and message content, which takes its direction from its own
 // text rather than from the reader's language.
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -57,12 +59,106 @@ class _InboxPageState extends State<InboxPage> {
   /// fetching the same rows a second time.
   List<Message>? _messages;
 
-  /// The list as it stands after a reply, replacing what was loaded.
+  /// The list as it stands now, replacing what was first loaded.
   ///
-  /// Held beside the future rather than replacing it, so that answering a
-  /// customer does not drop the inbox back to a spinner while it reloads —
-  /// the seller is reading this list, and it must not blink at them.
-  List<Conversation>? _afterReply;
+  /// Held beside the future rather than replacing it, so that a reply or an
+  /// arriving message does not drop the inbox back to a spinner while it
+  /// reloads — the seller is reading this list, and it must not blink at them.
+  List<Conversation>? _live;
+
+  /// Bumped whenever the database says something changed. The open thread
+  /// watches it and reloads, which is how a message arriving mid-conversation
+  /// reaches the screen.
+  int _revision = 0;
+
+  RealtimeChannel? _channel;
+  StreamSubscription<AuthState>? _authChanges;
+
+  @override
+  void initState() {
+    super.initState();
+    _listen();
+  }
+
+  /// Subscribes to changes in this seller's own conversations.
+  ///
+  /// Realtime is used as a signal, not as a source of data. The payload is
+  /// ignored and the list is read again through the ordinary query, so what
+  /// reaches the screen has been through row level security exactly as it
+  /// would on a reload. A change feed is the last place to start trusting rows
+  /// about other people's customers.
+  ///
+  /// The conversations table is enough on its own: the trigger touches it on
+  /// every message, inbound or outbound.
+  void _listen() {
+    final client = Supabase.instance.client;
+
+    // The socket needs the seller's token, and it does not inherit it. Without
+    // this the subscription is made as the anonymous role, which row level
+    // security correctly shows no conversations at all — so it connects,
+    // reports "Subscribed to PostgreSQL", and then never delivers anything.
+    // A silent success is why this is asserted here rather than assumed.
+    _applyToken();
+
+    // A token lasts an hour and this is a tab left open all day. A refreshed
+    // session has to reach the socket too, or the inbox stops updating at some
+    // point in the afternoon and nothing says why.
+    _authChanges = client.auth.onAuthStateChange.listen((_) => _applyToken());
+
+    _channel = client
+        .channel('inbox')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'conversations',
+          callback: (_) => _refresh(),
+        )
+        .subscribe();
+  }
+
+  void _applyToken() {
+    final token = Supabase.instance.client.auth.currentSession?.accessToken;
+    if (token != null) Supabase.instance.client.realtime.setAuth(token);
+  }
+
+  @override
+  void dispose() {
+    _authChanges?.cancel();
+    final channel = _channel;
+    if (channel != null) Supabase.instance.client.removeChannel(channel);
+    super.dispose();
+  }
+
+  Future<void> _refresh() async {
+    final List<Conversation> fresh;
+    try {
+      fresh = await _inbox.conversations();
+    } catch (_) {
+      // A refresh that fails leaves what is on screen alone. The seller is
+      // reading it, and replacing a working list with an error because one
+      // background reload failed would be worse than being briefly stale.
+      return;
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      _live = fresh;
+      _revision++;
+
+      // The open conversation, as it now stands. Kept by id rather than by
+      // identity so the header, the details pane and the composer all follow.
+      final open = _open;
+      if (open != null) {
+        for (final c in fresh) {
+          if (c.id == open.id) {
+            _open = c;
+            break;
+          }
+        }
+      }
+    });
+  }
 
   /// A reply has gone. The conversation is no longer waiting for one, so it
   /// moves out of the first group and the list is put back in order.
@@ -74,7 +170,7 @@ class _InboxPageState extends State<InboxPage> {
 
     setState(() {
       _open = updated;
-      _afterReply = inboxOrder([
+      _live = inboxOrder([
         for (final c in current) c.id == updated.id ? updated : c,
       ]);
     });
@@ -109,7 +205,7 @@ class _InboxPageState extends State<InboxPage> {
               );
             }
 
-            final all = _afterReply ?? snapshot.data!;
+            final all = _live ?? snapshot.data!;
 
             final list = _ConversationList(
               conversations: all,
@@ -142,6 +238,7 @@ class _InboxPageState extends State<InboxPage> {
                       onBack: () => setState(() => _open = null),
                       onMessages: (m) => setState(() => _messages = m),
                       onSent: (m) => _sent(all, m),
+                      revision: _revision,
                     ),
                   );
                 }
@@ -160,6 +257,7 @@ class _InboxPageState extends State<InboxPage> {
                               conversation: _open!,
                               onMessages: (m) => setState(() => _messages = m),
                               onSent: (m) => _sent(all, m),
+                              revision: _revision,
                             ),
                     ),
                     if (_open != null &&
@@ -415,7 +513,11 @@ class _ConversationRowState extends State<_ConversationRow> {
                       ? _WaitRail(expiresAt: c.windowExpiresAt)
                       : null,
                 ),
-                _Monogram(name: name, platform: c.platform),
+                _Monogram(
+                  name: name,
+                  platform: c.platform,
+                  avatarUrl: c.customerAvatarUrl,
+                ),
                 const SizedBox(width: 13),
                 Expanded(
                   child: Column(
@@ -532,10 +634,19 @@ class _WaitRail extends StatelessWidget {
 /// anchors nothing. The platform rides on the monogram instead of taking its
 /// own column.
 class _Monogram extends StatelessWidget {
-  const _Monogram({required this.name, required this.platform});
+  const _Monogram({
+    required this.name,
+    required this.platform,
+    this.avatarUrl,
+  });
 
   final String name;
   final String platform;
+
+  /// Meta's own URL, which expires after about 30 days. Nothing is downloaded
+  /// and stored, because the monogram below is a good enough answer when it
+  /// eventually breaks — and it is already drawn.
+  final String? avatarUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -545,26 +656,46 @@ class _Monogram extends StatelessWidget {
     final initial =
         trimmed.isEmpty ? '·' : String.fromCharCode(trimmed.runes.first);
 
+    final monogram = Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        color: colors.accentSoft,
+        shape: BoxShape.circle,
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        initial.toUpperCase(),
+        style: Style.monogram.copyWith(color: colors.accent),
+        textAlign: TextAlign.center,
+      ),
+    );
+
     return SizedBox(
       width: 36,
       height: 36,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: colors.accentSoft,
-              shape: BoxShape.circle,
+          if (avatarUrl == null)
+            monogram
+          else
+            ClipOval(
+              child: Image.network(
+                avatarUrl!,
+                width: 36,
+                height: 36,
+                fit: BoxFit.cover,
+                // An expired URL, a blocked request, or no network. The
+                // monogram is the answer in all three, and it is the same
+                // shape and size, so nothing moves when it takes over.
+                errorBuilder: (context, error, stack) => monogram,
+                // Shown rather than nothing while it loads: a hole where a
+                // face will appear reads as broken.
+                frameBuilder: (context, child, frame, wasSynchronous) =>
+                    frame == null && !wasSynchronous ? monogram : child,
+              ),
             ),
-            alignment: Alignment.center,
-            child: Text(
-              initial.toUpperCase(),
-              style: Style.monogram.copyWith(color: colors.accent),
-              textAlign: TextAlign.center,
-            ),
-          ),
           PositionedDirectional(
             bottom: -3,
             end: -4,
@@ -780,10 +911,15 @@ class _Thread extends StatefulWidget {
     this.onBack,
     this.onMessages,
     this.onSent,
+    this.revision = 0,
   });
 
   final Inbox inbox;
   final Conversation conversation;
+
+  /// Changes when the database says something happened. The thread reloads,
+  /// which is how a customer's reply appears without the seller reloading.
+  final int revision;
 
   /// Only set when the thread has the screen to itself.
   final VoidCallback? onBack;
@@ -809,7 +945,35 @@ class _ThreadState extends State<_Thread> {
   List<Message> _loaded = const [];
   final List<Message> _sent = [];
 
-  List<Message> get _all => [..._loaded, ..._sent];
+  List<Message> get _all => mergeMessages(_loaded, _sent);
+
+  @override
+  void didUpdateWidget(_Thread old) {
+    super.didUpdateWidget(old);
+    if (old.revision != widget.revision) _reload();
+  }
+
+  /// Reads the conversation again, without dropping what is on screen.
+  ///
+  /// The future is deliberately not replaced: doing that empties the builder
+  /// and blanks the thread the seller is reading, for as long as the query
+  /// takes.
+  Future<void> _reload() async {
+    final List<Message> messages;
+    try {
+      messages = await widget.inbox.messages(widget.conversation.id);
+    } catch (_) {
+      return;
+    }
+
+    if (!mounted) return;
+
+    // Anything sent from here that has since come back — our own echo, most
+    // often — is dropped by mergeMessages rather than shown twice.
+    setState(() => _loaded = messages);
+
+    widget.onMessages?.call(_all);
+  }
 
   void _handleSent(Message message) {
     setState(() => _sent.add(message));
@@ -860,7 +1024,11 @@ class _ThreadState extends State<_Thread> {
                     color: colors.ink,
                     tooltip: context.l.backToInbox,
                   ),
-                _Monogram(name: name, platform: c.platform),
+                _Monogram(
+                  name: name,
+                  platform: c.platform,
+                  avatarUrl: c.customerAvatarUrl,
+                ),
                 const SizedBox(width: 13),
                 Expanded(
                   child: Column(

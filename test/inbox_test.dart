@@ -28,6 +28,7 @@ Conversation _conversation({
     id: id,
     platform: 'messenger',
     customerName: id,
+    customerAvatarUrl: null,
     preview: null,
     lastMessageType: 'text',
     // A reply is the newest message when one exists, otherwise the customer's
@@ -212,6 +213,62 @@ void _elapsed() {
 }
 
 void _arabic() {
+  group('a message arriving while the thread is open', () {
+    Message msg(String mid, Duration ago, {String? text}) => Message(
+          id: 'row_$mid',
+          mid: mid,
+          text: text ?? mid,
+          attachments: const [],
+          inbound: false,
+          sentAt: _now.subtract(ago),
+        );
+
+    test('a reply we sent is not shown twice when its echo arrives', () {
+      // The reply is shown the instant Meta accepts it, and the same reply
+      // comes back through the webhook moments later as an echo. Without this
+      // the seller watches their own message appear a second time.
+      final pending = msg('m_1', const Duration(seconds: 2));
+      final stored = msg('m_1', const Duration(seconds: 2));
+
+      final shown = mergeMessages([stored], [pending]);
+
+      expect(shown.length, 1);
+      // The stored row wins: it is the real one, with the real id.
+      expect(shown.single.id, 'row_m_1');
+    });
+
+    test('a reply that has not come back yet is still shown', () {
+      // Between sending and the echo arriving there is a gap. The seller must
+      // see their own message during it.
+      final shown = mergeMessages(
+        [msg('m_old', const Duration(hours: 1))],
+        [msg('m_new', const Duration(seconds: 1))],
+      );
+
+      expect(shown.map((m) => m.mid), ['m_old', 'm_new']);
+    });
+
+    test('a message delivered late sits at its own time, not at the end', () {
+      // Meta does not guarantee order. Appending would put an older message
+      // below a newer one and break the time grouping in the thread.
+      final shown = mergeMessages(
+        [
+          msg('m_first', const Duration(minutes: 30)),
+          msg('m_third', const Duration(minutes: 5)),
+        ],
+        [msg('m_second', const Duration(minutes: 20))],
+      );
+
+      expect(shown.map((m) => m.mid), ['m_first', 'm_second', 'm_third']);
+    });
+
+    test('an empty thread and an empty pending list are both fine', () {
+      expect(mergeMessages(const [], const []), isEmpty);
+      expect(mergeMessages([msg('m_1', Duration.zero)], const []).length, 1);
+      expect(mergeMessages(const [], [msg('m_1', Duration.zero)]).length, 1);
+    });
+  });
+
   group('whether a reply is still allowed', () {
     test('an answered conversation can still be replied to', () {
       // The bug this pins: reading "can I reply?" as "is the customer waiting?"
@@ -254,6 +311,7 @@ void _arabic() {
   group('sending a reply', () {
     Message reply(String text) => Message(
           id: 'm_local',
+          mid: 'm_local',
           text: text,
           attachments: const [],
           inbound: false,
