@@ -85,6 +85,43 @@ class LEn extends L {
   String get replyingNotBuilt => 'Replying is not built yet.';
 
   @override
+  String get setPasswordTitle => 'Choose a password';
+
+  @override
+  String get setPasswordWelcome =>
+      'Welcome to Rabta. Choose a password for your account, and use it to sign in from now on.';
+
+  @override
+  String get setPasswordRenew => 'Choose a new password for your account.';
+
+  @override
+  String get newPasswordLabel => 'Password';
+
+  @override
+  String get passwordTooShort => 'Use at least 8 characters.';
+
+  @override
+  String get showPassword => 'Show password';
+
+  @override
+  String get hidePassword => 'Hide password';
+
+  @override
+  String get setPasswordAction => 'Save and continue';
+
+  @override
+  String get setPasswordSaving => 'Saving';
+
+  @override
+  String setPasswordFailed(String error) {
+    return 'Could not save the password. $error';
+  }
+
+  @override
+  String get inviteExpired =>
+      'This invitation link has expired. Ask for a new one.';
+
+  @override
   String get accounts => 'Accounts';
 
   @override

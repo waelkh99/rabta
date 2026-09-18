@@ -161,11 +161,21 @@ only; the receiving path in section 2 is still uncovered.
       browser: it leaves for Meta's approval page in the same tab, carrying
       the config id and a state signed with the workspace from the seller's
       own session. Completing it needs a real Facebook login.
-- [ ] Public sign-up turned off — checked 18 September and currently **on**,
-      so anyone who finds the URL can create an account. One dashboard toggle;
-      `supabase config push` is the wrong tool, see `DECISIONS.md`.
-- [ ] Accounts created by invitation, so a seller sets their own password
-- [ ] Password reset, so a forgotten password is not a support message
+- [x] Public sign-up turned off — verified 18 September: `/auth/v1/settings`
+      reports `disable_signup: true` and a real attempt returns 422
+      `signup_disabled`.
+- [x] Accounts created by invitation, so a seller sets their own password —
+      `npm run invite -- them@example.com`. Walked end to end: the link lands
+      on a choose-a-password screen, and the seller can then sign out and sign
+      back in with what they chose.
+- [ ] Custom SMTP, so invitations actually arrive — Supabase's built-in sender
+      is rate limited and not for production. Until then use `--link` and send
+      the link yourself.
+- [ ] Site URL set to the application's origin — still `http://localhost:3000`,
+      the Supabase default, which is where any link falls back to
+- [ ] Password reset, so a forgotten password is not a support message — the
+      screen that a reset link lands on is built and the routing handles
+      `type=recovery`; what is missing is the button that sends the email
 - [x] Two-pane layout: conversation list beside the open conversation
 - [x] Conversation list: awaiting a reply first, longest wait at the top, then
       answered conversations newest first

@@ -87,6 +87,42 @@ class LAr extends L {
   String get replyingNotBuilt => 'إرسال الردود غير متاح بعد.';
 
   @override
+  String get setPasswordTitle => 'اختر كلمة المرور';
+
+  @override
+  String get setPasswordWelcome =>
+      'أهلاً بك في ربطة. اختر كلمة مرور لحسابك لتدخل بها من الآن فصاعداً.';
+
+  @override
+  String get setPasswordRenew => 'اختر كلمة مرور جديدة لحسابك.';
+
+  @override
+  String get newPasswordLabel => 'كلمة المرور';
+
+  @override
+  String get passwordTooShort => 'كلمة المرور من 8 أحرف على الأقل.';
+
+  @override
+  String get showPassword => 'إظهار كلمة المرور';
+
+  @override
+  String get hidePassword => 'إخفاء كلمة المرور';
+
+  @override
+  String get setPasswordAction => 'حفظ ومتابعة';
+
+  @override
+  String get setPasswordSaving => 'جارٍ الحفظ';
+
+  @override
+  String setPasswordFailed(String error) {
+    return 'تعذّر حفظ كلمة المرور. $error';
+  }
+
+  @override
+  String get inviteExpired => 'انتهت صلاحية رابط الدعوة. اطلب رابطاً جديداً.';
+
+  @override
   String get accounts => 'الحسابات';
 
   @override

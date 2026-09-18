@@ -28,6 +28,21 @@
   "replyWindowClosedLong": "The reply window has closed. You can answer again once this customer writes to you.",
   "replyingNotBuilt": "Replying is not built yet.",
 
+  "setPasswordTitle": "Choose a password",
+  "setPasswordWelcome": "Welcome to Rabta. Choose a password for your account, and use it to sign in from now on.",
+  "setPasswordRenew": "Choose a new password for your account.",
+  "newPasswordLabel": "Password",
+  "passwordTooShort": "Use at least 8 characters.",
+  "showPassword": "Show password",
+  "hidePassword": "Hide password",
+  "setPasswordAction": "Save and continue",
+  "setPasswordSaving": "Saving",
+  "setPasswordFailed": "Could not save the password. {error}",
+  "@setPasswordFailed": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "inviteExpired": "This invitation link has expired. Ask for a new one.",
+
   "accounts": "Accounts",
   "connectTitle": "Connect your accounts",
   "connectBody": "Instagram and Messenger messages arrive here once you connect your Page. Anything sent before you connect stays in Meta's apps.",

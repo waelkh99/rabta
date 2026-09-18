@@ -102,11 +102,16 @@ observe that, and browsers do not do it.
   delivers messages from accounts holding a role on it. This is now on the
   critical path rather than a background task: Instagram cannot be verified
   until it is done.
-- **Public sign-up is still open.** `/auth/v1/settings` reports
-  `disable_signup: false`, so anyone who finds the URL can create an account.
-  One dashboard toggle, and the first thing to do before a real customer.
-- **Accounts are not created by invitation yet**, and there is no password
-  reset, so a seller who forgets theirs has no way back in but us.
+- **Custom SMTP.** Supabase's built-in sender is rate limited to a handful of
+  messages an hour and is explicitly not for production, so an invitation email
+  can fail to arrive at the worst moment. Until it is configured, invite with
+  `--link` and send the link yourself.
+- **Site URL is still `http://localhost:3000`**, the Supabase default. Any
+  link whose redirect is not on the allowlist falls back to it, so it has to
+  become the real origin once there is one.
+- **Sending a password reset.** The screen a reset link lands on is built and
+  the routing handles `type=recovery`; what is missing is the button on the
+  sign-in screen that sends the email.
 - **The font is fetched rather than bundled.**
   Almarai renders, but through `google_fonts`, which pulls it from Google's CDN
   at runtime. Subsetting it to the two weights actually used and serving it
@@ -153,6 +158,38 @@ covered the moment it is added instead of silently going untested.
 **Applied to the live database**, and confirmed on 18 September by selecting
 `last_message_type` through the live REST API — with a nonexistent column as
 the control, which returns 400 where the real one returns 200.
+
+## Accounts are made by invitation
+
+Public sign-up is off — verified on 18 September: `/auth/v1/settings` reports
+`disable_signup: true` and a real attempt returns 422 `signup_disabled`. An
+account exists only because we made one.
+
+```
+cd supabase
+npm run invite -- them@example.com --link
+```
+
+The seller chooses their own password from the link, so it is never ours and
+never travels through a chat. Their workspace is created by the signup trigger
+the moment the account exists, so there is nothing else to set up.
+
+**Walked end to end on 18 September**, with every probe account deleted
+afterwards: an invitation link opened the choose-a-password screen, a password
+under eight characters was refused, a real one was accepted, and the seller was
+then able to sign out and sign back in with what they had chosen. The session
+was checked to belong to the invited account rather than assumed.
+
+Two things found by running it rather than reading about it:
+
+- **`redirect_to` is a top-level field**, not nested under `options`. Nested,
+  it is silently ignored and the link falls back to the project's Site URL —
+  which is how an invitation ends up pointing at a server nobody is running.
+  The first link generated did exactly that.
+- **The redirect allowlist is enforced.** `https://evil.example` was refused
+  and fell back to the Site URL, while `http://localhost:5353` was accepted.
+
+---
 
 ## Where we are
 

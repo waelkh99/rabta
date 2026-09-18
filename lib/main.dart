@@ -20,6 +20,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'inbox_page.dart';
 import 'l10n/app_localizations.dart';
 import 'locale_switch.dart';
+import 'set_password_page.dart';
 import 'sign_in_page.dart';
 import 'theme.dart';
 
@@ -37,8 +38,31 @@ Locale? get _requestedLocale {
   return L.supportedLocales.where((l) => l.languageCode == asked).firstOrNull;
 }
 
+/// Why this browser was opened, according to the link that opened it.
+///
+/// An invitation arrives as `#access_token=...&type=invite`, which signs the
+/// seller in with no password of their own. Read here, before
+/// `Supabase.initialize`, because that consumes the fragment and clears it —
+/// after which nothing distinguishes an invited seller from a returning one,
+/// and they would be dropped into the inbox with an account they can never sign
+/// into again.
+String? _linkType;
+
+String? _typeFromUrl() {
+  final fragment = Uri.base.fragment;
+  if (fragment.isEmpty || !fragment.contains('type=')) return null;
+
+  try {
+    return Uri.splitQueryString(fragment)['type'];
+  } catch (_) {
+    return null;
+  }
+}
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  _linkType = _typeFromUrl();
 
   if (_url.isEmpty || _key.isEmpty) {
     runApp(const RabtaApp(configured: false));
@@ -92,18 +116,49 @@ class RabtaApp extends StatelessWidget {
   }
 }
 
-class _AuthGate extends StatelessWidget {
+class _AuthGate extends StatefulWidget {
   const _AuthGate();
+
+  @override
+  State<_AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<_AuthGate> {
+  /// Set when the seller arrived on a link that hands them a session without a
+  /// password: an invitation, or a reset. They go to the inbox only once they
+  /// have chosen one, because the session they arrived on will expire and take
+  /// the account with it.
+  late bool _mustChoosePassword =
+      _linkType == 'invite' || _linkType == 'recovery';
+
+  bool get _returning => _linkType == 'recovery';
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<AuthState>(
       stream: Supabase.instance.client.auth.onAuthStateChange,
       builder: (context, snapshot) {
+        // A reset can also arrive as an event rather than in the URL.
+        if (snapshot.data?.event == AuthChangeEvent.passwordRecovery) {
+          _mustChoosePassword = true;
+        }
+
         // currentSession rather than the stream event, so a restored session
         // shows the inbox immediately instead of flashing the sign-in screen.
         final session = Supabase.instance.client.auth.currentSession;
-        return session == null ? const SignInPage() : const InboxPage();
+        if (session == null) return const SignInPage();
+
+        if (_mustChoosePassword) {
+          return SetPasswordPage(
+            returning: _returning,
+            onDone: () => setState(() {
+              _mustChoosePassword = false;
+              _linkType = null;
+            }),
+          );
+        }
+
+        return const InboxPage();
       },
     );
   }

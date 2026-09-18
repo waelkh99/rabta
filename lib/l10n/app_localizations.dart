@@ -217,6 +217,72 @@ abstract class L {
   /// **'إرسال الردود غير متاح بعد.'**
   String get replyingNotBuilt;
 
+  /// No description provided for @setPasswordTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر كلمة المرور'**
+  String get setPasswordTitle;
+
+  /// Arriving from an invitation. The account exists; it has no password yet.
+  ///
+  /// In ar, this message translates to:
+  /// **'أهلاً بك في ربطة. اختر كلمة مرور لحسابك لتدخل بها من الآن فصاعداً.'**
+  String get setPasswordWelcome;
+
+  /// No description provided for @setPasswordRenew.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر كلمة مرور جديدة لحسابك.'**
+  String get setPasswordRenew;
+
+  /// No description provided for @newPasswordLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'كلمة المرور'**
+  String get newPasswordLabel;
+
+  /// No description provided for @passwordTooShort.
+  ///
+  /// In ar, this message translates to:
+  /// **'كلمة المرور من 8 أحرف على الأقل.'**
+  String get passwordTooShort;
+
+  /// No description provided for @showPassword.
+  ///
+  /// In ar, this message translates to:
+  /// **'إظهار كلمة المرور'**
+  String get showPassword;
+
+  /// No description provided for @hidePassword.
+  ///
+  /// In ar, this message translates to:
+  /// **'إخفاء كلمة المرور'**
+  String get hidePassword;
+
+  /// No description provided for @setPasswordAction.
+  ///
+  /// In ar, this message translates to:
+  /// **'حفظ ومتابعة'**
+  String get setPasswordAction;
+
+  /// No description provided for @setPasswordSaving.
+  ///
+  /// In ar, this message translates to:
+  /// **'جارٍ الحفظ'**
+  String get setPasswordSaving;
+
+  /// No description provided for @setPasswordFailed.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعذّر حفظ كلمة المرور. {error}'**
+  String setPasswordFailed(String error);
+
+  /// Invite links expire. Without saying so the seller only sees that nothing works.
+  ///
+  /// In ar, this message translates to:
+  /// **'انتهت صلاحية رابط الدعوة. اطلب رابطاً جديداً.'**
+  String get inviteExpired;
+
   /// No description provided for @accounts.
   ///
   /// In ar, this message translates to:

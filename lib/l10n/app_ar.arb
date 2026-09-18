@@ -41,6 +41,27 @@
   "replyWindowClosedLong": "أُغلقت نافذة الرد. يمكنك الرد مجدداً عندما يراسلك هذا الزبون.",
   "replyingNotBuilt": "إرسال الردود غير متاح بعد.",
 
+  "setPasswordTitle": "اختر كلمة المرور",
+  "setPasswordWelcome": "أهلاً بك في ربطة. اختر كلمة مرور لحسابك لتدخل بها من الآن فصاعداً.",
+  "@setPasswordWelcome": {
+    "description": "Arriving from an invitation. The account exists; it has no password yet."
+  },
+  "setPasswordRenew": "اختر كلمة مرور جديدة لحسابك.",
+  "newPasswordLabel": "كلمة المرور",
+  "passwordTooShort": "كلمة المرور من 8 أحرف على الأقل.",
+  "showPassword": "إظهار كلمة المرور",
+  "hidePassword": "إخفاء كلمة المرور",
+  "setPasswordAction": "حفظ ومتابعة",
+  "setPasswordSaving": "جارٍ الحفظ",
+  "setPasswordFailed": "تعذّر حفظ كلمة المرور. {error}",
+  "@setPasswordFailed": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "inviteExpired": "انتهت صلاحية رابط الدعوة. اطلب رابطاً جديداً.",
+  "@inviteExpired": {
+    "description": "Invite links expire. Without saying so the seller only sees that nothing works."
+  },
+
   "accounts": "الحسابات",
   "connectTitle": "اربط حساباتك",
   "connectBody": "تصل رسائل إنستغرام وماسنجر إلى هنا بعد ربط صفحتك. أما ما أُرسل قبل الربط فيبقى في تطبيقات ميتا.",

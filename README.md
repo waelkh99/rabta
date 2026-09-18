@@ -82,6 +82,30 @@ back to Arabic. `?lang=ar` or `?lang=en` overrides that, which is how to see the
 other language without changing the whole browser. There is also a language
 switch on the sign-in screen and in the inbox header.
 
+## Giving someone an account
+
+There is no public sign-up: `disable_signup` is on, so an account only exists
+because we made one. Inviting is how, and it means the seller chooses their own
+password — we never know it and it never travels through a chat.
+
+```
+cd supabase
+npm run invite -- them@example.com          # sends the invitation by email
+npm run invite -- them@example.com --link   # prints the link instead
+```
+
+Use `--link` until custom SMTP is configured. Supabase's built-in sender is
+rate limited to a handful of messages an hour and is explicitly not for
+production, so a real invitation can fail to arrive at the worst moment.
+
+The link lands on a screen that asks them to choose a password, and their
+workspace is created by the database trigger the moment the account exists.
+Links expire — Supabase's default is 24 hours — and are single use.
+
+`--return <origin>` sets where the link lands, defaulting to the development
+origin. It must be an allowed redirect URL on the project, or Supabase quietly
+substitutes the Site URL instead.
+
 Sign in while developing with `webhook-test@rabta.local` / `rabta-dev-2026` —
 see `STATUS.md` for what that account owns.
 
