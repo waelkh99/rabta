@@ -1,0 +1,75 @@
+{
+  "@@locale": "en",
+
+  "tagline": "Every customer message, Instagram and Messenger, in one place.",
+
+  "emailLabel": "Email",
+  "passwordLabel": "Password",
+  "signIn": "Sign in",
+  "signingIn": "Signing in",
+  "signOut": "Sign out",
+
+  "signInWrongCredentials": "That email and password do not match an account.",
+  "signInFailed": "Could not sign in. {error}",
+
+  "customersWaiting": "{count, plural, =0{Nobody is waiting} =1{1 customer waiting} other{{count} customers waiting}}",
+
+  "everyoneAnswered": "Everyone has been answered",
+  "waitingForReply": "Waiting for a reply",
+  "answered": "Answered",
+  "customer": "Customer",
+
+  "noConversationsTitle": "No conversations yet",
+  "noConversationsBody": "Messages arrive here as customers write to you. Anything sent before you connected stays in Meta's apps.",
+
+  "longestWait": "Longest wait",
+  "windowExplanation": "Meta closes the reply window 24 hours after a customer writes. After that you cannot reply until they write again.",
+  "replyWindowClosedShort": "The reply window has closed",
+  "replyWindowClosedLong": "The reply window has closed. You can answer again once this customer writes to you.",
+  "replyingNotBuilt": "Replying is not built yet.",
+
+  "minutesLeftToReply": "{count}m left to reply",
+  "hoursLeftToReply": "{count}h left to reply",
+
+  "justNow": "now",
+  "minutesAgo": "{count}m",
+  "hoursAgo": "{count}h",
+  "daysAgo": "{count}d",
+  "weeksAgo": "{count}w",
+
+  "attachmentPhoto": "Photo",
+  "attachmentVideo": "Video",
+  "attachmentVoice": "Voice message",
+  "attachmentFile": "File",
+  "attachmentShare": "Shared post",
+  "attachmentOther": "Attachment",
+  "photoExpired": "This photo has expired",
+
+  "backToInbox": "Back to inbox",
+  "inboxFailedTitle": "The inbox did not load",
+  "inboxFailedBody": "Check your connection, then reload the page.",
+  "messagesFailedTitle": "These messages did not load",
+  "messagesFailedBody": "Reload the page to try again.",
+
+  "platformInstagram": "Instagram",
+  "platformMessenger": "Messenger",
+
+  "missingConfigurationTitle": "Missing configuration",
+  "missingConfigurationBody": "SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY are compiled in. Run with --dart-define-from-file=env.json — see README.md.",
+
+  "languageArabic": "العربية",
+  "languageEnglish": "English",
+  "language": "Language",
+  "pitchOne": "Instagram and Messenger in one inbox.",
+  "pitchTwo": "Whoever waited longest comes first.",
+  "pitchThree": "See how long you have left before you type.",
+  "aboutCustomer": "About this customer",
+  "detailPlatform": "Platform",
+  "detailFirstWrote": "First message",
+  "detailMessages": "Messages",
+  "detailReplyWindow": "Reply window",
+  "messageCount": "{count, plural, =0{No messages} =1{1 message} other{{count} messages}}",
+  "windowOpen": "Open",
+  "windowClosed": "Closed",
+  "detailsHidden": "Details"
+}

@@ -1,0 +1,227 @@
+// ignore: unused_import
+import 'package:intl/intl.dart' as intl;
+import 'app_localizations.dart';
+
+// ignore_for_file: type=lint
+
+/// The translations for Arabic (`ar`).
+class LAr extends L {
+  LAr([String locale = 'ar']) : super(locale);
+
+  @override
+  String get tagline => 'كل رسائل زبائنك، من إنستغرام وماسنجر، في مكان واحد.';
+
+  @override
+  String get emailLabel => 'البريد الإلكتروني';
+
+  @override
+  String get passwordLabel => 'كلمة المرور';
+
+  @override
+  String get signIn => 'تسجيل الدخول';
+
+  @override
+  String get signingIn => 'جارٍ تسجيل الدخول';
+
+  @override
+  String get signOut => 'تسجيل الخروج';
+
+  @override
+  String get signInWrongCredentials =>
+      'البريد الإلكتروني أو كلمة المرور غير صحيحة.';
+
+  @override
+  String signInFailed(String error) {
+    return 'تعذّر تسجيل الدخول. $error';
+  }
+
+  @override
+  String customersWaiting(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count زبون ينتظر',
+      many: '$count زبوناً ينتظرون',
+      few: '$count زبائن ينتظرون',
+      two: 'زبونان ينتظران',
+      one: 'زبون واحد ينتظر',
+      zero: 'لا أحد ينتظر',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get everyoneAnswered => 'تمّت الإجابة على الجميع';
+
+  @override
+  String get waitingForReply => 'بانتظار الرد';
+
+  @override
+  String get answered => 'تمّت الإجابة';
+
+  @override
+  String get customer => 'زبون';
+
+  @override
+  String get noConversationsTitle => 'لا توجد محادثات بعد';
+
+  @override
+  String get noConversationsBody =>
+      'تظهر الرسائل هنا عندما يراسلك الزبائن. أما ما أُرسل قبل ربط حسابك فيبقى في تطبيقات ميتا.';
+
+  @override
+  String get longestWait => 'أطول انتظار';
+
+  @override
+  String get windowExplanation =>
+      'تُغلق ميتا نافذة الرد بعد 24 ساعة من رسالة الزبون. بعدها لا يمكنك الرد حتى يراسلك من جديد.';
+
+  @override
+  String get replyWindowClosedShort => 'أُغلقت نافذة الرد';
+
+  @override
+  String get replyWindowClosedLong =>
+      'أُغلقت نافذة الرد. يمكنك الرد مجدداً عندما يراسلك هذا الزبون.';
+
+  @override
+  String get replyingNotBuilt => 'إرسال الردود غير متاح بعد.';
+
+  @override
+  String minutesLeftToReply(int count) {
+    return '$count د للرد';
+  }
+
+  @override
+  String hoursLeftToReply(int count) {
+    return '$count س للرد';
+  }
+
+  @override
+  String get justNow => 'الآن';
+
+  @override
+  String minutesAgo(int count) {
+    return '$count د';
+  }
+
+  @override
+  String hoursAgo(int count) {
+    return '$count س';
+  }
+
+  @override
+  String daysAgo(int count) {
+    return '$count ي';
+  }
+
+  @override
+  String weeksAgo(int count) {
+    return '$count أ';
+  }
+
+  @override
+  String get attachmentPhoto => 'صورة';
+
+  @override
+  String get attachmentVideo => 'فيديو';
+
+  @override
+  String get attachmentVoice => 'رسالة صوتية';
+
+  @override
+  String get attachmentFile => 'ملف';
+
+  @override
+  String get attachmentShare => 'منشور مشارَك';
+
+  @override
+  String get attachmentOther => 'مرفق';
+
+  @override
+  String get photoExpired => 'انتهت صلاحية هذه الصورة';
+
+  @override
+  String get backToInbox => 'العودة إلى الوارد';
+
+  @override
+  String get inboxFailedTitle => 'تعذّر تحميل الوارد';
+
+  @override
+  String get inboxFailedBody => 'تحقّق من اتصالك ثم أعد تحميل الصفحة.';
+
+  @override
+  String get messagesFailedTitle => 'تعذّر تحميل هذه الرسائل';
+
+  @override
+  String get messagesFailedBody => 'أعد تحميل الصفحة للمحاولة مرة أخرى.';
+
+  @override
+  String get platformInstagram => 'إنستغرام';
+
+  @override
+  String get platformMessenger => 'ماسنجر';
+
+  @override
+  String get missingConfigurationTitle => 'إعدادات ناقصة';
+
+  @override
+  String get missingConfigurationBody =>
+      'قيمتا SUPABASE_URL و SUPABASE_PUBLISHABLE_KEY تُدمجان وقت البناء. شغّل التطبيق مع ‎--dart-define-from-file=env.json‎ — انظر README.md.';
+
+  @override
+  String get languageArabic => 'العربية';
+
+  @override
+  String get languageEnglish => 'English';
+
+  @override
+  String get language => 'اللغة';
+
+  @override
+  String get pitchOne => 'محادثات إنستغرام وماسنجر في وارد واحد.';
+
+  @override
+  String get pitchTwo => 'من ينتظر أطول يظهر في الأعلى.';
+
+  @override
+  String get pitchThree => 'تعرف كم بقي لك للرد قبل أن تكتب.';
+
+  @override
+  String get aboutCustomer => 'عن الزبون';
+
+  @override
+  String get detailPlatform => 'المنصة';
+
+  @override
+  String get detailFirstWrote => 'أول رسالة';
+
+  @override
+  String get detailMessages => 'الرسائل';
+
+  @override
+  String get detailReplyWindow => 'نافذة الرد';
+
+  @override
+  String messageCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count رسالة',
+      many: '$count رسالة',
+      few: '$count رسائل',
+      two: 'رسالتان',
+      one: 'رسالة واحدة',
+      zero: 'لا رسائل',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get windowOpen => 'مفتوحة';
+
+  @override
+  String get windowClosed => 'مُغلقة';
+
+  @override
+  String get detailsHidden => 'التفاصيل';
+}
