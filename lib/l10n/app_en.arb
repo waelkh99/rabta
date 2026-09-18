@@ -28,6 +28,18 @@
   "replyWindowClosedLong": "The reply window has closed. You can answer again once this customer writes to you.",
   "replyingNotBuilt": "Replying is not built yet.",
 
+  "composerHint": "Write your reply",
+  "sendReply": "Send",
+  "sending": "Sending",
+
+  "sendFailedTooLong": "This reply is longer than the platform allows. Shorten it a little.",
+  "sendFailedWindowClosed": "The reply window closed while you were writing, so your reply was not sent.",
+  "sendFailedNoWindow": "You cannot reply until this customer writes to you.",
+  "sendFailedDisconnected": "Your account connection has expired. Reconnect it to reply.",
+  "sendFailedRejected": "The platform did not accept this reply, so it was not sent.",
+  "sendFailedUnreachable": "Could not reach the platform. Check your connection and try again.",
+  "sendFailedNotFound": "This conversation is no longer available.",
+
   "minutesLeftToReply": "{count}m left to reply",
   "hoursLeftToReply": "{count}h left to reply",
 

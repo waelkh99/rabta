@@ -82,10 +82,10 @@ on the first screen. Not fixed.
   delivers messages from accounts holding a role on it. This is now on the
   critical path rather than a background task: Instagram cannot be verified
   until it is done.
-- **Replying, live updates, and connecting an account from the interface.** The
-  read-only inbox is built and running — see "The interface" below. What it
-  cannot do is reply, notice a message arriving without a reload, or start the
-  connect flow without a URL pasted by hand.
+- **Live updates, and connecting an account from the interface.** The inbox
+  is built and running, and replying now works — see "The interface" below.
+  What it still cannot do is notice a message arriving without a reload, or
+  start the connect flow without a URL pasted by hand.
 - **The font is fetched rather than bundled.** Almarai renders, but through
   `google_fonts`, which pulls it from Google's CDN at runtime. Subsetting it to
   the two weights actually used and serving it ourselves is still to do, and
@@ -347,6 +347,45 @@ Meta's documentation says the first. Nothing has confirmed it for this app.
 
 ---
 
+## Replying works
+
+Built and run on 18 September. `send-message` is deployed, and a reply typed
+into the browser reached the customer with Meta echoing it back.
+
+The function authorises as the seller and writes as the service role: the
+conversation is read through the seller's own JWT so row level security proves
+it is theirs, and only the service role touches `account_tokens`. Refusals come
+back as codes and never sentences, so the interface picks the language.
+
+**Three things were found by running it that no test had caught:**
+
+- **CORS.** The function had no `Access-Control-Allow-Origin` and no preflight,
+  so the browser blocked the call before it left the page. Every earlier check
+  used curl, which does not enforce CORS. The origin allowlist built for the
+  OAuth return now lives in `functions/_shared/origins.ts` and serves both.
+- **The client blamed Meta for it.** A failure with no reason code was reported
+  as "the platform did not accept this reply", which would send a seller off
+  rewriting a message that was never the problem. A missing code now reads as
+  unreachable, because our function always returns one.
+- **The details pane and the composer contradicted each other** — "Reply window
+  closed" beside "8h left to reply", about the same conversation, on the same
+  screen. Both asked whether the customer wrote last; the right question is
+  whether the window is open, which is what the server enforces. Now one
+  predicate, `replyWindowOpen`, answers it for both.
+
+Also fixed while looking: the thread opened at the oldest message and did not
+follow a reply down, so a sent reply landed with its timestamp cut off by the
+composer. The list is anchored at the newest message instead.
+
+**Arabic went through the whole path**, typed into the composer in an English
+interface, right-to-left in the box, and echoed back by Meta unchanged.
+
+**Still to do here:** the seller's own sent bubble is built locally rather than
+read back, so its id and timestamp are approximate until the conversation is
+reopened. Nothing depends on either yet.
+
+---
+
 ## Next
 
 1. **Business verification and App Review, then publish the app.** This has
@@ -356,8 +395,9 @@ Meta's documentation says the first. Nothing has confirmed it for this app.
 2. Capture a real Instagram delivery and check `entry.id` against the value
    stored for the account — see above. Everything else about Instagram is
    already configured and confirmed.
-3. Build `send-message`.
-4. Start the application, and decide where it is hosted.
+3. ~~Build `send-message`.~~ **Done 18 September**, and proven end to end.
+4. Decide where the application is hosted, then add that origin to
+   `functions/_shared/origins.ts`.
 
 Before `meta-oauth` is exposed to a real seller it needs the return origin
 validated against an allowlist before redirecting, which is not yet written
@@ -397,21 +437,29 @@ in `DECISIONS.md` — principles, palette, typography, layout, language.
 - Arabic and English throughout, Arabic as the template and the fallback.
 - The app icon, generated into the web icon set by `tool/make_icons.py`.
 
-**Deliberately not built.** Sending a reply — `send-message` does not exist, so
-the composer states the reply window and says so rather than offering a box that
-fails. Realtime, so the list does not update until reloaded. Marking a
-conversation read. Connecting an account from the interface: that runs through
-`meta-oauth` in a browser, with the workspace id in the URL.
+**Replying is built.** The composer states the window before the seller types,
+Enter sends and Shift+Enter breaks the line, and a reply that failed stays in
+the box rather than asking the seller to type it again. Answering moves the
+conversation out of the waiting group immediately, without a reload and without
+dropping the inbox back to a spinner.
+
+**Deliberately not built.** Realtime, so the list does not update until
+reloaded. Marking a conversation read. Connecting an account from the
+interface: that runs through `meta-oauth` in a browser, with the workspace id
+in the URL.
 
 **Verified in a browser**, in both languages, at desktop and phone width:
 signing in, the list, opening a thread, Arabic and English messages side by side
 in one conversation, the real image attachment, the reply window countdown, the
 back gesture on a phone, and session restore on reload. Console clean.
 
-**22 tests.** The ones worth knowing about are the ordering, which caught an
-inverted comparison that would have left every answered conversation in the
-waiting group; the Arabic plurals; and a scan of the whole Arabic file for
-Eastern numerals, which caught a `٢٤` that two spot-checks had missed.
+**32 tests on the client, 93 on the backend.** The ones worth knowing about are
+the ordering, which caught an inverted comparison that would have left every
+answered conversation in the waiting group; the Arabic plurals; a scan of the
+whole Arabic file for Eastern numerals, which caught a `٢٤` that two
+spot-checks had missed; and a test that no two refusal codes share a sentence,
+because a closed window and an expired connection need different actions from
+the seller.
 
 **Customer names are missing.** Meta does not send them with the message, so
 every conversation reads as "Customer". A Graph lookup per new customer would

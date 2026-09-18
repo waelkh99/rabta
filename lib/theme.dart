@@ -277,6 +277,20 @@ double? windowRemainingFraction(DateTime? expiresAt, {DateTime? now}) {
   return (left.inSeconds / window.inSeconds).clamp(0.0, 1.0);
 }
 
+/// Whether Meta will still accept a reply in this conversation.
+///
+/// The window decides this and nothing else. Whether the customer wrote last
+/// says who is waiting, which is a different question: a seller who has already
+/// answered may follow up for as long as the 24 hours run, and `send-message`
+/// on the server tests exactly this and nothing more.
+///
+/// One function because two readings of it disagreed on screen — the details
+/// pane said the window was closed while the composer offered eight hours to
+/// reply, about the same conversation, at the same moment.
+bool replyWindowOpen(DateTime? expiresAt, {DateTime? now}) =>
+    expiresAt != null &&
+    expiresAt.toUtc().isAfter(now ?? DateTime.now().toUtc());
+
 /// Under four hours the window stops being background information.
 bool windowClosingSoon(DateTime? expiresAt, {DateTime? now}) {
   final fraction = windowRemainingFraction(expiresAt, now: now);

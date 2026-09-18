@@ -41,6 +41,27 @@
   "replyWindowClosedLong": "أُغلقت نافذة الرد. يمكنك الرد مجدداً عندما يراسلك هذا الزبون.",
   "replyingNotBuilt": "إرسال الردود غير متاح بعد.",
 
+  "composerHint": "اكتب ردك",
+  "sendReply": "إرسال",
+  "sending": "جارٍ الإرسال",
+
+  "sendFailedTooLong": "هذا الرد أطول مما تسمح به المنصة. اختصره قليلاً.",
+  "@sendFailedTooLong": {
+    "description": "Instagram accepts half of what Messenger does, so this is reachable on a reply that would have been fine on the other platform."
+  },
+  "sendFailedWindowClosed": "أُغلقت نافذة الرد أثناء كتابتك، ولم يُرسل ردك.",
+  "@sendFailedWindowClosed": {
+    "description": "The window closed between opening the conversation and pressing send. The reply is still in the box."
+  },
+  "sendFailedNoWindow": "لا يمكنك الرد قبل أن يراسلك هذا الزبون.",
+  "sendFailedDisconnected": "انتهت صلاحية ربط حسابك. أعد ربطه لتتمكن من الرد.",
+  "@sendFailedDisconnected": {
+    "description": "The access token has expired. Without this the seller sees only that nothing works, and assumes business is quiet."
+  },
+  "sendFailedRejected": "لم تقبل المنصة هذا الرد، ولم يُرسل.",
+  "sendFailedUnreachable": "تعذّر الوصول إلى المنصة. تحقّق من اتصالك وحاول مرة أخرى.",
+  "sendFailedNotFound": "لم تعد هذه المحادثة متاحة.",
+
   "minutesLeftToReply": "{count} د للرد",
   "@minutesLeftToReply": {
     "placeholders": { "count": { "type": "int" } }

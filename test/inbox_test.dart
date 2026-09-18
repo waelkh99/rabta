@@ -12,6 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:rabta/data.dart';
 import 'package:rabta/l10n/app_localizations.dart';
+import 'package:rabta/strings.dart';
 import 'package:rabta/theme.dart';
 
 final _now = DateTime.utc(2026, 9, 18, 12, 0);
@@ -211,6 +212,106 @@ void _elapsed() {
 }
 
 void _arabic() {
+  group('whether a reply is still allowed', () {
+    test('an answered conversation can still be replied to', () {
+      // The bug this pins: reading "can I reply?" as "is the customer waiting?"
+      // put Closed in the details pane beside "8h left to reply" on the
+      // composer, about the same conversation, on the same screen. The window
+      // decides, and the seller may follow up inside it.
+      final answered = _conversation(
+        id: 'a',
+        inboundAgo: const Duration(hours: 16),
+        repliedAgo: const Duration(minutes: 5),
+      );
+
+      expect(answered.awaitingReply, isFalse);
+      expect(replyWindowOpen(answered.windowExpiresAt, now: _now), isTrue);
+    });
+
+    test('a conversation past its window cannot, however recent the reply', () {
+      final stale = _conversation(
+        id: 'a',
+        inboundAgo: const Duration(hours: 30),
+        repliedAgo: const Duration(minutes: 1),
+      );
+
+      expect(replyWindowOpen(stale.windowExpiresAt, now: _now), isFalse);
+    });
+
+    test('a conversation with no window at all cannot', () {
+      expect(replyWindowOpen(null, now: _now), isFalse);
+    });
+
+    test('the boundary falls closed, matching what the server enforces', () {
+      expect(replyWindowOpen(_now, now: _now), isFalse);
+      expect(
+        replyWindowOpen(_now.add(const Duration(seconds: 1)), now: _now),
+        isTrue,
+      );
+    });
+  });
+
+  group('sending a reply', () {
+    Message reply(String text) => Message(
+          id: 'm_local',
+          text: text,
+          attachments: const [],
+          inbound: false,
+          sentAt: _now,
+        );
+
+    test('a sent reply moves the conversation out of the waiting group', () {
+      // The point of the whole two-group order. If answering does not move a
+      // conversation, the list is lying about who still needs serving.
+      final waiting =
+          _conversation(id: 'a', inboundAgo: const Duration(hours: 3));
+      expect(waiting.awaitingReply, isTrue);
+
+      expect(waiting.afterReply(reply('On its way')).awaitingReply, isFalse);
+    });
+
+    test('a sent reply does not extend the reply window', () {
+      // Meta runs the 24 hours from the customer's message. Answering does not
+      // buy more time, and showing that it does would promise the seller a
+      // window they do not have. Confirmed on a real echo against the live
+      // database, and held here so the client cannot drift from it.
+      final before =
+          _conversation(id: 'a', inboundAgo: const Duration(hours: 20));
+      final after = before.afterReply(reply('Yes'));
+
+      expect(after.windowExpiresAt, before.windowExpiresAt);
+      expect(after.lastInboundAt, before.lastInboundAt);
+    });
+
+    test('a sent reply clears the unread count and becomes the preview', () {
+      final before =
+          _conversation(id: 'a', inboundAgo: const Duration(hours: 1));
+      expect(before.unreadCount, 1);
+
+      final after = before.afterReply(reply('نعم، متوفر'));
+
+      expect(after.unreadCount, 0);
+      expect(after.preview, 'نعم، متوفر');
+      expect(after.lastMessageType, 'text');
+    });
+
+    test('answering the longest waiter promotes the next one', () {
+      // The seller works down the waiting group. Answering the top row has to
+      // hand the top to whoever has now waited longest, or they never rise.
+      final oldest =
+          _conversation(id: 'oldest', inboundAgo: const Duration(hours: 20));
+      final next =
+          _conversation(id: 'next', inboundAgo: const Duration(hours: 6));
+
+      final before = inboxOrder([next, oldest]);
+      expect(before.first.id, 'oldest');
+
+      final after = inboxOrder([next, oldest.afterReply(reply('Sorry!'))]);
+      expect(after.first.id, 'next');
+      expect(after.last.id, 'oldest');
+    });
+  });
+
   group('Arabic', () {
     late L ar;
     late L en;
@@ -247,6 +348,9 @@ void _arabic() {
         'longestWait': (ar.longestWait, en.longestWait),
         'windowExplanation': (ar.windowExplanation, en.windowExplanation),
         'replyingNotBuilt': (ar.replyingNotBuilt, en.replyingNotBuilt),
+        'composerHint': (ar.composerHint, en.composerHint),
+        'sendReply': (ar.sendReply, en.sendReply),
+        'sending': (ar.sending, en.sending),
         'replyWindowClosedLong':
             (ar.replyWindowClosedLong, en.replyWindowClosedLong),
         'attachmentPhoto': (ar.attachmentPhoto, en.attachmentPhoto),
@@ -273,6 +377,49 @@ void _arabic() {
           reason: '${entry.key} contains no Arabic script',
         );
       }
+    });
+
+    test('every refusal a reply can meet has its own sentence, in both languages', () {
+      // The server answers with a code so that this choice is made here. Two
+      // codes sharing a sentence would tell the seller the same thing about
+      // different problems — a closed window and an expired connection need
+      // different actions from them.
+      const reasons = [
+        'too_long',
+        'window_closed',
+        'no_window',
+        'disconnected',
+        'unreachable',
+        'not_found',
+        'rejected',
+      ];
+
+      for (final language in [ar, en]) {
+        final said = <String, String>{};
+
+        for (final reason in reasons) {
+          final sentence = sendRefusal(language, reason);
+          expect(sentence, isNotEmpty, reason: '$reason is empty');
+          expect(
+            said.containsKey(sentence),
+            isFalse,
+            reason: '$reason says the same as ${said[sentence]}',
+          );
+          said[sentence] = reason;
+        }
+      }
+
+      for (final reason in reasons) {
+        expect(sendRefusal(ar, reason), isNot(sendRefusal(en, reason)));
+        expect(sendRefusal(ar, reason), matches(RegExp(r'[؀-ۿ]')));
+      }
+    });
+
+    test('a refusal we have never seen is stated plainly, not invented', () {
+      // Meta adds error codes without warning. An unfamiliar one must fall
+      // back to the honest sentence rather than to whichever branch is first.
+      expect(sendRefusal(en, 'something_new_from_meta'), en.sendFailedRejected);
+      expect(sendRefusal(ar, ''), ar.sendFailedRejected);
     });
 
     test('times keep Western numerals in Arabic', () {

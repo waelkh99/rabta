@@ -482,6 +482,74 @@ equal weight in `lib/wordmark.dart` and never drift apart.
 
 ---
 
+### 2026-09-18 — Replying: what decides it, what it says, and how it is sent
+
+Settled while building the composer, because each question only became real
+once there was a box to type into.
+
+**The reply window decides whether a seller may reply — not who wrote last.**
+These are different questions and conflating them is the mistake this entry
+exists to prevent. Whether the customer wrote last says who is *waiting*, which
+is what the two-group list order is built on. Whether Meta will accept a reply
+is decided by the 24 hours since the customer's message, and a seller who has
+already answered may follow up for as long as those run.
+
+Reading it the wrong way put **"Reply window — Closed" beside "8h left to
+reply"**, about the same conversation, on the same screen, the first time both
+panes were open together. Both now go through one predicate,
+`replyWindowOpen`, which tests exactly what `send-message` tests on the server.
+Client and server disagreeing here means the interface refuses what the
+platform would have accepted, or offers what it would not.
+
+**The server returns a refusal code; the client writes the sentence.** Same
+reasoning that put `last_message_type` in the database rather than the word
+"Photo": the server does not choose the seller's language. The codes are
+`empty`, `too_long`, `window_closed`, `no_window`, `not_found`, `disconnected`,
+`rejected` and `unreachable`.
+
+- **`no_window` is not `window_closed`.** A customer who has never written is a
+  different situation from one whose window has run out, and a seller can act
+  on the difference. A test asserts no two codes share a sentence.
+- **An unfamiliar code reads as a plain refusal.** Meta adds error codes
+  without warning, and a wrong explanation is worse than an honest "this did
+  not send".
+- **An answer carrying no code at all means we never heard from our own
+  function**, so it reads as unreachable rather than as Meta refusing. Getting
+  this wrong sends a seller off rewriting a message that was never the problem.
+
+**Enter sends; Shift+Enter breaks the line.** This is a keyboard job done all
+day, and it is what Messenger itself does. A reply that fails stays in the box —
+asking a seller to type it again is the worst thing this screen could do.
+
+**Answering updates the list locally rather than reloading it.** The
+conversation leaves the waiting group the instant Meta accepts the reply, with
+no round trip and no spinner across an inbox the seller is reading.
+`Conversation.afterReply` makes the same four changes the database trigger
+makes, and deliberately leaves `window_expires_at` alone, because answering
+does not extend the window.
+
+**The thread is anchored at its newest message**, with `reverse: true` rather
+than by scrolling after the fact. Scrolling afterwards races the layout, and it
+lost: a sent reply landed with its timestamp cut off behind the composer.
+
+**Consequences:**
+
+- The sent bubble is built in the client rather than read back, so its id and
+  timestamp are approximate until the conversation is reopened. Nothing depends
+  on either, and reading it back would cost a round trip on the path that most
+  needs to feel immediate.
+- **The origin allowlist is now shared.** `functions/_shared/origins.ts` serves
+  both the OAuth return redirect and the CORS check on `send-message`, so an
+  origin cannot be trusted for one and not the other, and the production domain
+  is one edit. CORS is not optional here: without it the reply is sent or
+  refused perfectly well and the seller sees neither — which is exactly what
+  happened, because every check until then had used curl, which does not
+  enforce it.
+- The echo of our own reply needed no new code. Storing the message under the
+  id Meta returns makes the echo collide with the existing unique `mid`.
+
+---
+
 ## Platform constraints
 
 These are not choices. They are limits Meta imposes, recorded here so they are

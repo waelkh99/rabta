@@ -39,7 +39,7 @@ class DetailsPanel extends StatelessWidget {
 
     final remaining = windowRemainingFraction(c.windowExpiresAt);
     final closing = windowClosingSoon(c.windowExpiresAt);
-    final open = c.awaitingReply && (remaining ?? 0) > 0;
+    final open = replyWindowOpen(c.windowExpiresAt);
 
     final firstMessage = (messages == null || messages!.isEmpty)
         ? null

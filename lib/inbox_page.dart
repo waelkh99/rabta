@@ -16,6 +16,7 @@
 // text rather than from the reader's language.
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'data.dart';
@@ -56,6 +57,29 @@ class _InboxPageState extends State<InboxPage> {
   /// fetching the same rows a second time.
   List<Message>? _messages;
 
+  /// The list as it stands after a reply, replacing what was loaded.
+  ///
+  /// Held beside the future rather than replacing it, so that answering a
+  /// customer does not drop the inbox back to a spinner while it reloads —
+  /// the seller is reading this list, and it must not blink at them.
+  List<Conversation>? _afterReply;
+
+  /// A reply has gone. The conversation is no longer waiting for one, so it
+  /// moves out of the first group and the list is put back in order.
+  void _sent(List<Conversation> current, Message reply) {
+    final open = _open;
+    if (open == null) return;
+
+    final updated = open.afterReply(reply);
+
+    setState(() {
+      _open = updated;
+      _afterReply = inboxOrder([
+        for (final c in current) c.id == updated.id ? updated : c,
+      ]);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.rabta;
@@ -85,7 +109,7 @@ class _InboxPageState extends State<InboxPage> {
               );
             }
 
-            final all = snapshot.data!;
+            final all = _afterReply ?? snapshot.data!;
 
             final list = _ConversationList(
               conversations: all,
@@ -117,6 +141,7 @@ class _InboxPageState extends State<InboxPage> {
                       conversation: _open!,
                       onBack: () => setState(() => _open = null),
                       onMessages: (m) => setState(() => _messages = m),
+                      onSent: (m) => _sent(all, m),
                     ),
                   );
                 }
@@ -134,6 +159,7 @@ class _InboxPageState extends State<InboxPage> {
                               inbox: _inbox,
                               conversation: _open!,
                               onMessages: (m) => setState(() => _messages = m),
+                              onSent: (m) => _sent(all, m),
                             ),
                     ),
                     if (_open != null &&
@@ -753,6 +779,7 @@ class _Thread extends StatefulWidget {
     required this.conversation,
     this.onBack,
     this.onMessages,
+    this.onSent,
   });
 
   final Inbox inbox;
@@ -765,6 +792,10 @@ class _Thread extends StatefulWidget {
   /// without asking the database for the same rows again.
   final ValueChanged<List<Message>>? onMessages;
 
+  /// A reply has reached the customer. The list above needs to know: the
+  /// conversation has just left the group of those waiting for one.
+  final ValueChanged<Message>? onSent;
+
   @override
   State<_Thread> createState() => _ThreadState();
 }
@@ -772,8 +803,23 @@ class _Thread extends StatefulWidget {
 class _ThreadState extends State<_Thread> {
   late final Future<List<Message>> _messages = _load();
 
+  /// What came from the database, and what has been sent since. Kept apart so
+  /// a reply can be shown the moment Meta accepts it without asking for the
+  /// whole conversation again.
+  List<Message> _loaded = const [];
+  final List<Message> _sent = [];
+
+  List<Message> get _all => [..._loaded, ..._sent];
+
+  void _handleSent(Message message) {
+    setState(() => _sent.add(message));
+    widget.onMessages?.call(_all);
+    widget.onSent?.call(message);
+  }
+
   Future<List<Message>> _load() async {
     final messages = await widget.inbox.messages(widget.conversation.id);
+    _loaded = messages;
     // After the frame: this fires during the parent's build otherwise, and
     // setState from inside a build is an error.
     if (mounted) {
@@ -857,26 +903,49 @@ class _ThreadState extends State<_Thread> {
                 }
                 if (!snapshot.hasData) return const SizedBox.shrink();
 
-                final messages = snapshot.data!;
+                final messages = _all;
 
+                // Built oldest to newest, because whether a bubble carries a
+                // time depends on the message that follows it.
+                //
+                // Time separates runs of messages rather than stamping each
+                // one. Repeating it on every bubble is noise when three arrive
+                // in the same minute.
+                final rows = [
+                  for (var i = 0; i < messages.length; i++)
+                    (
+                      message: messages[i],
+                      showTime: i == messages.length - 1 ||
+                          messages[i + 1].inbound != messages[i].inbound ||
+                          messages[i + 1].sentAt.difference(messages[i].sentAt) >
+                              const Duration(minutes: 10),
+                    ),
+                ];
+
+                // Anchored at the newest message, which is the one the seller
+                // came for — and which a reply has just added to. Scrolling
+                // there after the fact means racing the layout, and it lost:
+                // the reply landed with its timestamp cut off by the composer.
                 return ListView.builder(
+                  reverse: true,
                   padding: EdgeInsets.fromLTRB(gutter, 24, gutter, 28),
-                  itemCount: messages.length,
-                  itemBuilder: (context, i) => _Bubble(
-                    message: messages[i],
-                    // Time separates runs of messages rather than stamping each
-                    // one. Repeating it on every bubble is noise when three
-                    // arrive in the same minute.
-                    showTime: i == messages.length - 1 ||
-                        messages[i + 1].inbound != messages[i].inbound ||
-                        messages[i + 1].sentAt.difference(messages[i].sentAt) >
-                            const Duration(minutes: 10),
-                  ),
+                  itemCount: rows.length,
+                  itemBuilder: (context, i) {
+                    final row = rows[rows.length - 1 - i];
+                    return _Bubble(
+                      message: row.message,
+                      showTime: row.showTime,
+                    );
+                  },
                 );
               },
             ),
           ),
-          _Composer(conversation: c),
+          _Composer(
+            conversation: c,
+            inbox: widget.inbox,
+            onSent: _handleSent,
+          ),
         ],
       ),
     );
@@ -1018,52 +1087,215 @@ class _Body extends StatelessWidget {
 
 /// The reply window is stated before the seller types, not after. A reply that
 /// fails once written is a design failure rather than an error message.
-class _Composer extends StatelessWidget {
-  const _Composer({required this.conversation});
+/// Writing a reply, or being told plainly why one cannot be written.
+///
+/// Whether the box appears at all is decided by the reply window and nothing
+/// else — not by whether the customer wrote last. A seller who has already
+/// answered may still follow up, because the 24 hours run from the customer's
+/// message and Meta does not care how many replies fill them. Deciding it any
+/// other way here would make the interface refuse what the server accepts.
+class _Composer extends StatefulWidget {
+  const _Composer({required this.conversation, required this.inbox, this.onSent});
 
   final Conversation conversation;
+  final Inbox inbox;
+  final ValueChanged<Message>? onSent;
+
+  @override
+  State<_Composer> createState() => _ComposerState();
+}
+
+class _ComposerState extends State<_Composer> {
+  final _text = TextEditingController();
+  final _focus = FocusNode();
+  String? _refusal;
+  bool _sending = false;
+
+  @override
+  void dispose() {
+    _text.dispose();
+    _focus.dispose();
+    super.dispose();
+  }
+
+  Future<void> _send() async {
+    if (_sending || _text.text.trim().isEmpty) return;
+
+    setState(() {
+      _sending = true;
+      _refusal = null;
+    });
+
+    try {
+      final sent = await widget.inbox.send(widget.conversation.id, _text.text);
+      if (!mounted) return;
+
+      // Cleared only once it has actually gone. A reply that failed is still
+      // in the box, because asking the seller to type it again is the worst
+      // thing this screen could do to them.
+      _text.clear();
+      widget.onSent?.call(sent);
+      _focus.requestFocus();
+    } on SendRefused catch (error) {
+      if (mounted) setState(() => _refusal = error.reason);
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final colors = context.rabta;
-    final remaining = conversation.awaitingReply
-        ? windowRemaining(context, conversation.windowExpiresAt)
-        : null;
-    final closed = conversation.awaitingReply && remaining == null;
-    final closing = windowClosingSoon(conversation.windowExpiresAt);
+    final expires = widget.conversation.windowExpiresAt;
+    final open = replyWindowOpen(expires);
     final gutter = _gutter(context);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.surface,
-        border: Border(top: BorderSide(color: colors.edge)),
-      ),
-      padding: EdgeInsetsDirectional.fromSTEB(gutter, 16, gutter, 18),
-      child: Row(
-        children: [
-          if (closed)
-            Icon(Icons.lock_outline, size: 15, color: colors.urgent)
-          else if (closing)
-            Icon(Icons.timelapse, size: 15, color: colors.urgent),
-          if (closed || closing) const SizedBox(width: 9),
-          Expanded(
-            child: Text(
-              closed
-                  ? context.l.replyWindowClosedLong
-                  : context.l.replyingNotBuilt,
-              style: Style.preview.copyWith(
-                color: closed ? colors.urgent : colors.muted,
+    final frame = BoxDecoration(
+      color: colors.surface,
+      border: Border(top: BorderSide(color: colors.edge)),
+    );
+    final padding = EdgeInsetsDirectional.fromSTEB(gutter, 16, gutter, 18);
+
+    if (!open) {
+      final never = expires == null;
+
+      return Container(
+        decoration: frame,
+        padding: padding,
+        child: Row(
+          children: [
+            Icon(
+              never ? Icons.schedule : Icons.lock_outline,
+              size: 15,
+              color: never ? colors.muted : colors.urgent,
+            ),
+            const SizedBox(width: 9),
+            Expanded(
+              child: Text(
+                never
+                    ? context.l.sendFailedNoWindow
+                    : context.l.replyWindowClosedLong,
+                style: Style.preview.copyWith(
+                  color: never ? colors.muted : colors.urgent,
+                ),
               ),
             ),
+          ],
+        ),
+      );
+    }
+
+    final remaining = windowRemaining(context, expires);
+    final closing = windowClosingSoon(expires);
+
+    return Container(
+      decoration: frame,
+      padding: padding,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (_refusal != null) ...[
+            Row(
+              children: [
+                Icon(Icons.error_outline, size: 15, color: colors.urgent),
+                const SizedBox(width: 9),
+                Expanded(
+                  child: Text(
+                    sendRefusal(context.l, _refusal!),
+                    style: Style.preview.copyWith(color: colors.urgent),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+          ],
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                // Enter sends, because this is a keyboard job done all day.
+                // Shift+Enter does not match this activator, so it still puts
+                // in a line break.
+                child: CallbackShortcuts(
+                  bindings: {
+                    const SingleActivator(LogicalKeyboardKey.enter): _send,
+                  },
+                  child: ValueListenableBuilder<TextEditingValue>(
+                    valueListenable: _text,
+                    builder: (context, value, _) => TextField(
+                      controller: _text,
+                      focusNode: _focus,
+                      enabled: !_sending,
+                      minLines: 1,
+                      maxLines: 5,
+                      // The seller's own words take their direction from what
+                      // they are writing, exactly as the customer's do. An
+                      // Arabic reply typed into an English interface is the
+                      // case that looks correct until someone tries it.
+                      textDirection: directionOf(value.text),
+                      style: Style.message.copyWith(color: colors.ink),
+                      cursorColor: colors.accent,
+                      decoration: InputDecoration(
+                        hintText: context.l.composerHint,
+                        hintStyle: Style.preview.copyWith(color: colors.muted),
+                        filled: true,
+                        fillColor: colors.ground,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 13,
+                        ),
+                        border: _fieldBorder(colors.line),
+                        enabledBorder: _fieldBorder(colors.line),
+                        focusedBorder: _fieldBorder(colors.accent, 1.5),
+                        disabledBorder: _fieldBorder(colors.line),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              ValueListenableBuilder<TextEditingValue>(
+                valueListenable: _text,
+                builder: (context, value, _) {
+                  final ready = !_sending && value.text.trim().isNotEmpty;
+
+                  return IconButton.filled(
+                    onPressed: ready ? _send : null,
+                    tooltip: _sending ? context.l.sending : context.l.sendReply,
+                    // Directional: in Arabic the arrow points the other way.
+                    icon: Icon(
+                      _sending ? Icons.more_horiz : Icons.send,
+                      size: 18,
+                      textDirection: Directionality.of(context),
+                    ),
+                    style: IconButton.styleFrom(
+                      backgroundColor: colors.accent,
+                      foregroundColor: colors.onAccent,
+                      disabledBackgroundColor: colors.accentSoft,
+                      disabledForegroundColor: colors.muted,
+                      padding: const EdgeInsets.all(13),
+                    ),
+                  );
+                },
+              ),
+            ],
           ),
           if (remaining != null) ...[
-            const SizedBox(width: 16),
-            Text(
-              remaining,
-              style: Style.meta.copyWith(
-                color: closing ? colors.urgent : colors.muted,
-                fontWeight: closing ? FontWeight.w700 : FontWeight.w300,
-              ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                if (closing) ...[
+                  Icon(Icons.timelapse, size: 13, color: colors.urgent),
+                  const SizedBox(width: 7),
+                ],
+                Text(
+                  remaining,
+                  style: Style.meta.copyWith(
+                    color: closing ? colors.urgent : colors.muted,
+                    fontWeight: closing ? FontWeight.w700 : FontWeight.w300,
+                  ),
+                ),
+              ],
             ),
           ],
         ],
@@ -1071,6 +1303,12 @@ class _Composer extends StatelessWidget {
     );
   }
 }
+
+OutlineInputBorder _fieldBorder(Color color, [double width = 1]) =>
+    OutlineInputBorder(
+      borderRadius: BorderRadius.circular(10),
+      borderSide: BorderSide(color: color, width: width),
+    );
 
 /// Empty and failed states say what to do, in the interface's voice. They do
 /// not apologise and they are never vague about what happened.

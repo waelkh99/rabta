@@ -13,30 +13,7 @@
 // Edge Functions and in the test harness.
 
 import { hmacSha256Hex, timingSafeEqual } from "../meta-webhook/signature.ts";
-
-/**
- * Where the browser may be sent after the callback has handled an access token.
- *
- * This list is the whole of the answer. The callback redirects immediately
- * after a token exchange, so a destination taken from the request would make
- * the most sensitive endpoint in the system an open redirect — a link that
- * looks like ours, carries a seller through a genuine Meta login, and lands
- * them somewhere else entirely.
- *
- * The signed state carries an *index* into this array rather than an origin,
- * so an origin that is not on the list cannot be expressed at all. There is no
- * attacker-supplied string anywhere in the redirect, and therefore no
- * validation left to get wrong later.
- *
- * Index 0 is used when the caller names no origin. The production origin joins
- * this list — at the front — once there is somewhere to host the site.
- */
-export const RETURN_ORIGINS = [
-  // Development. The port is pinned in .vscode/launch.json and README.md for
-  // exactly this reason: an allowlist cannot contain a port that changes on
-  // every run.
-  "http://localhost:5353",
-];
+import { APP_ORIGINS } from "../_shared/origins.ts";
 
 /**
  * The index to record for a requested return origin, or null if it is not one
@@ -48,7 +25,7 @@ export const RETURN_ORIGINS = [
 export function returnOriginIndex(requested: string | null | undefined): number | null {
   if (!requested) return 0;
 
-  const index = RETURN_ORIGINS.indexOf(requested);
+  const index = APP_ORIGINS.indexOf(requested);
   return index < 0 ? null : index;
 }
 
@@ -95,7 +72,7 @@ export async function readState(
   // an empty field would quietly become the first origin on the list.
   if (!/^\d+$/.test(index)) return null;
 
-  const returnOrigin = RETURN_ORIGINS[Number(index)];
+  const returnOrigin = APP_ORIGINS[Number(index)];
   if (returnOrigin === undefined) return null;
 
   return { workspaceId, returnOrigin };

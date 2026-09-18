@@ -9,10 +9,10 @@ import { strict as assert } from "node:assert";
 import { test } from "node:test";
 
 import { hmacSha256Hex } from "../functions/meta-webhook/signature.ts";
+import { APP_ORIGINS } from "../functions/_shared/origins.ts";
 import {
   isWorkspaceId,
   readState,
-  RETURN_ORIGINS,
   returnOriginIndex,
   signState,
 } from "../functions/meta-oauth/state.ts";
@@ -30,7 +30,7 @@ test("a state we issued reads back as the workspace and origin it was issued for
 
   assert.deepEqual(await readState(SECRET, state), {
     workspaceId: WORKSPACE,
-    returnOrigin: RETURN_ORIGINS[0],
+    returnOrigin: APP_ORIGINS[0],
   });
 });
 
@@ -106,7 +106,7 @@ test("naming no origin falls back to the first on the list", () => {
 });
 
 test("an origin on the list is accepted and round-trips", async () => {
-  for (const [expected, origin] of RETURN_ORIGINS.entries()) {
+  for (const [expected, origin] of APP_ORIGINS.entries()) {
     const index = returnOriginIndex(origin);
     assert.equal(index, expected);
 
@@ -137,9 +137,9 @@ test("an index off the end of the list resolves to nothing", async () => {
 test("every origin readState can return is on the allowlist", async () => {
   // The guarantee stated as itself, so that a future change returning an origin
   // from somewhere else fails here.
-  for (let index = -2; index < RETURN_ORIGINS.length + 2; index++) {
+  for (let index = -2; index < APP_ORIGINS.length + 2; index++) {
     const issued = await readState(SECRET, await forge(`${WORKSPACE}.${index}.nonce`));
-    if (issued) assert.ok(RETURN_ORIGINS.includes(issued.returnOrigin));
+    if (issued) assert.ok(APP_ORIGINS.includes(issued.returnOrigin));
   }
 });
 

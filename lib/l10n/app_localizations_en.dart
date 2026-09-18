@@ -85,6 +85,42 @@ class LEn extends L {
   String get replyingNotBuilt => 'Replying is not built yet.';
 
   @override
+  String get composerHint => 'Write your reply';
+
+  @override
+  String get sendReply => 'Send';
+
+  @override
+  String get sending => 'Sending';
+
+  @override
+  String get sendFailedTooLong =>
+      'This reply is longer than the platform allows. Shorten it a little.';
+
+  @override
+  String get sendFailedWindowClosed =>
+      'The reply window closed while you were writing, so your reply was not sent.';
+
+  @override
+  String get sendFailedNoWindow =>
+      'You cannot reply until this customer writes to you.';
+
+  @override
+  String get sendFailedDisconnected =>
+      'Your account connection has expired. Reconnect it to reply.';
+
+  @override
+  String get sendFailedRejected =>
+      'The platform did not accept this reply, so it was not sent.';
+
+  @override
+  String get sendFailedUnreachable =>
+      'Could not reach the platform. Check your connection and try again.';
+
+  @override
+  String get sendFailedNotFound => 'This conversation is no longer available.';
+
+  @override
   String minutesLeftToReply(int count) {
     return '${count}m left to reply';
   }

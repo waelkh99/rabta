@@ -217,6 +217,66 @@ abstract class L {
   /// **'إرسال الردود غير متاح بعد.'**
   String get replyingNotBuilt;
 
+  /// No description provided for @composerHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'اكتب ردك'**
+  String get composerHint;
+
+  /// No description provided for @sendReply.
+  ///
+  /// In ar, this message translates to:
+  /// **'إرسال'**
+  String get sendReply;
+
+  /// No description provided for @sending.
+  ///
+  /// In ar, this message translates to:
+  /// **'جارٍ الإرسال'**
+  String get sending;
+
+  /// Instagram accepts half of what Messenger does, so this is reachable on a reply that would have been fine on the other platform.
+  ///
+  /// In ar, this message translates to:
+  /// **'هذا الرد أطول مما تسمح به المنصة. اختصره قليلاً.'**
+  String get sendFailedTooLong;
+
+  /// The window closed between opening the conversation and pressing send. The reply is still in the box.
+  ///
+  /// In ar, this message translates to:
+  /// **'أُغلقت نافذة الرد أثناء كتابتك، ولم يُرسل ردك.'**
+  String get sendFailedWindowClosed;
+
+  /// No description provided for @sendFailedNoWindow.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا يمكنك الرد قبل أن يراسلك هذا الزبون.'**
+  String get sendFailedNoWindow;
+
+  /// The access token has expired. Without this the seller sees only that nothing works, and assumes business is quiet.
+  ///
+  /// In ar, this message translates to:
+  /// **'انتهت صلاحية ربط حسابك. أعد ربطه لتتمكن من الرد.'**
+  String get sendFailedDisconnected;
+
+  /// No description provided for @sendFailedRejected.
+  ///
+  /// In ar, this message translates to:
+  /// **'لم تقبل المنصة هذا الرد، ولم يُرسل.'**
+  String get sendFailedRejected;
+
+  /// No description provided for @sendFailedUnreachable.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعذّر الوصول إلى المنصة. تحقّق من اتصالك وحاول مرة أخرى.'**
+  String get sendFailedUnreachable;
+
+  /// No description provided for @sendFailedNotFound.
+  ///
+  /// In ar, this message translates to:
+  /// **'لم تعد هذه المحادثة متاحة.'**
+  String get sendFailedNotFound;
+
   /// No description provided for @minutesLeftToReply.
   ///
   /// In ar, this message translates to:

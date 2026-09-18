@@ -45,6 +45,25 @@ String? windowRemaining(BuildContext context, DateTime? expiresAt,
       : l.hoursLeftToReply(left.inHours);
 }
 
+/// Why a reply was not sent, in the seller's language.
+///
+/// `send-message` answers with a code precisely so that this choice is made
+/// here. An unfamiliar code reads as a plain refusal rather than as something
+/// invented to fill the gap.
+///
+/// Takes `L` rather than a context because it needs nothing else from one, and
+/// because that lets every code be checked in both languages without a widget
+/// tree.
+String sendRefusal(L l, String reason) => switch (reason) {
+      'too_long' => l.sendFailedTooLong,
+      'window_closed' => l.sendFailedWindowClosed,
+      'no_window' => l.sendFailedNoWindow,
+      'disconnected' => l.sendFailedDisconnected,
+      'unreachable' => l.sendFailedUnreachable,
+      'not_found' => l.sendFailedNotFound,
+      _ => l.sendFailedRejected,
+    };
+
 String platformName(BuildContext context, String platform) =>
     platform == 'instagram'
         ? L.of(context)!.platformInstagram

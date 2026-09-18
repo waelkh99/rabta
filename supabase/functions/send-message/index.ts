@@ -18,6 +18,8 @@
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
+import { corsHeaders } from "../_shared/origins.ts";
+
 import {
   checkText,
   checkWindow,
@@ -35,21 +37,32 @@ const service = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
 });
 
 Deno.serve(async (request: Request) => {
-  if (request.method !== "POST") return refuse("rejected", 405);
+  // The page calls this from its own origin, so the browser asks permission
+  // first and then refuses to hand the answer to the page unless this says the
+  // origin back. Without it the reply is sent or refused perfectly well and the
+  // seller sees neither — which is what happened the first time this was run
+  // in a browser rather than with curl.
+  const cors = corsHeaders(request.headers.get("Origin"));
+
+  if (request.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: cors });
+  }
+
+  if (request.method !== "POST") return refuse("rejected", 405, cors);
 
   const authorization = request.headers.get("Authorization") ?? "";
-  if (!authorization) return refuse("not_found", 401);
+  if (!authorization) return refuse("not_found", 401, cors);
 
   let body: { conversation?: string; text?: string };
   try {
     body = await request.json();
   } catch {
-    return refuse("rejected", 400);
+    return refuse("rejected", 400, cors);
   }
 
   const conversationId = body.conversation ?? "";
   const text = body.text ?? "";
-  if (!conversationId) return refuse("not_found", 404);
+  if (!conversationId) return refuse("not_found", 404, cors);
 
   // As the seller. Row level security decides what this can see, so a
   // conversation belonging to someone else is simply not there.
@@ -67,7 +80,7 @@ Deno.serve(async (request: Request) => {
     .eq("id", conversationId)
     .maybeSingle();
 
-  if (!conversation) return refuse("not_found", 404);
+  if (!conversation) return refuse("not_found", 404, cors);
 
   const account = conversation.connected_accounts as unknown as {
     external_id: string;
@@ -75,13 +88,13 @@ Deno.serve(async (request: Request) => {
   };
 
   const wrongText = checkText(text, account.platform);
-  if (wrongText) return refuse(wrongText, 400);
+  if (wrongText) return refuse(wrongText, 400, cors);
 
   // Checked here as well as in the interface. The interface states the window
   // before the seller types, which is where it belongs, but a tab left open
   // overnight would otherwise send a reply Meta has already stopped accepting.
   const closed = checkWindow(conversation.window_expires_at, new Date());
-  if (closed) return refuse(closed, 409);
+  if (closed) return refuse(closed, 409, cors);
 
   // Service role: no client is allowed to read this table, in any workspace.
   const { data: token } = await service
@@ -90,7 +103,7 @@ Deno.serve(async (request: Request) => {
     .eq("account_id", conversation.account_id)
     .maybeSingle();
 
-  if (!token) return refuse("disconnected", 409);
+  if (!token) return refuse("disconnected", 409, cors);
 
   const { url, init } = sendRequest(
     account.external_id,
@@ -104,7 +117,7 @@ Deno.serve(async (request: Request) => {
     answer = await fetch(url, init).then((r) => r.json());
   } catch (error) {
     console.error("send failed to reach Meta", { conversationId, error: String(error) });
-    return refuse("unreachable", 502);
+    return refuse("unreachable", 502, cors);
   }
 
   const result = readSendResult(answer);
@@ -126,7 +139,7 @@ Deno.serve(async (request: Request) => {
         .eq("id", conversation.account_id);
     }
 
-    return refuse(result.refusal, 502);
+    return refuse(result.refusal, 502, cors);
   }
 
   // Stored with the id Meta gave it. The echo of this same reply arrives
@@ -149,16 +162,24 @@ Deno.serve(async (request: Request) => {
     console.error("reply sent but not stored", { conversationId, error });
   }
 
-  return json({ mid: result.mid }, 200);
+  return json({ mid: result.mid }, 200, cors);
 });
 
-function refuse(reason: Refusal, status: number): Response {
-  return json({ reason }, status);
+function refuse(
+  reason: Refusal,
+  status: number,
+  cors: Record<string, string>,
+): Response {
+  return json({ reason }, status, cors);
 }
 
-function json(body: unknown, status: number): Response {
+function json(
+  body: unknown,
+  status: number,
+  cors: Record<string, string>,
+): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "content-type": "application/json; charset=utf-8" },
+    headers: { ...cors, "content-type": "application/json; charset=utf-8" },
   });
 }

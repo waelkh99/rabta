@@ -110,7 +110,8 @@ the destination is looked up, never read.
       sentence, so the interface picks the language. `empty`, `too_long`,
       `window_closed`, `no_window`, `not_found`, `disconnected`, `rejected`,
       `unreachable`.
-- [ ] The interface can actually send one — the composer is still a notice
+- [x] The interface can actually send one — a reply typed into the browser
+      reached the customer, and Meta echoed it back
 
 Arabic was verified through the whole path: a reply of
 `مرحبا، سعر iPhone 15 Pro هو 1200 دولار؟` was sent, and Meta's echo of it came
@@ -158,10 +159,11 @@ only; the receiving path in section 2 is still uncovered.
 - [x] Unread state visible
 - [x] Waiting time visible — the wait rail, and a countdown on the composer
 - [x] Open a conversation and read its history
-- [ ] Reply
-- [x] Composer reflects the reply window before the seller types — it states
-      the window and says replying is not built, rather than offering a box
-      that would fail
+- [x] Reply — typed in the browser, sent, echoed back by Meta. Enter sends,
+      Shift+Enter breaks the line, and the box keeps a reply that failed.
+- [x] Composer reflects the reply window before the seller types — a countdown
+      under the box while it is open, and a plain sentence instead of a box
+      once it has closed
 - [ ] New messages arrive live
 - [x] Attachments displayed — verified against the real image delivered by Meta
 - [ ] In-page notification and title badge while the tab is open
@@ -176,7 +178,8 @@ Layout, sort order, typeface and numerals were settled on 17 September — see
 ## 7. Release
 
 - [ ] Somewhere to host the built site, and a domain
-- [ ] The application's origin added to the `meta-oauth` allowlist
+- [ ] The application's origin added to `_shared/origins.ts` — one list now
+      serves both the OAuth return and the CORS check
 - [ ] Opening the deployed site on a machine that has never seen it
 - [ ] How a new version reaches sellers
 

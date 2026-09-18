@@ -87,6 +87,40 @@ class LAr extends L {
   String get replyingNotBuilt => 'إرسال الردود غير متاح بعد.';
 
   @override
+  String get composerHint => 'اكتب ردك';
+
+  @override
+  String get sendReply => 'إرسال';
+
+  @override
+  String get sending => 'جارٍ الإرسال';
+
+  @override
+  String get sendFailedTooLong =>
+      'هذا الرد أطول مما تسمح به المنصة. اختصره قليلاً.';
+
+  @override
+  String get sendFailedWindowClosed =>
+      'أُغلقت نافذة الرد أثناء كتابتك، ولم يُرسل ردك.';
+
+  @override
+  String get sendFailedNoWindow => 'لا يمكنك الرد قبل أن يراسلك هذا الزبون.';
+
+  @override
+  String get sendFailedDisconnected =>
+      'انتهت صلاحية ربط حسابك. أعد ربطه لتتمكن من الرد.';
+
+  @override
+  String get sendFailedRejected => 'لم تقبل المنصة هذا الرد، ولم يُرسل.';
+
+  @override
+  String get sendFailedUnreachable =>
+      'تعذّر الوصول إلى المنصة. تحقّق من اتصالك وحاول مرة أخرى.';
+
+  @override
+  String get sendFailedNotFound => 'لم تعد هذه المحادثة متاحة.';
+
+  @override
   String minutesLeftToReply(int count) {
     return '$count د للرد';
   }

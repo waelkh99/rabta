@@ -43,6 +43,28 @@ class Conversation {
       lastMessageAt != null &&
       !lastMessageAt!.isAfter(lastInboundAt!);
 
+  /// This conversation as it stands once the seller's reply has gone.
+  ///
+  /// The same four changes the database trigger makes: the last message is now
+  /// ours, the preview is what we wrote, and nothing is unread. The reply
+  /// window is deliberately untouched — it runs from the customer's message and
+  /// answering does not extend it, which is the rule Meta actually enforces.
+  ///
+  /// Done here rather than by reloading the list so that the conversation
+  /// leaves the waiting group the instant the reply is accepted, with no
+  /// round trip and no spinner across an inbox the seller is reading.
+  Conversation afterReply(Message reply) => Conversation(
+        id: id,
+        platform: platform,
+        customerName: customerName,
+        preview: reply.text,
+        lastMessageType: 'text',
+        lastMessageAt: reply.sentAt,
+        lastInboundAt: lastInboundAt,
+        windowExpiresAt: windowExpiresAt,
+        unreadCount: 0,
+      );
+
   static DateTime? _time(dynamic value) =>
       value == null ? null : DateTime.parse(value as String).toUtc();
 
@@ -57,6 +79,20 @@ class Conversation {
         windowExpiresAt: _time(row['window_expires_at']),
         unreadCount: (row['unread_count'] as int?) ?? 0,
       );
+}
+
+/// A reply that was not sent, and why — as the code the function returned.
+///
+/// The reason stays a code all the way to the widget that shows it, so the
+/// sentence the seller reads comes out of the localisation files like every
+/// other sentence in the product.
+class SendRefused implements Exception {
+  const SendRefused(this.reason);
+
+  final String reason;
+
+  @override
+  String toString() => 'SendRefused($reason)';
 }
 
 class Message {
@@ -145,6 +181,57 @@ class Inbox {
 
   int waitingCount(List<Conversation> all) =>
       all.where((c) => c.awaitingReply).length;
+
+  /// Sends a reply, and gives back the message to show for it.
+  ///
+  /// The reply goes through the `send-message` function rather than straight
+  /// into the table, because the access token it needs is one no client may
+  /// read — and because a message has to reach Meta before it is worth showing
+  /// as sent.
+  ///
+  /// ponytail: the returned message is built here rather than read back. The
+  /// row it stands for exists, and reopening the conversation loads the real
+  /// one; what is local is the id and a `sentAt` a fraction of a second early.
+  /// Read it back if anything ever depends on either.
+  Future<Message> send(String conversationId, String text) async {
+    try {
+      final response = await _db.functions.invoke(
+        'send-message',
+        body: {'conversation': conversationId, 'text': text},
+      );
+
+      final mid = (response.data as Map?)?['mid'] as String?;
+      if (mid == null) throw const SendRefused('rejected');
+
+      return Message(
+        id: mid,
+        text: text,
+        attachments: const [],
+        inbound: false,
+        sentAt: DateTime.now().toUtc(),
+      );
+    } on FunctionException catch (error) {
+      // The function answers with a code and never a sentence, so that the
+      // language is chosen here and not on the server.
+      //
+      // No code means this did not come from our function at all — it was
+      // blocked, or the platform answered for it. That is not Meta refusing the
+      // reply, and saying so would send the seller off rewriting a message that
+      // was never the problem. This is exactly what a missing CORS header
+      // looked like the first time this ran in a browser.
+      final details = error.details;
+      final reason = details is Map ? details['reason'] : null;
+
+      throw SendRefused(reason is String ? reason : 'unreachable');
+    } on SendRefused {
+      rethrow;
+    } catch (_) {
+      // No answer at all — offline, or the function unreachable. Reported as
+      // such rather than as a refusal by Meta, because the two want different
+      // things from the seller.
+      throw const SendRefused('unreachable');
+    }
+  }
 
   Future<List<Message>> messages(String conversationId) async {
     final rows = await _db
