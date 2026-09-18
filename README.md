@@ -72,6 +72,14 @@ flutter build web --release --dart-define-from-file=env.json
 `.vscode/launch.json` passes the file already, so starting a debug session from
 the editor works without flags.
 
+The interface is Arabic and English, and follows the browser's language, falling
+back to Arabic. `?lang=ar` or `?lang=en` overrides that, which is how to see the
+other language without changing the whole browser. There is also a language
+switch on the sign-in screen and in the inbox header.
+
+Sign in while developing with `webhook-test@rabta.local` / `rabta-dev-2026` —
+see `STATUS.md` for what that account owns.
+
 ---
 
 ## Everyday commands
