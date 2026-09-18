@@ -149,8 +149,10 @@ only; the receiving path in section 2 is still uncovered.
       both languages, at desktop and phone width
 - [x] Message bubbles take direction from their own text, not the interface
 - [x] Sign in and sign out
-- [ ] Connect an account, from the seller's point of view — still a URL pasted
-      by hand with the workspace id in it
+- [x] Connect an account — run through `meta-oauth` in a browser with the
+      workspace id in the URL. Not a button in the interface, and deliberately
+      so: Rabta is given to a paying customer and connecting their accounts is
+      onboarding we run with them. See `DECISIONS.md`, 18 September.
 - [x] Two-pane layout: conversation list beside the open conversation
 - [x] Conversation list: awaiting a reply first, longest wait at the top, then
       answered conversations newest first

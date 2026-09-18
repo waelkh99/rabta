@@ -66,11 +66,33 @@ to being stored and skipped as `unknown-account`.
 
 ## Known defect
 
-**Browser autofill fills the sign-in fields without Flutter seeing them.**
-Observed in Chrome on 18 September: the email field shows a value, the
-controller behind it is empty, and signing in fails with "missing email or
-phone". The field looks filled and the button rejects it — a bad first minute,
-on the first screen. Not fixed.
+None outstanding.
+
+**Browser autofill has been fixed.** The sign-in fields were not inside an
+`AutofillGroup`, so Flutter built each of them its own throwaway `<form>`
+holding a single input. A password manager fills a credential pair by finding a
+username field and a password field in the *same* form, and there never was
+one — it saw a lone email box with no password beside it. What the seller got
+was the browser painting a value into a field the application never received:
+the box reads full and the button says the credentials are wrong.
+
+Reproduced first, then fixed, then reproduced again against the fix:
+
+- Before: focusing the email field built a form containing only that field. A
+  value written into it left the controller empty and sign-in was refused, with
+  the value plainly visible on screen.
+- After: one form holds both inputs, as `email` and `current-password`. The
+  same fill now reaches the application and signs in.
+- `TextInput.finishAutofillContext()` on success, which is what prompts the
+  browser to offer to save the password — without it a seller is never asked
+  and never gets an entry to autofill next time.
+
+**What is still not proven:** Chrome's own autofill dropdown cannot be driven
+from automation, so what was tested is a fill of the real input elements rather
+than a human picking a saved credential. The structural cause is fixed and
+verified; the last step needs a person with a saved password. A fill that
+writes the value and fires no events at all is still invisible — nothing can
+observe that, and browsers do not do it.
 
 ---
 
@@ -80,9 +102,10 @@ on the first screen. Not fixed.
   delivers messages from accounts holding a role on it. This is now on the
   critical path rather than a background task: Instagram cannot be verified
   until it is done.
-- **Connecting an account from the interface.** The inbox is built and
-  running, replying works and new messages arrive live. What is still missing
-  is starting the connect flow without a URL pasted by hand.
+- **Nothing in the inbox itself.** It reads, replies, names its customers and
+  updates live. Connecting an account is deliberately not a button in it —
+  Rabta is given to a paying customer and connecting is onboarding we run with
+  them, decided 18 September. See `DECISIONS.md`.
 - **The font is fetched rather than bundled.** Almarai renders, but through
   `google_fonts`, which pulls it from Google's CDN at runtime. Subsetting it to
   the two weights actually used and serving it ourselves is still to do, and

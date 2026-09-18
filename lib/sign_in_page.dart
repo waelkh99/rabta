@@ -5,6 +5,7 @@
 // by the database trigger the moment an account exists.
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'locale_switch.dart';
@@ -45,6 +46,11 @@ class _SignInPageState extends State<SignInPage> {
         email: _email.text.trim(),
         password: _password.text,
       );
+
+      // Tells the browser the sign-in is finished, which is what prompts it to
+      // offer to save or update the password. Without it a seller is never
+      // asked, and never gets an autofill entry to use next time.
+      TextInput.finishAutofillContext();
     } on AuthException catch (error) {
       if (mounted) {
         setState(() => _problem = error.message.contains('Invalid login')
@@ -70,7 +76,17 @@ class _SignInPageState extends State<SignInPage> {
       child: Center(
         child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 360),
-            child: Column(
+            // Both fields in one group, which on the web is what puts them in
+            // one <form> in the page.
+            //
+            // Without it each field is its own throwaway form holding a single
+            // input, and a browser password manager has no pair to fill: it
+            // sees a lone email box and no password beside it. What a seller
+            // then gets is the browser painting a value into a field the
+            // application never receives — the box reads full and the button
+            // says the credentials are wrong.
+            child: AutofillGroup(
+              child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -141,6 +157,7 @@ class _SignInPageState extends State<SignInPage> {
                   ],
                 ),
               ],
+              ),
             ),
           ),
       ),

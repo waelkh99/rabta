@@ -618,6 +618,45 @@ token would otherwise stop the inbox updating some time in the afternoon.
 
 ---
 
+### 2026-09-18 — Rabta is not self-serve. Connecting an account is onboarding.
+
+Decided by the product owner. The product is not opened to whoever finds it: it
+is given to a paying customer, and connecting their Meta accounts is a step we
+run and verify with them rather than a button they find on their own.
+
+**Why:** connecting is the one step where a mistake is invisible and expensive.
+A Page that is granted but not subscribed receives nothing, and the seller sees
+a quiet inbox rather than an error. Doing it with the customer once, at the
+start, is worth more than a self-serve flow that has to explain Meta's asset
+screen to someone who has never seen it.
+
+**Consequences:**
+
+- **The "Connect" button in the interface is out of Phase One scope.** The flow
+  runs through `meta-oauth` in a browser with the workspace id in the URL, and
+  that is now a supported way of working rather than a temporary gap. The
+  checklist item is reworded rather than ticked.
+- **There is no sign-up screen, and there should not be one.** A workspace is
+  created by the database trigger when an account exists, and accounts are
+  created by us. This was already true and is now deliberate.
+- **The seller still has to be present.** This is the part worth being clear
+  about: Meta requires the *seller's own* Facebook login to approve access to
+  their Page, so we cannot do this for them from our side alone. What "we run
+  it" means in practice is sitting with them, or walking them through it on a
+  call, while they log in. Their password is never ours and never should be.
+- **The `meta-oauth` failure pages are read by us, not by a seller.** That
+  lowers the bar on their wording, but they were already made plain sentences
+  and should stay that way — the seller may well be looking at the screen.
+- The return-origin allowlist still matters exactly as much. The browser is
+  still redirected back to the application after a token exchange, whoever is
+  driving.
+
+**Reconsider if** Rabta is ever opened to self-serve signup. Everything needed
+for that is a screen on top of a flow that already works end to end; nothing in
+the backend assumes an operator.
+
+---
+
 ## Platform constraints
 
 These are not choices. They are limits Meta imposes, recorded here so they are
