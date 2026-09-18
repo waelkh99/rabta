@@ -618,42 +618,55 @@ token would otherwise stop the inbox updating some time in the afternoon.
 
 ---
 
-### 2026-09-18 — Rabta is not self-serve. Connecting an account is onboarding.
+### 2026-09-18 — We control access to Rabta. We control nothing about Meta.
 
-Decided by the product owner. The product is not opened to whoever finds it: it
-is given to a paying customer, and connecting their Meta accounts is a step we
-run and verify with them rather than a button they find on their own.
+Decided by the product owner. Two different doors, and only one of them is ours.
 
-**Why:** connecting is the one step where a mistake is invisible and expensive.
-A Page that is granted but not subscribed receives nothing, and the seller sees
-a quiet inbox rather than an error. Doing it with the customer once, at the
-start, is worth more than a self-serve flow that has to explain Meta's asset
-screen to someone who has never seen it.
+**Ours: who gets into Rabta at all.** The product is not opened to whoever
+finds it. It is given to a paying customer, so accounts are created by us and
+there is no public sign-up.
+
+**Not ours: the seller's connection to Meta.** Connecting a Page or an
+Instagram account runs on the seller's own Facebook login and their own
+approval on Meta's asset screen. We cannot do it for them, we should never hold
+their credentials, and we have no control over whether Meta grants it. **So the
+Connect flow belongs in the interface, as something the seller does.** It is in
+Phase One scope.
+
+*Corrected the same day.* This entry first said the opposite — that connecting
+was an onboarding step we ran, and therefore out of scope. That was a misreading
+of the decision. Controlling access to the platform is not the same as
+controlling the seller's Meta accounts, and conflating them would have left the
+product without the one screen a new customer cannot start without.
+
+**How access is controlled, and what is still open:**
+
+- **Public sign-up must be turned off.** Checked on 18 September and it is
+  currently **on**: `/auth/v1/settings` reports `disable_signup: false`, so
+  anyone who finds the URL can create an account. The publishable key is in the
+  shipped JavaScript by design, so it is not what protects this. Row level
+  security means a stranger would see only their own empty workspace and no
+  seller's data, but it is still contrary to the decision above.
+- **Accounts are created by invitation, not by us choosing a password.** The
+  seller sets their own through the invite link, so their password is never
+  ours and never travels through a chat. The `handle_new_user` trigger already
+  creates their workspace on the way in, so nothing else is needed.
+- **A password reset flow is now required.** Real customers forget passwords,
+  and without one every forgotten password is a message to us and a seller
+  locked out of their inbox in the meantime. Not built.
+- `supabase config push` is **not** the way to turn sign-up off here.
+  `config.toml` holds only function settings, so a push would send defaults for
+  every auth setting it does not mention and overwrite the live ones.
 
 **Consequences:**
 
-- **The "Connect" button in the interface is out of Phase One scope.** The flow
-  runs through `meta-oauth` in a browser with the workspace id in the URL, and
-  that is now a supported way of working rather than a temporary gap. The
-  checklist item is reworded rather than ticked.
-- **There is no sign-up screen, and there should not be one.** A workspace is
-  created by the database trigger when an account exists, and accounts are
-  created by us. This was already true and is now deliberate.
-- **The seller still has to be present.** This is the part worth being clear
-  about: Meta requires the *seller's own* Facebook login to approve access to
-  their Page, so we cannot do this for them from our side alone. What "we run
-  it" means in practice is sitting with them, or walking them through it on a
-  call, while they log in. Their password is never ours and never should be.
-- **The `meta-oauth` failure pages are read by us, not by a seller.** That
-  lowers the bar on their wording, but they were already made plain sentences
-  and should stay that way — the seller may well be looking at the screen.
-- The return-origin allowlist still matters exactly as much. The browser is
-  still redirected back to the application after a token exchange, whoever is
-  driving.
-
-**Reconsider if** Rabta is ever opened to self-serve signup. Everything needed
-for that is a screen on top of a flow that already works end to end; nothing in
-the backend assumes an operator.
+- The connect screen has to explain the two failures a seller can hit and act
+  on: an Instagram account not linked to a Page, and a Page not granted on
+  Meta's asset screen. `meta-oauth` already detects the second and says so in a
+  plain sentence.
+- The workspace id currently travels in the URL by hand. Once the seller starts
+  the flow themselves it has to come from their own session instead, or one
+  seller could start a connection into another's workspace.
 
 ---
 
