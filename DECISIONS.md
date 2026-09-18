@@ -375,6 +375,113 @@ side of the family were all checked visually at display and interface sizes.
 
 ---
 
+### 2026-09-18 — The interface: principles, palette, language and layout
+
+Settled over one day of building and looking, so the reasoning below is what
+survived seeing it on screen rather than what was proposed in the morning.
+
+**Six principles.** They exist to give the interface a point of view, because
+the failure mode for a product like this is not ugliness — it is looking like
+every other generated dashboard.
+
+1. **The list is the product.** The seller lives in the conversation list, not
+   in the thread. Anything added to a row has to displace something already
+   there.
+2. **Colour means something, or it is absent.** One accent, for the seller's
+   own actions and their own words. Red only for a reply window about to close.
+   Platform shown as a mark, never by tinting the interface.
+3. **The reply window is stated before the seller types, not after.** A reply
+   that fails once written is a design failure, not an error message.
+4. **Every message takes its direction from its own text**, never from the
+   interface language.
+5. **Weight and space carry hierarchy — not boxes.** No card per conversation,
+   no elevation, no one border radius applied to every surface.
+6. **Motion only confirms an action.** Nothing animates on arrival or on load.
+
+**The palette is violet on white, and the accent is sampled from the app icon.**
+
+| Role | Light | Used for |
+|------|-------|----------|
+| ground | `#FAF8FC` | behind everything |
+| surface | `#FFFFFF` | the list, the thread header, the customer's bubbles |
+| raised | `#F2EAFC` | a row that is open or hovered |
+| line | `#E5DCF4` | hairlines inside a pane |
+| edge | `#CFBDEE` | boundaries between panes, and group rules |
+| ink | `#1B1526` | names, message text |
+| muted | `#6E6880` | previews, timestamps |
+| accent | `#6010C0` | the seller's own actions and words, and nothing else |
+| urgent | `#D1365B` | a reply window about to close, and nothing else |
+
+*Superseded on the same day:* a near-white canvas with a deep teal accent, then
+a deep teal shell behind the list. The first read as unfinished rather than
+restrained; the second was replaced when the brief changed to something closer
+to the platforms the product lives inside. The teal is gone entirely.
+
+**`line` and `edge` are two colours on purpose.** A single neutral hairline at
+this weight disappears against a near-white ground, which is what made the panes
+read as one undifferentiated sheet. `edge` is tinted toward the accent and
+carries only the boundaries that matter.
+
+**Colours are a `ThemeExtension`, not constants.** Widgets read
+`context.rabta.ink`, and `RabtaColors.dark` is already written beside the light
+scheme, so dark mode is a toggle and one line in `main.dart` rather than a sweep
+through every widget. The dark values were chosen with the light ones in front
+of us rather than guessed later.
+
+**Contrast, measured rather than assumed:** white on accent 9.00, ink on
+surface 17.77, accent on surface 9.00, muted on surface 5.31, urgent on surface
+4.78. AAA on everything structural, AA on secondary text.
+
+**Three panes, by width.** Under 760 the list and the thread take turns; from
+760 both show; from 1180 a details pane joins, carrying who the customer is and
+the state of the reply window. The thread was previously taking a whole wide
+screen for a message column capped at 470px, which does not make it more
+readable. What the details pane may contain is bounded by Phase One — no
+orders, no products, no notes, no tags — because an empty heading promising
+something that does not exist is worse than not having the pane.
+
+**The wait rail is the one loud element.** A vertical gauge on every waiting
+row showing how much of the 24 hour window is left, and the same gauge enlarged
+in the empty reading pane and lying down in the details pane. Length is the
+reading, not colour, so it works without knowing what any colour means and for
+someone who cannot distinguish the red. Colour joins only in the last four
+hours.
+
+**Every string is localised, with Arabic as the template.** `lib/l10n/app_ar.arb`
+is the source and English is the translation, not the other way round. Arabic is
+also the fallback locale: an unrecognised browser language lands on Arabic. The
+seller can override with the switch on the sign-in screen or `?lang=`.
+
+- Arabic plurals go through ICU, because the language distinguishes singular,
+  dual, and small from large plurals — `زبون واحد ينتظر`, `زبونان ينتظران`,
+  `3 زبائن`. String interpolation is wrong for every count but the large ones.
+- Western numerals throughout, including in Arabic. `٢٤` was written into one
+  string by hand and survived two spot-checking tests, so the suite now scans
+  the whole file for Eastern digits.
+- Interface direction follows the locale. Direction is set by hand in exactly
+  two places: the wordmark, which is a lockup, and message content.
+
+**The name is ربطة — a tie.** Not رابطة, which is a league or an association,
+and which was used by mistake for half a day. The Latin "Rabta" is a
+transliteration of it rather than the other way round, so the two are set at
+equal weight in `lib/wordmark.dart` and never drift apart.
+
+**Consequences:**
+
+- The app icon is the brand's fixed point. The interface accent was changed to
+  match it rather than the reverse, because the two sit side by side in a
+  browser tab and the icon is the harder one to change later.
+- Icons are generated by `tool/make_icons.py` rather than exported by hand. The
+  source artwork sits on white rather than transparency, and its padding is
+  right for a phone home screen and wrong at 16px, where the interlocking
+  bubbles close into a smudge — so each size is trimmed differently.
+- Platform marks are drawn as paths in `lib/platform_icon.dart`.
+  `font_awesome_flutter` does not compile against Flutter 3.47, where
+  `IconData` became a final class it can no longer extend. Worth knowing that
+  `flutter analyze` passed and only `dart2js` failed.
+
+---
+
 ## Platform constraints
 
 These are not choices. They are limits Meta imposes, recorded here so they are

@@ -355,68 +355,42 @@ Carried from `DECISIONS.md`:
 
 ---
 
-## Proposed interface principles
+## The interface
 
-Layout, sort order, typeface and numerals are settled — see `DECISIONS.md`.
-These six principles are **proposed, not yet agreed**. They exist to give the
-interface a specific point of view, because the failure mode for a product like
-this is not ugliness, it is looking like every other generated dashboard.
+A read-only inbox is built and running against the live database: sign in, the
+conversation list, the thread, and a details pane. Everything visual is settled
+in `DECISIONS.md` — principles, palette, typography, layout, language.
 
-1. **The list is the product.** The seller lives in the conversation list, not
-   in the thread. It carries exactly five things: who wrote, what they last
-   said, how long they have waited, which platform, and whether it is unread.
-   Anything else has to displace one of those.
+**Built:**
 
-2. **Colour means something, or it is absent.** One accent, used only for the
-   seller's own actions. Red only for a reply window about to close. Platform
-   shown as a small mark, never by tinting the interface. No decorative
-   gradients and no colour that does not carry information.
+- Sign-in, with the language choice on it, because being unable to read that
+  screen is the one failure a seller cannot click past.
+- The conversation list, in two groups: waiting for a reply with the longest
+  wait at the top, then answered, newest first.
+- The thread, with message direction taken per message rather than per locale.
+- The details pane, above 1180px wide.
+- Arabic and English throughout, Arabic as the template and the fallback.
+- The app icon, generated into the web icon set by `tool/make_icons.py`.
 
-3. **The reply window is stated before the seller types, not after.** The
-   composer shows the time remaining and refuses clearly once it has closed. A
-   reply that fails after being written is a design failure, not an error
-   message.
+**Deliberately not built.** Sending a reply — `send-message` does not exist, so
+the composer states the reply window and says so rather than offering a box that
+fails. Realtime, so the list does not update until reloaded. Marking a
+conversation read. Connecting an account from the interface: that runs through
+`meta-oauth` in a browser, with the workspace id in the URL.
 
-4. **Every message takes its direction from its own text.** Interface direction
-   and message direction are separate systems — already settled in
-   `DECISIONS.md`, repeated here because it is the rule most easily lost once
-   screens start being built.
+**Verified in a browser**, in both languages, at desktop and phone width:
+signing in, the list, opening a thread, Arabic and English messages side by side
+in one conversation, the real image attachment, the reply window countdown, the
+back gesture on a phone, and session restore on reload. Console clean.
 
-5. **Weight and space carry hierarchy — not boxes.** No card per conversation,
-   no elevation, no border around everything, no single border radius applied to
-   every surface. Type weight and white space do the work. This is the rule that
-   keeps the product from looking like default Material, which is the specific
-   way a Flutter application reads as generated.
+**22 tests.** The ones worth knowing about are the ordering, which caught an
+inverted comparison that would have left every answered conversation in the
+waiting group; the Arabic plurals; and a scan of the whole Arabic file for
+Eastern numerals, which caught a `٢٤` that two spot-checks had missed.
 
-6. **Motion only confirms an action.** Sending, opening and confirming may move.
-   Arriving messages, list updates and page loads do not. No entrance
-   animations, no hover flourishes.
-
-### Proposed palette
-
-Neutral ground, one accent, colour reserved for meaning. Deliberately not the
-warm-cream-and-terracotta or the tinted-near-black-with-acid-accent that
-generated interfaces cluster around.
-
-| Role | Value | Used for |
-|------|-------|----------|
-| Ground | `#FCFCFD` | the application background |
-| Surface | `#FFFFFF` | the conversation list and thread |
-| Line | `#E4E7EC` | dividers, the only structural device |
-| Ink | `#1A1D23` | names, message text |
-| Muted | `#6B7280` | previews, timestamps, secondary text |
-| Accent | `#0B5B5B` | the seller's own actions, and only those |
-| Urgent | `#B42318` | a reply window about to close, and only that |
-
-Instagram and Facebook appear as small marks in their own brand hues on the
-conversation row. They are never used as interface chrome, because the point of
-the product is that it is one workspace rather than two inboxes side by side.
-
-**Open inside this proposal:** whether the accent should be the deep teal above
-or something else. Teal was chosen to sit apart from both Meta blue and the
-default blue every dashboard uses, without borrowing WhatsApp's green while
-WhatsApp is not yet supported.
-
----
+**Customer names are missing.** Meta does not send them with the message, so
+every conversation reads as "Customer". A Graph lookup per new customer would
+fix it and has not been decided — it costs an API call and a place to put the
+result.
 
 Progress against Phase One is tracked in `CHECKLIST.md`.

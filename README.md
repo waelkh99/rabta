@@ -44,6 +44,36 @@ Postgres in-process.
 
 ---
 
+## Running the application
+
+The Supabase URL and publishable key are **compiled in**, so a build without
+them produces an application that cannot reach the database whatever is in the
+environment when it runs. That is the cause of a "Missing SUPABASE_URL" screen.
+
+Create `env.json` in the repository root — it is git-ignored:
+
+```json
+{
+  "SUPABASE_URL": "https://xejtffbpfguwvybrwqqj.supabase.co",
+  "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_..."
+}
+```
+
+The publishable key is in the dashboard under Settings > API Keys. It is meant
+to be public and is safe in a browser — row level security is what protects the
+data, not the key — but keeping it out of the repository means rotating it is
+not a commit.
+
+```
+flutter run -d chrome --dart-define-from-file=env.json
+flutter build web --release --dart-define-from-file=env.json
+```
+
+`.vscode/launch.json` passes the file already, so starting a debug session from
+the editor works without flags.
+
+---
+
 ## Everyday commands
 
 ```

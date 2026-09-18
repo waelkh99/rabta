@@ -108,15 +108,15 @@ it an open redirect on the most sensitive endpoint we have.
 - [ ] Almarai loading in Flutter web, subset to weights 300 and 700 only
 - [ ] Localisation set up, with no hardcoded strings
 - [ ] Arabic and English, with right-to-left layout
-- [ ] Message bubbles take direction from their own text, not the interface
+- [x] Message bubbles take direction from their own text, not the interface
 - [ ] Sign in and sign out
 - [ ] Connect an account, from the seller's point of view
-- [ ] Two-pane layout: conversation list beside the open conversation
-- [ ] Conversation list: awaiting a reply first, longest wait at the top, then
+- [x] Two-pane layout: conversation list beside the open conversation
+- [x] Conversation list: awaiting a reply first, longest wait at the top, then
       answered conversations newest first
 - [ ] The divider between the two groups says what it means in plain language
 - [ ] Index on `(workspace_id, last_inbound_at)` for the list query
-- [ ] Platform visible per conversation, as a mark rather than interface tinting
+- [x] Platform visible per conversation, as a mark rather than interface tinting
 - [ ] Unread state visible
 - [ ] Waiting time visible
 - [ ] Open a conversation and read its history
