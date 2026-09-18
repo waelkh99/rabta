@@ -23,13 +23,18 @@
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="rabta">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <meta name="apple-mobile-web-app-title" content="Rabta">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
+  <!-- Favicon. Separate files per size rather than one scaled image: the
+       interlocking bubbles close up into a smudge at 16px unless the mark is
+       cropped tighter, so tool/make_icons.py trims each size differently. -->
+  <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png"/>
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png"/>
+  <link rel="icon" type="image/png" sizes="48x48" href="icons/favicon-48.png"/>
+  <meta name="theme-color" content="#6010C0">
 
-  <title>rabta</title>
+  <title>Rabta</title>
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
