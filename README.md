@@ -121,6 +121,10 @@ substitutes the Site URL instead.
 Sign in while developing with `webhook-test@rabta.local` / `rabta-dev-2026` —
 see `STATUS.md` for what that account owns.
 
+**Never make that account an admin.** Its password is in this file and in the
+repository's history, so an admin flag on it would hand account creation to
+anyone who can read the repo. Grant admin to a real account instead.
+
 ---
 
 ## Everyday commands

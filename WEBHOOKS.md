@@ -395,13 +395,15 @@ Both `META_APP_SECRET` and `META_VERIFY_TOKEN` are configured, and the endpoint
 has been confirmed to accept a request signed with the real app secret and to
 reject a forged one.
 
-The remaining step is registering the URL above in the Meta app dashboard as
-the webhook callback, with `META_VERIFY_TOKEN` as the verify token, then
-subscribing to the `messages` and `messaging_postbacks` fields and connecting a
-Page or Instagram account.
+The URL above is registered in the Meta app dashboard as the webhook callback,
+with `META_VERIFY_TOKEN` as the verify token, subscribed to `messages`,
+`messaging_postbacks` and `message_echoes`, against both the Page and Instagram
+objects.
 
-`send-message` is not built yet, so replies cannot be sent from the application
-yet — messages only travel inbound.
+`send-message` was built on 18 September, so messages travel both ways: a reply
+sent from the application reaches the customer, and Meta's echo of it arrives
+back through this webhook and is discarded as a duplicate by the unique `mid`.
+See `STATUS.md`.
 
 ### Proven against the live deployment
 

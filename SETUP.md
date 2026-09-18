@@ -119,7 +119,7 @@ fix `.gitignore` before committing anything.
 ## 6. Check it all works
 
 - [ ] `cd supabase && npm test`
-- [ ] 56 tests pass, in roughly six seconds
+- [ ] 126 tests pass, in roughly six seconds
 
 That is the real confirmation. It exercises signature verification, payload
 parsing, message processing, the schema, the conversation trigger and row level

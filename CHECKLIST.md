@@ -23,7 +23,7 @@ Updated 18 September 2026.
 - [x] Out-of-order message delivery handled
 - [x] Schema applied to the live project
 
-Verified by 56 local tests and 13 checks against the live database, seeding
+Verified by 126 backend tests and 13 checks against the live database, seeding
 data first so the security checks proved something.
 
 ## 2. Receiving messages

@@ -686,12 +686,13 @@ product without the one screen a new customer cannot start without.
 
 **How access is controlled, and what is still open:**
 
-- **Public sign-up must be turned off.** Checked on 18 September and it is
-  currently **on**: `/auth/v1/settings` reports `disable_signup: false`, so
-  anyone who finds the URL can create an account. The publishable key is in the
-  shipped JavaScript by design, so it is not what protects this. Row level
-  security means a stranger would see only their own empty workspace and no
-  seller's data, but it is still contrary to the decision above.
+- **Public sign-up is turned off.** *Was on when this was written on
+  18 September, and turned off the same day.* `/auth/v1/settings` now reports
+  `disable_signup: true` and a real attempt returns 422 `signup_disabled`. The
+  publishable key ships in the JavaScript by design, so it was never what
+  protected this; row level security meant a stranger would have seen only
+  their own empty workspace and no seller's data, but it was still contrary to
+  the decision above.
 - **Accounts are created by invitation, not by us choosing a password.** The
   seller sets their own through the invite link, so their password is never
   ours and never travels through a chat. The `handle_new_user` trigger already
