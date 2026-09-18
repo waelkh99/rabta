@@ -95,11 +95,31 @@ the destination is looked up, never read.
 
 ## 5. Sending replies
 
-- [ ] `send-message` function
-- [ ] Refuses clearly when the reply window has closed
-- [ ] Stores the outbound message with the id Meta returns
-- [ ] The echo of our own reply creates no duplicate
-- [ ] Failures reach the client with a useful reason
+- [x] `send-message` function — deployed 18 September, and a real reply sent
+      to the test Page's customer and accepted by Meta
+- [x] Refuses clearly when the reply window has closed — proven live against
+      the deployed function: a conversation whose window closed seven days ago
+      is refused `window_closed`, and one where the customer has never written
+      is refused `no_window`, which is a different thing and says so
+- [x] Stores the outbound message with the id Meta returns
+- [x] The echo of our own reply creates no duplicate — both echoes arrived
+      from Meta and were processed, and the messages table still holds each
+      reply once. The unique `mid` and the webhook's existing
+      `ignoreDuplicates` do it; no new code was needed.
+- [x] Failures reach the client with a useful reason — as a code, never a
+      sentence, so the interface picks the language. `empty`, `too_long`,
+      `window_closed`, `no_window`, `not_found`, `disconnected`, `rejected`,
+      `unreachable`.
+- [ ] The interface can actually send one — the composer is still a notice
+
+Arabic was verified through the whole path: a reply of
+`مرحبا، سعر iPhone 15 Pro هو 1200 دولار؟` was sent, and Meta's echo of it came
+back byte for byte, Arabic question mark and Western digits intact.
+
+An expired access token is recorded on the account as `needs_reconnect` when
+Meta reports code 190, which is the only warning a seller would otherwise get
+that their inbox has gone quiet for a reason. That covers the sending path
+only; the receiving path in section 2 is still uncovered.
 
 ## 6. The application
 
