@@ -40,16 +40,37 @@ app secret and reject a forged one.
 Deliberately kept, so that a message sent to the test Page flows straight
 through without setting anything up again:
 
-- auth user `webhook-test@rabta.local`, and the workspace its signup trigger
-  created
-- a `connected_accounts` row for the Facebook Page `1427711713749572`
-  ("Rabta App"), connected by hand rather than through OAuth, which does not
-  exist yet
-- the conversation and message from the real delivery, plus the raw events
+- auth user `webhook-test@rabta.local`, password `rabta-dev-2026`. This is the
+  account the application signs in as while developing. Not a secret worth
+  protecting — it owns nothing but this test data — and written down because it
+  is otherwise unrecoverable: the password was generated when the user was
+  created and reset by hand afterwards.
+- its workspace, `0c839c31-4a49-485b-a9f9-b2e4af479b8b`, created by the signup
+  trigger. Needed by hand until the application can start the connect flow
+  itself:
+
+  ```
+  .../functions/v1/meta-oauth/start?workspace=0c839c31-4a49-485b-a9f9-b2e4af479b8b
+  ```
+
+- `connected_accounts` rows for the Facebook Page `1427711713749572`
+  ("Rabta App") and the Instagram account `17841401424316998` (`djangus_w`),
+  both connected through `meta-oauth`
+- the conversations and messages from the real deliveries, plus the raw events
 
 None of it is real seller data. Clear it whenever it stops being useful — but
 note that removing the `connected_accounts` row will send later deliveries back
 to being stored and skipped as `unknown-account`.
+
+---
+
+## Known defect
+
+**Browser autofill fills the sign-in fields without Flutter seeing them.**
+Observed in Chrome on 18 September: the email field shows a value, the
+controller behind it is empty, and signing in fails with "missing email or
+phone". The field looks filled and the button rejects it — a bad first minute,
+on the first screen. Not fixed.
 
 ---
 
