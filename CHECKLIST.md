@@ -7,7 +7,7 @@ scope list in `CLAUDE.md`.
 A box is ticked only when the thing has been run and seen to work, not when the
 code exists. Where something was verified, it says how.
 
-Updated 17 September 2026.
+Updated 18 September 2026.
 
 ---
 
@@ -57,11 +57,13 @@ think business is quiet.
 The critical path. These run in calendar time, not development time, so delays
 here hold up everything else.
 
-- [ ] Understand Meta's use cases model
-- [ ] Decide which use case and permissions Phase One needs
-- [ ] Register the webhook callback URL
-- [ ] Subscribe to the `messages` and `messaging_postbacks` fields
-- [ ] Connect a real Page and see a message arrive
+- [x] Understand Meta's use cases model
+- [x] Decide which use case and permissions Phase One needs — Facebook Login
+      for Business, Instagram reached through the linked Page. `DECISIONS.md`.
+- [x] Register the webhook callback URL — against both the Page and Instagram
+      objects, same verify token
+- [x] Subscribe to the `messages` and `messaging_postbacks` fields
+- [x] Connect a real Page and see a message arrive — 15 September, end to end
 - [ ] Connect a real Instagram account and see a message arrive
 - [ ] Business verification
 - [ ] App review for the messaging permissions
@@ -73,17 +75,23 @@ developers can connect. No real seller can use the product.
 
 - [x] Agree the connection flow — settled 17 September, and made much simpler
       by the move to a web application. See `STATUS.md`.
-- [ ] `meta-oauth` function: start the flow, carrying `state`
-- [ ] `meta-oauth` callback: exchange the code server-side, store the token
-- [ ] `/me/subscribed_apps` called once the token is stored
-- [ ] Return origin validated against an allowlist before redirecting back
-- [ ] Browser lands back in the application, signed in and carrying on
+- [x] `meta-oauth` function: start the flow, carrying `state`
+- [x] `meta-oauth` callback: exchange the code server-side, store the token
+- [x] `/me/subscribed_apps` called once the token is stored
+- [x] Return origin validated against an allowlist before redirecting back —
+      18 September. The state carries an index into the allowlist rather than
+      an origin, so a destination cannot be expressed at all. Proven against
+      the deployed function: a state signed with the real app secret naming
+      index 1 or 99 is rejected, while index 0 passes.
+- [ ] Browser lands back in the application, signed in and carrying on — the
+      redirect is written and deployed; not yet run through a real Meta login
 - [ ] Connecting a second account works
 - [ ] Disconnecting an account works
 
-The allowlist item is not housekeeping. `meta-oauth` redirects the browser
-after handling an access token, and a destination taken from the request makes
-it an open redirect on the most sensitive endpoint we have.
+The allowlist item was not housekeeping. `meta-oauth` redirects the browser
+after handling an access token, and a destination taken from the request would
+make it an open redirect on the most sensitive endpoint we have. It is closed:
+the destination is looked up, never read.
 
 ## 5. Sending replies
 
@@ -105,27 +113,40 @@ it an open redirect on the most sensitive endpoint we have.
 - [x] An Arabic font with proper glyphs chosen — Almarai, covering Arabic and
       Latin from one family, at 300 for previews and 700 for names. Picked on
       measured width against Cairo and Alexandria, not on style.
-- [ ] Almarai loading in Flutter web, subset to weights 300 and 700 only
-- [ ] Localisation set up, with no hardcoded strings
-- [ ] Arabic and English, with right-to-left layout
+- [ ] Almarai loading in Flutter web, subset to weights 300 and 700 only —
+      it renders, but through `google_fonts`, which fetches from Google's CDN
+      at runtime. That is neither bundled nor subset: it is a third-party
+      request on every cold load, and the Arabic interface shows a fallback
+      face until it lands. Not the same thing as done.
+- [x] Localisation set up, with no hardcoded strings — Arabic is the source
+      file, English the translation. A test scans the Arabic file for Eastern
+      numerals, which caught one two spot-checks had missed.
+- [x] Arabic and English, with right-to-left layout — verified in a browser in
+      both languages, at desktop and phone width
 - [x] Message bubbles take direction from their own text, not the interface
-- [ ] Sign in and sign out
-- [ ] Connect an account, from the seller's point of view
+- [x] Sign in and sign out
+- [ ] Connect an account, from the seller's point of view — still a URL pasted
+      by hand with the workspace id in it
 - [x] Two-pane layout: conversation list beside the open conversation
 - [x] Conversation list: awaiting a reply first, longest wait at the top, then
       answered conversations newest first
-- [ ] The divider between the two groups says what it means in plain language
+- [x] The divider between the two groups says what it means in plain language
+      — and is hidden when either group is empty, because a heading with
+      nothing under it reads as a section that failed to load
 - [ ] Index on `(workspace_id, last_inbound_at)` for the list query
 - [x] Platform visible per conversation, as a mark rather than interface tinting
-- [ ] Unread state visible
-- [ ] Waiting time visible
-- [ ] Open a conversation and read its history
+- [x] Unread state visible
+- [x] Waiting time visible — the wait rail, and a countdown on the composer
+- [x] Open a conversation and read its history
 - [ ] Reply
-- [ ] Composer reflects the reply window before the seller types
+- [x] Composer reflects the reply window before the seller types — it states
+      the window and says replying is not built, rather than offering a box
+      that would fail
 - [ ] New messages arrive live
-- [ ] Attachments displayed
+- [x] Attachments displayed — verified against the real image delivered by Meta
 - [ ] In-page notification and title badge while the tab is open
-- [ ] Empty states, loading states, and what happens when offline
+- [ ] Empty states, loading states, and what happens when offline — the first
+      two are built and seen; offline is not handled at all
 - [ ] First load is measured again once there is a real interface
 
 Layout, sort order, typeface and numerals were settled on 17 September — see

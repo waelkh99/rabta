@@ -16,6 +16,13 @@
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
+import {
+  isWorkspaceId,
+  readState,
+  returnOriginIndex,
+  signState,
+} from "./state.ts";
+
 const APP_ID = "1759728245295705";
 const CONFIG_ID = "1063344539629710";
 const GRAPH = "https://graph.facebook.com/v26.0";
@@ -52,69 +59,25 @@ Deno.serve(async (request: Request) => {
 async function start(params: URLSearchParams): Promise<Response> {
   const workspaceId = params.get("workspace");
   if (!workspaceId) return text("Missing workspace", 400);
+  if (!isWorkspaceId(workspaceId)) return text("Invalid workspace", 400);
+
+  // Where the browser is sent once this is done. Rejected here, at the start,
+  // so an origin we will not redirect to never reaches the point of being
+  // signed into the state.
+  const originIndex = returnOriginIndex(params.get("return"));
+  if (originIndex === null) return text("Unknown return address", 400);
 
   const dialog = new URL("https://www.facebook.com/v26.0/dialog/oauth");
   dialog.searchParams.set("client_id", APP_ID);
   dialog.searchParams.set("config_id", CONFIG_ID);
   dialog.searchParams.set("redirect_uri", REDIRECT_URI);
   dialog.searchParams.set("response_type", "code");
-  dialog.searchParams.set("state", await signState(workspaceId));
+  dialog.searchParams.set(
+    "state",
+    await signState(APP_SECRET, workspaceId, originIndex),
+  );
 
   return Response.redirect(dialog.toString(), 302);
-}
-
-// ---------------------------------------------------------------------------
-// State
-//
-// Ties the browser flow back to the right workspace, and is the CSRF
-// protection at the same time. Signing it with the app secret means no table
-// and no cleanup job: a forged state cannot be produced without the secret,
-// and a replayed one can only ever reach the workspace it was issued for.
-// ---------------------------------------------------------------------------
-
-async function signState(workspaceId: string): Promise<string> {
-  const nonce = crypto.randomUUID();
-  const body = `${workspaceId}.${nonce}`;
-  return `${body}.${await hmac(body)}`;
-}
-
-async function readState(state: string | null): Promise<string | null> {
-  if (!state) return null;
-
-  const parts = state.split(".");
-  if (parts.length !== 3) return null;
-
-  const [workspaceId, nonce, signature] = parts;
-  const expected = await hmac(`${workspaceId}.${nonce}`);
-
-  if (signature.length !== expected.length) return null;
-
-  let diff = 0;
-  for (let i = 0; i < signature.length; i++) {
-    diff |= signature.charCodeAt(i) ^ expected.charCodeAt(i);
-  }
-
-  return diff === 0 ? workspaceId : null;
-}
-
-async function hmac(body: string): Promise<string> {
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(APP_SECRET),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-
-  const signature = await crypto.subtle.sign(
-    "HMAC",
-    key,
-    new TextEncoder().encode(body),
-  );
-
-  return [...new Uint8Array(signature)]
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
 }
 
 // ---------------------------------------------------------------------------
@@ -126,8 +89,10 @@ async function callback(params: URLSearchParams): Promise<Response> {
   const declined = params.get("error_description") ?? params.get("error");
   if (declined) return text(`Meta declined the connection: ${declined}`, 400);
 
-  const workspaceId = await readState(params.get("state"));
-  if (!workspaceId) return text("Invalid state", 400);
+  const issued = await readState(APP_SECRET, params.get("state"));
+  if (!issued) return text("Invalid state", 400);
+
+  const { workspaceId, returnOrigin } = issued;
 
   const code = params.get("code");
   if (!code) return text("Missing code", 400);
@@ -154,28 +119,28 @@ async function callback(params: URLSearchParams): Promise<Response> {
   if (pages.length === 0) {
     // The seller has no Page, or did not grant one on the asset screen. The two
     // are indistinguishable from here, and this is the likeliest way the flow
-    // fails for a real seller.
+    // fails for a real seller — so what they read has to be a plain sentence
+    // about what to do next, not a description of what we asked Meta.
     //
-    // The raw responses are included while this is being worked out. A seller
-    // must never see them — this becomes a plain sentence before there is a UI.
-    const debug = await fetch(
-      `${GRAPH}/debug_token?input_token=${encodeURIComponent(token.access_token)}` +
-        `&access_token=${APP_ID}|${encodeURIComponent(APP_SECRET)}`,
-    ).then((r) => r.json()).catch((e) => ({ error: String(e) }));
-
-    const businesses = await fetch(
-      `${GRAPH}/me/businesses?access_token=${encodeURIComponent(token.access_token)}`,
-    ).then((r) => r.json()).catch((e) => ({ error: String(e) }));
+    // The diagnostics go to the function log, where we can read them and the
+    // seller cannot. They were printed on this page while the flow was being
+    // worked out, which also left a reference to a variable that no longer
+    // existed — so the one path that most needed to explain itself crashed.
+    console.error("no page granted", {
+      workspaceId,
+      tokenKeys: Object.keys(token),
+      granted,
+    });
 
     return text(
-      "Connected, but no Facebook Page was granted.\n\n" +
-        "Rabta receives messages through a Page. Either this account has none, " +
-        "or the Page was not selected on Meta's permission screen.\n\n" +
-        "--- diagnostics ---\n\n" +
-        `token response keys: ${JSON.stringify(Object.keys(token))}\n\n` +
-        `me/accounts: ${JSON.stringify(accounts, null, 2)}\n\n` +
-        `debug_token: ${JSON.stringify(debug, null, 2)}\n\n` +
-        `me/businesses: ${JSON.stringify(businesses, null, 2)}`,
+      `Almost there.
+
+Rabta receives your messages through a Facebook Page, and no Page was
+included. On Meta's permission screen, choose the Page you sell from and allow
+access to its messages.
+
+If this account has no Page yet, one has to be created before Instagram or
+Messenger conversations can reach Rabta.`,
       200,
     );
   }
@@ -228,7 +193,15 @@ async function callback(params: URLSearchParams): Promise<Response> {
     }
   }
 
-  return text(`Connected.\n\n${report.join("\n")}`, 200);
+  // Home, to the application the seller pressed Connect in. The destination
+  // came out of the allowlist in state.ts and never out of this request.
+  //
+  // Only on success. A seller whose connection did not work keeps the page
+  // that says why, because dropping them back into an inbox that looks no
+  // different is the one outcome they cannot act on.
+  console.log("connected", { workspaceId, report });
+
+  return Response.redirect(`${returnOrigin}/?connected=1`, 302);
 }
 
 // Which Pages and Instagram accounts this token was actually granted against.

@@ -1,6 +1,6 @@
 # Where we are
 
-Updated 17 September 2026.
+Updated 18 September 2026.
 
 A running log of what is built, what is live, and what comes next. `CLAUDE.md`
 holds the product direction, `DECISIONS.md` the settled decisions, and
@@ -82,13 +82,15 @@ on the first screen. Not fixed.
   delivers messages from accounts holding a role on it. This is now on the
   critical path rather than a background task: Instagram cannot be verified
   until it is done.
-- **The application.** Still the default scaffold — no interface exists. It is
-  now a web application rather than a Windows one, decided 17 September. The
-  only thing confirmed so far is that the toolchain works: `flutter build web
-  --release` produces a running bundle on Flutter 3.47.4, and the first-load
-  cost was measured at roughly 2.5 MB gzipped. Arabic and right-to-left were
-  probed separately on the web renderer and came back correct, including
-  per-message direction — see `DECISIONS.md`. Nothing else has been built.
+- **Replying, live updates, and connecting an account from the interface.** The
+  read-only inbox is built and running — see "The interface" below. What it
+  cannot do is reply, notice a message arriving without a reload, or start the
+  connect flow without a URL pasted by hand.
+- **The font is fetched rather than bundled.** Almarai renders, but through
+  `google_fonts`, which pulls it from Google's CDN at runtime. Subsetting it to
+  the two weights actually used and serving it ourselves is still to do, and
+  until then every cold load makes a third-party request and shows a fallback
+  face in the meantime.
 
 ---
 
@@ -127,7 +129,9 @@ The suite is 56 tests. The test harness now applies every file in
 `migrations/` in order rather than only the initial one, so a new migration is
 covered the moment it is added instead of silently going untested.
 
-**Not yet applied to the live database.** `supabase db push` is still to run.
+**Applied to the live database**, and confirmed on 18 September by selecting
+`last_message_type` through the live REST API — with a nonexistent column as
+the control, which returns 400 where the real one returns 200.
 
 ## Where we are
 

@@ -53,8 +53,11 @@ export async function hmacSha256Hex(secret: string, body: string): Promise<strin
 /**
  * Compares in time that does not depend on where the first difference falls,
  * so that timing cannot be used to discover a valid signature byte by byte.
+ *
+ * Exported because the OAuth state parameter is signed the same way and must
+ * be compared the same way.
  */
-function timingSafeEqual(a: string, b: string): boolean {
+export function timingSafeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
 
   let difference = 0;

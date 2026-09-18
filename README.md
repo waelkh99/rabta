@@ -65,12 +65,17 @@ data, not the key — but keeping it out of the repository means rotating it is
 not a commit.
 
 ```
-flutter run -d chrome --dart-define-from-file=env.json
+flutter run -d chrome --dart-define-from-file=env.json --web-port=5353
 flutter build web --release --dart-define-from-file=env.json
 ```
 
 `.vscode/launch.json` passes the file already, so starting a debug session from
 the editor works without flags.
+
+The port is pinned rather than left to Flutter's random choice because
+`meta-oauth` will only return a browser to an origin on its allowlist, and an
+allowlist cannot hold a port that changes on every run. Change it in one place
+and it has to change in `supabase/functions/meta-oauth/state.ts` too.
 
 The interface is Arabic and English, and follows the browser's language, falling
 back to Arabic. `?lang=ar` or `?lang=en` overrides that, which is how to see the

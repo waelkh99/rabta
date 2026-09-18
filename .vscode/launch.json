@@ -7,7 +7,7 @@
       "type": "dart",
       "program": "lib/main.dart",
       "deviceId": "chrome",
-      "args": ["--dart-define-from-file=env.json"]
+      "args": ["--dart-define-from-file=env.json", "--web-port=5353"]
     },
     {
       "name": "Rabta (Chrome, release)",
@@ -16,7 +16,7 @@
       "program": "lib/main.dart",
       "deviceId": "chrome",
       "flutterMode": "release",
-      "args": ["--dart-define-from-file=env.json"]
+      "args": ["--dart-define-from-file=env.json", "--web-port=5353"]
     }
   ]
 }
