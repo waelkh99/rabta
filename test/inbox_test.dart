@@ -407,6 +407,18 @@ void _arabic() {
         'windowExplanation': (ar.windowExplanation, en.windowExplanation),
         'replyingNotBuilt': (ar.replyingNotBuilt, en.replyingNotBuilt),
         'composerHint': (ar.composerHint, en.composerHint),
+        'accounts': (ar.accounts, en.accounts),
+        'connectTitle': (ar.connectTitle, en.connectTitle),
+        'connectBody': (ar.connectBody, en.connectBody),
+        'connectAction': (ar.connectAction, en.connectAction),
+        'accountActive': (ar.accountActive, en.accountActive),
+        'accountNeedsReconnect':
+            (ar.accountNeedsReconnect, en.accountNeedsReconnect),
+        'accountDisconnected': (ar.accountDisconnected, en.accountDisconnected),
+        'disconnect': (ar.disconnect, en.disconnect),
+        'disconnectTitle': (ar.disconnectTitle, en.disconnectTitle),
+        'disconnectBody': (ar.disconnectBody, en.disconnectBody),
+        'connectFailed': (ar.connectFailed, en.connectFailed),
         'sendReply': (ar.sendReply, en.sendReply),
         'sending': (ar.sending, en.sending),
         'replyWindowClosedLong':

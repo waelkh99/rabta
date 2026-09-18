@@ -1,9 +1,15 @@
 // Connecting a seller's Meta accounts.
 //
-// Two routes:
+// Three routes:
 //
-//   /meta-oauth/start?workspace=<uuid>   sends the browser to Meta
-//   /meta-oauth/callback?code=&state=    exchanges the code and stores what it finds
+//   /meta-oauth/start        answers with the address of Meta's approval page
+//   /meta-oauth/callback     exchanges the code and stores what it finds
+//   /meta-oauth/disconnect   stops an account without losing its history
+//
+// `start` and `disconnect` are called by the application and carry the
+// seller's own token; the workspace comes from that token and never from the
+// request. `callback` is the one Meta itself reaches, as a plain browser
+// navigation with no session, and the signed state is what protects it.
 //
 // Facebook Login for Business does not use a plain OAuth dialog. The request
 // carries a config_id, and that configuration decides which permissions are
@@ -15,6 +21,8 @@
 // Meta with no Supabase session. The signed state parameter is what protects it.
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
+
+import { corsHeaders } from "../_shared/origins.ts";
 
 import {
   isWorkspaceId,
@@ -38,6 +46,7 @@ const SUBSCRIBED_FIELDS = "messages,messaging_postbacks,message_echoes";
 const APP_SECRET = Deno.env.get("META_APP_SECRET") ?? "";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { persistSession: false },
@@ -45,27 +54,69 @@ const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
 
 Deno.serve(async (request: Request) => {
   const { pathname, searchParams } = new URL(request.url);
+  const cors = corsHeaders(request.headers.get("Origin"));
 
-  if (pathname.endsWith("/start")) return await start(searchParams);
+  if (request.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: cors });
+  }
+
+  // The callback is the only route Meta itself reaches, and it arrives as a
+  // plain browser navigation with no session. The other two are called by the
+  // application, carrying the seller's own token.
   if (pathname.endsWith("/callback")) return await callback(searchParams);
+  if (pathname.endsWith("/start")) return await start(request, cors);
+  if (pathname.endsWith("/disconnect")) return await disconnect(request, cors);
 
   return text("Not found", 404);
 });
+
+/** The seller making this request, according to their own token. */
+async function sellerWorkspace(
+  request: Request,
+): Promise<{ workspaceId: string; token: string } | null> {
+  const token = request.headers.get("Authorization") ?? "";
+  if (!token) return null;
+
+  // Read as the seller. Row level security returns their workspace and no
+  // other, so the workspace is never taken from the request.
+  const seller = createClient(SUPABASE_URL, ANON_KEY, {
+    auth: { persistSession: false },
+    global: { headers: { Authorization: token } },
+  });
+
+  const { data } = await seller.from("workspaces").select("id").maybeSingle();
+  if (!data?.id || !isWorkspaceId(data.id)) return null;
+
+  return { workspaceId: data.id, token };
+}
 
 // ---------------------------------------------------------------------------
 // Sending the seller to Meta
 // ---------------------------------------------------------------------------
 
-async function start(params: URLSearchParams): Promise<Response> {
-  const workspaceId = params.get("workspace");
-  if (!workspaceId) return text("Missing workspace", 400);
-  if (!isWorkspaceId(workspaceId)) return text("Invalid workspace", 400);
+/**
+ * Answers with the address of Meta's approval page, for the application to
+ * send the browser to.
+ *
+ * It does not redirect, because a redirect cannot carry an Authorization
+ * header — and the alternative, a workspace id in the query string, is what
+ * this replaces. Anyone could name any workspace and connect a Meta account
+ * into a seller's inbox they do not own.
+ */
+async function start(
+  request: Request,
+  cors: Record<string, string>,
+): Promise<Response> {
+  const seller = await sellerWorkspace(request);
+  if (!seller) return json({ reason: "not_signed_in" }, 401, cors);
 
   // Where the browser is sent once this is done. Rejected here, at the start,
   // so an origin we will not redirect to never reaches the point of being
   // signed into the state.
-  const originIndex = returnOriginIndex(params.get("return"));
-  if (originIndex === null) return text("Unknown return address", 400);
+  const originIndex = returnOriginIndex(
+    new URL(request.url).searchParams.get("return"),
+  );
+  if (originIndex === null) return json({ reason: "unknown_return" }, 400, cors);
 
   const dialog = new URL("https://www.facebook.com/v26.0/dialog/oauth");
   dialog.searchParams.set("client_id", APP_ID);
@@ -74,10 +125,100 @@ async function start(params: URLSearchParams): Promise<Response> {
   dialog.searchParams.set("response_type", "code");
   dialog.searchParams.set(
     "state",
-    await signState(APP_SECRET, workspaceId, originIndex),
+    await signState(APP_SECRET, seller.workspaceId, originIndex),
   );
 
-  return Response.redirect(dialog.toString(), 302);
+  return json({ url: dialog.toString() }, 200, cors);
+}
+
+// ---------------------------------------------------------------------------
+// Turning an account off
+// ---------------------------------------------------------------------------
+
+/**
+ * Stops messages arriving from one account, without losing anything.
+ *
+ * Deliberately not a delete. `connected_accounts` is the parent of
+ * conversations and of messages, both `on delete cascade`, so removing the row
+ * would take every conversation the seller has ever had on that account with
+ * it. Someone turning off notifications would lose their history and have no
+ * way back. What goes is the token and the subscription; the account stays,
+ * marked disconnected, and its conversations stay readable.
+ */
+async function disconnect(
+  request: Request,
+  cors: Record<string, string>,
+): Promise<Response> {
+  const seller = await sellerWorkspace(request);
+  if (!seller) return json({ reason: "not_signed_in" }, 401, cors);
+
+  let body: { account?: string };
+  try {
+    body = await request.json();
+  } catch {
+    return json({ reason: "bad_request" }, 400, cors);
+  }
+
+  const accountId = body.account ?? "";
+  if (!accountId) return json({ reason: "not_found" }, 404, cors);
+
+  // Read as the seller, so an account belonging to someone else is simply not
+  // there rather than something we have to remember to check.
+  const asSeller = createClient(SUPABASE_URL, ANON_KEY, {
+    auth: { persistSession: false },
+    global: { headers: { Authorization: seller.token } },
+  });
+
+  const { data: account } = await asSeller
+    .from("connected_accounts")
+    .select("id, external_id, platform")
+    .eq("id", accountId)
+    .maybeSingle();
+
+  if (!account) return json({ reason: "not_found" }, 404, cors);
+
+  // Tell Meta to stop sending. Done before the token is deleted, because the
+  // token is what proves we may. A failure here is logged and not fatal: the
+  // token is going regardless, and an account we can no longer authenticate
+  // cannot be unsubscribed anyway.
+  const { data: stored } = await supabase
+    .from("account_tokens")
+    .select("access_token")
+    .eq("account_id", account.id)
+    .maybeSingle();
+
+  if (stored?.access_token) {
+    try {
+      const answer = await fetch(
+        `${GRAPH}/${account.external_id}/subscribed_apps` +
+          `?access_token=${encodeURIComponent(stored.access_token)}`,
+        { method: "DELETE" },
+      ).then((r) => r.json());
+
+      if (!answer?.success) {
+        console.warn("unsubscribe refused", { accountId: account.id, answer });
+      }
+    } catch (cause) {
+      console.warn("unsubscribe failed to reach Meta", {
+        accountId: account.id,
+        cause: String(cause),
+      });
+    }
+  }
+
+  await supabase.from("account_tokens").delete().eq("account_id", account.id);
+
+  const { error } = await supabase
+    .from("connected_accounts")
+    .update({ status: "disconnected" })
+    .eq("id", account.id);
+
+  if (error) {
+    console.error("disconnect failed to record", { accountId: account.id, error });
+    return json({ reason: "failed" }, 500, cors);
+  }
+
+  return json({ disconnected: account.id }, 200, cors);
 }
 
 // ---------------------------------------------------------------------------
@@ -268,7 +409,16 @@ async function connect(
   const { data: account, error } = await supabase
     .from("connected_accounts")
     .upsert(
-      { workspace_id: workspaceId, platform, external_id: externalId, name },
+      {
+        workspace_id: workspaceId,
+        platform,
+        external_id: externalId,
+        name,
+        // Reconnecting an account that was turned off, or whose token had
+        // expired, puts it back in service. Without this it would keep the
+        // old status and read as disconnected while messages arrived.
+        status: "active",
+      },
       { onConflict: "platform,external_id" },
     )
     .select("id")
@@ -280,6 +430,17 @@ async function connect(
     account_id: account.id,
     access_token: accessToken,
     updated_at: new Date().toISOString(),
+  });
+}
+
+function json(
+  body: unknown,
+  status: number,
+  cors: Record<string, string>,
+): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...cors, "content-type": "application/json; charset=utf-8" },
   });
 }
 

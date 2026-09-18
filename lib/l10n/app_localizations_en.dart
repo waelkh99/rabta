@@ -85,6 +85,62 @@ class LEn extends L {
   String get replyingNotBuilt => 'Replying is not built yet.';
 
   @override
+  String get accounts => 'Accounts';
+
+  @override
+  String get connectTitle => 'Connect your accounts';
+
+  @override
+  String get connectBody =>
+      'Instagram and Messenger messages arrive here once you connect your Page. Anything sent before you connect stays in Meta\'s apps.';
+
+  @override
+  String get connectAction => 'Connect with Meta';
+
+  @override
+  String get connectOpening => 'Opening Meta';
+
+  @override
+  String get connectAnother => 'Connect another account';
+
+  @override
+  String get noAccountsRow => 'No account connected';
+
+  @override
+  String get accountsBody => 'The accounts whose messages reach Rabta.';
+
+  @override
+  String get accountActive => 'Receiving messages';
+
+  @override
+  String get accountNeedsReconnect => 'Disconnected — reconnect it';
+
+  @override
+  String get accountDisconnected => 'Turned off';
+
+  @override
+  String get disconnect => 'Turn off';
+
+  @override
+  String get disconnectTitle => 'Turn this account off?';
+
+  @override
+  String get disconnectBody =>
+      'New messages from this account will stop arriving. Past conversations stay as they are, and you can connect it again at any time.';
+
+  @override
+  String get disconnectConfirm => 'Turn it off';
+
+  @override
+  String get cancel => 'Cancel';
+
+  @override
+  String get connectFailed => 'Could not start connecting. Try again.';
+
+  @override
+  String get connectFailedSignedOut => 'Your session has ended. Sign in again.';
+
+  @override
   String get composerHint => 'Write your reply';
 
   @override

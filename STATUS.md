@@ -102,15 +102,16 @@ observe that, and browsers do not do it.
   delivers messages from accounts holding a role on it. This is now on the
   critical path rather than a background task: Instagram cannot be verified
   until it is done.
-- **Nothing in the inbox itself.** It reads, replies, names its customers and
-  updates live. Connecting an account is deliberately not a button in it —
-  Rabta is given to a paying customer and connecting is onboarding we run with
-  them, decided 18 September. See `DECISIONS.md`.
-- **The font is fetched rather than bundled.** Almarai renders, but through
-  `google_fonts`, which pulls it from Google's CDN at runtime. Subsetting it to
-  the two weights actually used and serving it ourselves is still to do, and
-  until then every cold load makes a third-party request and shows a fallback
-  face in the meantime.
+- **Public sign-up is still open.** `/auth/v1/settings` reports
+  `disable_signup: false`, so anyone who finds the URL can create an account.
+  One dashboard toggle, and the first thing to do before a real customer.
+- **Accounts are not created by invitation yet**, and there is no password
+  reset, so a seller who forgets theirs has no way back in but us.
+- **The font is fetched rather than bundled.**
+  Almarai renders, but through `google_fonts`, which pulls it from Google's CDN
+  at runtime. Subsetting it to the two weights actually used and serving it
+  ourselves is still to do, and until then every cold load makes a third-party
+  request and shows a fallback face in the meantime.
 
 ---
 
@@ -463,10 +464,21 @@ the box rather than asking the seller to type it again. Answering moves the
 conversation out of the waiting group immediately, without a reload and without
 dropping the inbox back to a spinner.
 
-**Deliberately not built.** Realtime, so the list does not update until
-reloaded. Marking a conversation read. Connecting an account from the
-interface: that runs through `meta-oauth` in a browser, with the workspace id
-in the URL.
+**Connecting is built.** A seller with nothing connected sees one screen with
+one thing on it. A seller with accounts finds Connect and Turn off under
+Accounts in the header. Turning an account off asks first, says in plain words
+that the conversations survive, then unsubscribes from Meta, deletes the token
+and marks the account off — it is deliberately not a delete, because
+`connected_accounts` cascades to every conversation and message the seller has
+ever had.
+
+**The workspace now comes from the seller's own session.** It used to travel in
+the URL, which meant anyone could name any workspace and start a connection
+into an inbox they did not own. `meta-oauth/start` reads it through the
+seller's token instead and answers with Meta's address rather than redirecting,
+because a redirect cannot carry an Authorization header.
+
+**Deliberately not built.** Marking a conversation read.
 
 **Verified in a browser**, in both languages, at desktop and phone width:
 signing in, the list, opening a thread, Arabic and English messages side by side

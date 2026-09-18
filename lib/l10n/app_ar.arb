@@ -41,6 +41,31 @@
   "replyWindowClosedLong": "أُغلقت نافذة الرد. يمكنك الرد مجدداً عندما يراسلك هذا الزبون.",
   "replyingNotBuilt": "إرسال الردود غير متاح بعد.",
 
+  "accounts": "الحسابات",
+  "connectTitle": "اربط حساباتك",
+  "connectBody": "تصل رسائل إنستغرام وماسنجر إلى هنا بعد ربط صفحتك. أما ما أُرسل قبل الربط فيبقى في تطبيقات ميتا.",
+  "connectAction": "الربط مع ميتا",
+  "connectOpening": "جارٍ فتح ميتا",
+  "connectAnother": "ربط حساب آخر",
+  "noAccountsRow": "لا يوجد حساب مربوط",
+  "@noAccountsRow": {
+    "description": "Where the conversation list would be, when nothing is connected yet."
+  },
+  "accountsBody": "الحسابات التي تصل رسائلها إلى ربطة.",
+  "accountActive": "يستقبل الرسائل",
+  "accountNeedsReconnect": "انقطع الاتصال، أعد الربط",
+  "@accountNeedsReconnect": {
+    "description": "The token expired. Messages stopped arriving and nothing said so."
+  },
+  "accountDisconnected": "موقوف",
+  "disconnect": "إيقاف",
+  "disconnectTitle": "إيقاف هذا الحساب؟",
+  "disconnectBody": "ستتوقف الرسائل الجديدة من هذا الحساب. تبقى المحادثات السابقة كما هي، ويمكنك إعادة الربط في أي وقت.",
+  "disconnectConfirm": "إيقاف الحساب",
+  "cancel": "إلغاء",
+  "connectFailed": "تعذّر بدء الربط. حاول مرة أخرى.",
+  "connectFailedSignedOut": "انتهت جلستك. سجّل الدخول من جديد.",
+
   "composerHint": "اكتب ردك",
   "sendReply": "إرسال",
   "sending": "جارٍ الإرسال",

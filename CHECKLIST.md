@@ -88,8 +88,14 @@ developers can connect. No real seller can use the product.
       index 1 or 99 is rejected, while index 0 passes.
 - [ ] Browser lands back in the application, signed in and carrying on — the
       redirect is written and deployed; not yet run through a real Meta login
-- [ ] Connecting a second account works
-- [ ] Disconnecting an account works
+- [x] Connecting a second account works — the same button, from the Accounts
+      screen. The callback upserts and sets the account active again.
+- [x] Disconnecting an account works — verified in a browser against a
+      throwaway account: it asks first, says the conversations survive, then
+      unsubscribes from Meta, deletes the token and marks the account off. The
+      two real accounts kept their tokens and the conversation survived.
+      Deliberately not a delete: `connected_accounts` cascades to every
+      conversation and message the seller has ever had.
 
 The allowlist item was not housekeeping. `meta-oauth` redirects the browser
 after handling an access token, and a destination taken from the request would
@@ -149,11 +155,15 @@ only; the receiving path in section 2 is still uncovered.
       both languages, at desktop and phone width
 - [x] Message bubbles take direction from their own text, not the interface
 - [x] Sign in and sign out
-- [ ] Connect an account, from the seller's point of view — in the interface,
-      because it runs on their own Facebook login and we cannot do it for them.
-      Still a URL pasted by hand with the workspace id in it.
+- [x] Connect an account, from the seller's point of view — a Connect button
+      in the interface. A seller with nothing connected sees only that; one
+      with accounts finds it under Accounts in the header. Verified in a
+      browser: it leaves for Meta's approval page in the same tab, carrying
+      the config id and a state signed with the workspace from the seller's
+      own session. Completing it needs a real Facebook login.
 - [ ] Public sign-up turned off — checked 18 September and currently **on**,
-      so anyone who finds the URL can create an account
+      so anyone who finds the URL can create an account. One dashboard toggle;
+      `supabase config push` is the wrong tool, see `DECISIONS.md`.
 - [ ] Accounts created by invitation, so a seller sets their own password
 - [ ] Password reset, so a forgotten password is not a support message
 - [x] Two-pane layout: conversation list beside the open conversation

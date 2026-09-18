@@ -217,6 +217,114 @@ abstract class L {
   /// **'إرسال الردود غير متاح بعد.'**
   String get replyingNotBuilt;
 
+  /// No description provided for @accounts.
+  ///
+  /// In ar, this message translates to:
+  /// **'الحسابات'**
+  String get accounts;
+
+  /// No description provided for @connectTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'اربط حساباتك'**
+  String get connectTitle;
+
+  /// No description provided for @connectBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'تصل رسائل إنستغرام وماسنجر إلى هنا بعد ربط صفحتك. أما ما أُرسل قبل الربط فيبقى في تطبيقات ميتا.'**
+  String get connectBody;
+
+  /// No description provided for @connectAction.
+  ///
+  /// In ar, this message translates to:
+  /// **'الربط مع ميتا'**
+  String get connectAction;
+
+  /// No description provided for @connectOpening.
+  ///
+  /// In ar, this message translates to:
+  /// **'جارٍ فتح ميتا'**
+  String get connectOpening;
+
+  /// No description provided for @connectAnother.
+  ///
+  /// In ar, this message translates to:
+  /// **'ربط حساب آخر'**
+  String get connectAnother;
+
+  /// Where the conversation list would be, when nothing is connected yet.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا يوجد حساب مربوط'**
+  String get noAccountsRow;
+
+  /// No description provided for @accountsBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'الحسابات التي تصل رسائلها إلى ربطة.'**
+  String get accountsBody;
+
+  /// No description provided for @accountActive.
+  ///
+  /// In ar, this message translates to:
+  /// **'يستقبل الرسائل'**
+  String get accountActive;
+
+  /// The token expired. Messages stopped arriving and nothing said so.
+  ///
+  /// In ar, this message translates to:
+  /// **'انقطع الاتصال، أعد الربط'**
+  String get accountNeedsReconnect;
+
+  /// No description provided for @accountDisconnected.
+  ///
+  /// In ar, this message translates to:
+  /// **'موقوف'**
+  String get accountDisconnected;
+
+  /// No description provided for @disconnect.
+  ///
+  /// In ar, this message translates to:
+  /// **'إيقاف'**
+  String get disconnect;
+
+  /// No description provided for @disconnectTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'إيقاف هذا الحساب؟'**
+  String get disconnectTitle;
+
+  /// No description provided for @disconnectBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'ستتوقف الرسائل الجديدة من هذا الحساب. تبقى المحادثات السابقة كما هي، ويمكنك إعادة الربط في أي وقت.'**
+  String get disconnectBody;
+
+  /// No description provided for @disconnectConfirm.
+  ///
+  /// In ar, this message translates to:
+  /// **'إيقاف الحساب'**
+  String get disconnectConfirm;
+
+  /// No description provided for @cancel.
+  ///
+  /// In ar, this message translates to:
+  /// **'إلغاء'**
+  String get cancel;
+
+  /// No description provided for @connectFailed.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعذّر بدء الربط. حاول مرة أخرى.'**
+  String get connectFailed;
+
+  /// No description provided for @connectFailedSignedOut.
+  ///
+  /// In ar, this message translates to:
+  /// **'انتهت جلستك. سجّل الدخول من جديد.'**
+  String get connectFailedSignedOut;
+
   /// No description provided for @composerHint.
   ///
   /// In ar, this message translates to:

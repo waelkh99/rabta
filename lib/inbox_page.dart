@@ -21,6 +21,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'accounts_page.dart';
 import 'data.dart';
 import 'details_panel.dart';
 import 'locale_switch.dart';
@@ -74,10 +75,25 @@ class _InboxPageState extends State<InboxPage> {
   RealtimeChannel? _channel;
   StreamSubscription<AuthState>? _authChanges;
 
+  /// Null while loading. Empty means nothing is connected, and there is then
+  /// no inbox to show — only the one thing worth doing.
+  List<Account>? _accounts;
+
   @override
   void initState() {
     super.initState();
     _listen();
+    _loadAccounts();
+  }
+
+  Future<void> _loadAccounts() async {
+    try {
+      final accounts = await _inbox.accounts();
+      if (mounted) setState(() => _accounts = accounts);
+    } catch (_) {
+      // Leaves it null, which shows the inbox rather than wrongly claiming
+      // nothing is connected.
+    }
   }
 
   /// Subscribes to changes in this seller's own conversations.
@@ -160,6 +176,18 @@ class _InboxPageState extends State<InboxPage> {
     });
   }
 
+  Future<void> _openAccounts() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => AccountsPage(inbox: _inbox)),
+    );
+
+    // An account may have been connected or turned off while that was open,
+    // which changes both what the list contains and whether there is a list.
+    if (!mounted) return;
+    await _loadAccounts();
+    if (mounted) await _refresh();
+  }
+
   /// A reply has gone. The conversation is no longer waiting for one, so it
   /// moves out of the first group and the list is put back in order.
   void _sent(List<Conversation> current, Message reply) {
@@ -207,6 +235,13 @@ class _InboxPageState extends State<InboxPage> {
 
             final all = _live ?? snapshot.data!;
 
+            // Nothing connected yet. The inbox is empty and will stay empty
+            // until this is done, so it is the whole screen rather than a
+            // panel inside one — and it is the same at every width.
+            if (_accounts != null && _accounts!.isEmpty) {
+              return _FirstRun(inbox: _inbox);
+            }
+
             final list = _ConversationList(
               conversations: all,
               waiting: _inbox.waitingCount(all),
@@ -216,6 +251,7 @@ class _InboxPageState extends State<InboxPage> {
                 _messages = null;
               }),
               onSignOut: () => Supabase.instance.client.auth.signOut(),
+              onAccounts: _openAccounts,
             );
 
             return LayoutBuilder(
@@ -280,6 +316,47 @@ class _InboxPageState extends State<InboxPage> {
   }
 }
 
+/// What a seller sees before they have connected anything.
+///
+/// Keeps the language switch and the way out, because being unable to read the
+/// screen or leave it are the two things a seller cannot click past.
+class _FirstRun extends StatelessWidget {
+  const _FirstRun({required this.inbox});
+
+  final Inbox inbox;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.rabta;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          color: colors.surface,
+          padding: const EdgeInsetsDirectional.fromSTEB(24, 14, 12, 14),
+          child: Row(
+            children: [
+              const Wordmark(size: 19),
+              const Spacer(),
+              const LocaleSwitch(compact: true),
+              IconButton(
+                onPressed: () => Supabase.instance.client.auth.signOut(),
+                icon: const Icon(Icons.logout, size: 17),
+                color: colors.muted,
+                tooltip: context.l.signOut,
+                visualDensity: VisualDensity.compact,
+              ),
+            ],
+          ),
+        ),
+        Divider(height: 1, color: colors.edge),
+        Expanded(child: ConnectPrompt(inbox: inbox)),
+      ],
+    );
+  }
+}
+
 // ---------------------------------------------------------------------------
 // The list
 // ---------------------------------------------------------------------------
@@ -291,6 +368,7 @@ class _ConversationList extends StatelessWidget {
     required this.openId,
     required this.onOpen,
     required this.onSignOut,
+    required this.onAccounts,
   });
 
   final List<Conversation> conversations;
@@ -298,6 +376,7 @@ class _ConversationList extends StatelessWidget {
   final String? openId;
   final ValueChanged<Conversation> onOpen;
   final VoidCallback onSignOut;
+  final VoidCallback onAccounts;
 
   @override
   Widget build(BuildContext context) {
@@ -310,7 +389,11 @@ class _ConversationList extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _ListHeader(waiting: waiting, onSignOut: onSignOut),
+          _ListHeader(
+            waiting: waiting,
+            onSignOut: onSignOut,
+            onAccounts: onAccounts,
+          ),
           Expanded(
             child: conversations.isEmpty
                 ? _Notice(
@@ -363,10 +446,15 @@ class _ConversationList extends StatelessWidget {
 }
 
 class _ListHeader extends StatelessWidget {
-  const _ListHeader({required this.waiting, required this.onSignOut});
+  const _ListHeader({
+    required this.waiting,
+    required this.onSignOut,
+    required this.onAccounts,
+  });
 
   final int waiting;
   final VoidCallback onSignOut;
+  final VoidCallback onAccounts;
 
   @override
   Widget build(BuildContext context) {
@@ -404,12 +492,24 @@ class _ListHeader extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              IconButton(
-                onPressed: onSignOut,
-                icon: const Icon(Icons.logout, size: 17),
-                color: colors.muted,
-                tooltip: context.l.signOut,
-                visualDensity: VisualDensity.compact,
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    onPressed: onAccounts,
+                    icon: const Icon(Icons.link, size: 17),
+                    color: colors.muted,
+                    tooltip: context.l.accounts,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  IconButton(
+                    onPressed: onSignOut,
+                    icon: const Icon(Icons.logout, size: 17),
+                    color: colors.muted,
+                    tooltip: context.l.signOut,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ],
               ),
               const LocaleSwitch(compact: true),
             ],

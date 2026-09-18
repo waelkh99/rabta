@@ -87,6 +87,62 @@ class LAr extends L {
   String get replyingNotBuilt => 'إرسال الردود غير متاح بعد.';
 
   @override
+  String get accounts => 'الحسابات';
+
+  @override
+  String get connectTitle => 'اربط حساباتك';
+
+  @override
+  String get connectBody =>
+      'تصل رسائل إنستغرام وماسنجر إلى هنا بعد ربط صفحتك. أما ما أُرسل قبل الربط فيبقى في تطبيقات ميتا.';
+
+  @override
+  String get connectAction => 'الربط مع ميتا';
+
+  @override
+  String get connectOpening => 'جارٍ فتح ميتا';
+
+  @override
+  String get connectAnother => 'ربط حساب آخر';
+
+  @override
+  String get noAccountsRow => 'لا يوجد حساب مربوط';
+
+  @override
+  String get accountsBody => 'الحسابات التي تصل رسائلها إلى ربطة.';
+
+  @override
+  String get accountActive => 'يستقبل الرسائل';
+
+  @override
+  String get accountNeedsReconnect => 'انقطع الاتصال، أعد الربط';
+
+  @override
+  String get accountDisconnected => 'موقوف';
+
+  @override
+  String get disconnect => 'إيقاف';
+
+  @override
+  String get disconnectTitle => 'إيقاف هذا الحساب؟';
+
+  @override
+  String get disconnectBody =>
+      'ستتوقف الرسائل الجديدة من هذا الحساب. تبقى المحادثات السابقة كما هي، ويمكنك إعادة الربط في أي وقت.';
+
+  @override
+  String get disconnectConfirm => 'إيقاف الحساب';
+
+  @override
+  String get cancel => 'إلغاء';
+
+  @override
+  String get connectFailed => 'تعذّر بدء الربط. حاول مرة أخرى.';
+
+  @override
+  String get connectFailedSignedOut => 'انتهت جلستك. سجّل الدخول من جديد.';
+
+  @override
   String get composerHint => 'اكتب ردك';
 
   @override

@@ -90,6 +90,44 @@ class Conversation {
       );
 }
 
+/// One connected Meta account: a Facebook Page, or an Instagram account
+/// reached through one.
+class Account {
+  Account({
+    required this.id,
+    required this.platform,
+    required this.name,
+    required this.status,
+  });
+
+  final String id;
+  final String platform;
+  final String? name;
+
+  /// `active`, `needs_reconnect` when the token expired and messages have
+  /// silently stopped, or `disconnected` when the seller turned it off.
+  final String status;
+
+  bool get receiving => status == 'active';
+
+  factory Account.fromRow(Map<String, dynamic> row) => Account(
+        id: row['id'] as String,
+        platform: row['platform'] as String,
+        name: row['name'] as String?,
+        status: (row['status'] as String?) ?? 'active',
+      );
+}
+
+/// A connection step that did not work, as the code the function returned.
+class ConnectFailed implements Exception {
+  const ConnectFailed(this.reason);
+
+  final String reason;
+
+  @override
+  String toString() => 'ConnectFailed($reason)';
+}
+
 /// A reply that was not sent, and why — as the code the function returned.
 ///
 /// The reason stays a code all the way to the widget that shows it, so the
@@ -216,6 +254,65 @@ class Inbox {
         .order('last_message_at', ascending: false);
 
     return inboxOrder(rows.map(Conversation.fromRow).toList());
+  }
+
+  /// The seller's connected accounts, including ones no longer receiving.
+  ///
+  /// A disconnected account is still shown, because its conversations are
+  /// still here and being able to reconnect it is the point.
+  Future<List<Account>> accounts() async {
+    final rows = await _db
+        .from('connected_accounts')
+        .select('id, platform, name, status')
+        .order('connected_at', ascending: true);
+
+    return rows.map(Account.fromRow).toList();
+  }
+
+  /// Where to send the browser to approve a connection.
+  ///
+  /// The workspace is not passed. It comes from the seller's own token on the
+  /// far side, because a workspace named in the request would let anyone start
+  /// a connection into an inbox they do not own.
+  Future<String> connectUrl() async {
+    try {
+      final response = await _db.functions.invoke(
+        'meta-oauth/start',
+        method: HttpMethod.get,
+        queryParameters: {'return': Uri.base.origin},
+      );
+
+      final url = (response.data as Map?)?['url'] as String?;
+      if (url == null) throw const ConnectFailed('failed');
+
+      return url;
+    } on FunctionException catch (error) {
+      final details = error.details;
+      final reason = details is Map ? details['reason'] : null;
+
+      throw ConnectFailed(reason is String ? reason : 'unreachable');
+    } on ConnectFailed {
+      rethrow;
+    } catch (_) {
+      throw const ConnectFailed('unreachable');
+    }
+  }
+
+  /// Stops an account receiving, without losing its conversations.
+  Future<void> disconnect(String accountId) async {
+    try {
+      await _db.functions.invoke(
+        'meta-oauth/disconnect',
+        body: {'account': accountId},
+      );
+    } on FunctionException catch (error) {
+      final details = error.details;
+      final reason = details is Map ? details['reason'] : null;
+
+      throw ConnectFailed(reason is String ? reason : 'unreachable');
+    } catch (_) {
+      throw const ConnectFailed('unreachable');
+    }
   }
 
   int waitingCount(List<Conversation> all) =>
