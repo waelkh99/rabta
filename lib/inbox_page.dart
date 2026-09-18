@@ -24,6 +24,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'accounts_page.dart';
 import 'data.dart';
 import 'details_panel.dart';
+import 'invite_page.dart';
 import 'locale_switch.dart';
 import 'platform_icon.dart';
 import 'strings.dart';
@@ -252,6 +253,7 @@ class _InboxPageState extends State<InboxPage> {
               }),
               onSignOut: () => Supabase.instance.client.auth.signOut(),
               onAccounts: _openAccounts,
+              inbox: _inbox,
             );
 
             return LayoutBuilder(
@@ -340,6 +342,7 @@ class _FirstRun extends StatelessWidget {
               const Wordmark(size: 19),
               const Spacer(),
               const LocaleSwitch(compact: true),
+              InviteButton(inbox: inbox),
               IconButton(
                 onPressed: () => Supabase.instance.client.auth.signOut(),
                 icon: const Icon(Icons.logout, size: 17),
@@ -369,8 +372,10 @@ class _ConversationList extends StatelessWidget {
     required this.onOpen,
     required this.onSignOut,
     required this.onAccounts,
+    required this.inbox,
   });
 
+  final Inbox inbox;
   final List<Conversation> conversations;
   final int waiting;
   final String? openId;
@@ -393,6 +398,7 @@ class _ConversationList extends StatelessWidget {
             waiting: waiting,
             onSignOut: onSignOut,
             onAccounts: onAccounts,
+            inbox: inbox,
           ),
           Expanded(
             child: conversations.isEmpty
@@ -450,8 +456,10 @@ class _ListHeader extends StatelessWidget {
     required this.waiting,
     required this.onSignOut,
     required this.onAccounts,
+    required this.inbox,
   });
 
+  final Inbox inbox;
   final int waiting;
   final VoidCallback onSignOut;
   final VoidCallback onAccounts;
@@ -495,6 +503,7 @@ class _ListHeader extends StatelessWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  InviteButton(inbox: inbox),
                   IconButton(
                     onPressed: onAccounts,
                     icon: const Icon(Icons.link, size: 17),

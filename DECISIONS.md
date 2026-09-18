@@ -618,6 +618,51 @@ token would otherwise stop the inbox updating some time in the afternoon.
 
 ---
 
+### 2026-09-18 — Admins are us; sellers are customers
+
+A second kind of account, marked by `rabta_admin: true` in `app_metadata`. An
+admin can create accounts. A seller cannot.
+
+**This does not contradict the 14 September decision that there are no roles.**
+That one is about roles *inside* a workspace — teammates, assignment,
+permissions over the same inbox — and it still holds. This is a different axis:
+who operates the platform, as against who buys it. A seller still owns their
+workspace alone and there is still nothing to invite a colleague to.
+
+**Why `app_metadata`:**
+
+- `user_metadata` is writable by the account it belongs to, so a seller could
+  make themselves an admin. It must never be read for authority.
+- `role` is already GoTrue's: every signed-in account is `authenticated`.
+  Overloading it invites exactly the confusion this check cannot afford.
+- Strictly `=== true`. The string `"false"` is truthy, and a loose check here
+  is the whole of the vulnerability.
+
+**The check runs on the server, from the user record rather than the token.**
+That costs one call per invitation, which is rare, and buys two things: an
+admin who is revoked loses it at once instead of when their hour-old token
+expires, and the client's idea of who is an admin is never what is trusted.
+The button in the interface is presentation. Anyone can edit the page in their
+own browser; the answer does not change.
+
+**There is deliberately no screen for granting it.** Making someone an admin
+needs the service key, which only we have — `npm run admin -- them@example.com`.
+That is also the answer to the bootstrap problem: the first admin cannot be
+made from inside the product, and an admin cannot quietly promote a seller
+through a screen someone forgot to protect.
+
+**Consequences:**
+
+- **The invitation link is returned, not emailed**, until custom SMTP exists.
+  The screen says so rather than pretending, because an invitation that
+  silently fails to arrive is worse than one handed over deliberately.
+- Invitation links expire — Supabase's default is 24 hours — and are single
+  use. Worth knowing before sitting on a call with a new customer.
+- An address that already has an account gets its own answer rather than a
+  generic failure, because the person inviting needs to know it exists.
+
+---
+
 ### 2026-09-18 — We control access to Rabta. We control nothing about Meta.
 
 Decided by the product owner. Two different doors, and only one of them is ours.
@@ -653,7 +698,16 @@ product without the one screen a new customer cannot start without.
   creates their workspace on the way in, so nothing else is needed.
 - **A password reset flow is now required.** Real customers forget passwords,
   and without one every forgotten password is a message to us and a seller
-  locked out of their inbox in the meantime. Not built.
+  locked out of their inbox in the meantime. The screen a reset link lands on
+  is built; what is missing is the button that sends the email, which is
+  useless until SMTP exists.
+- **Custom SMTP is deferred, deliberately.** Supabase's built-in sender is rate
+  limited to a handful of messages an hour and is explicitly not for
+  production, so invitations and resets can fail to arrive exactly when someone
+  is waiting. Until it is configured, invitations are handed over as a link
+  instead of emailed, which the invite screen says plainly. **This is a known
+  gap to close before the first paying customer, not a surprise to discover
+  then.**
 - `supabase config push` is **not** the way to turn sign-up off here.
   `config.toml` holds only function settings, so a push would send defaults for
   every auth setting it does not mention and overwrite the live ones.

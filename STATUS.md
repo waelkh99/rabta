@@ -102,10 +102,12 @@ observe that, and browsers do not do it.
   delivers messages from accounts holding a role on it. This is now on the
   critical path rather than a background task: Instagram cannot be verified
   until it is done.
-- **Custom SMTP.** Supabase's built-in sender is rate limited to a handful of
-  messages an hour and is explicitly not for production, so an invitation email
-  can fail to arrive at the worst moment. Until it is configured, invite with
-  `--link` and send the link yourself.
+- **Custom SMTP — deferred deliberately, and the one to close before a paying
+  customer.** Supabase's built-in sender is rate limited to a handful of
+  messages an hour and is explicitly not for production, so an invitation can
+  fail to arrive exactly when someone is waiting for it. Until then the
+  invitation link is handed over rather than emailed, which the invite screen
+  says in as many words.
 - **Site URL is still `http://localhost:3000`**, the Supabase default. Any
   link whose redirect is not on the allowlist falls back to it, so it has to
   become the real origin once there is one.
@@ -158,6 +160,46 @@ covered the moment it is added instead of silently going untested.
 **Applied to the live database**, and confirmed on 18 September by selecting
 `last_message_type` through the live REST API — with a nonexistent column as
 the control, which returns 400 where the real one returns 200.
+
+## Admins, and inviting from inside the product
+
+A second kind of account, marked `rabta_admin: true` in `app_metadata`. An
+admin can create accounts; a seller cannot. This is not the workspace roles
+deferred on 14 September — that is about teammates sharing one inbox, and still
+does not exist. This is who operates the platform as against who buys it.
+
+The invite screen lives behind the person-add control in the header, drawn only
+for an admin. **That is presentation and nothing more.** The decision is made on
+the server from the user's own record rather than from their token, so revoking
+an admin takes effect at once and a rewritten page changes nothing.
+
+```
+npm run admin                        who is an admin
+npm run admin -- them@example.com    make one
+npm run admin -- them@example.com --revoke
+```
+
+There is deliberately no screen for granting it: it needs the service key,
+which only we have, and that is also why the first admin cannot be made from
+inside the product.
+
+**Verified in a browser on 18 September**, with every probe account deleted
+afterwards:
+
+- an admin sees the control; a seller does not
+- an admin created an invitation, copied the link, and it worked
+- the invited seller set a password, reached the inbox, and had no invite
+  control of their own
+- that seller's real token, used to call the endpoint by hand from their own
+  page, was refused `403 not_admin`
+- granting worked on a token issued *before* the grant, which is what proves
+  the record is read rather than the token; revoking refused immediately after
+
+`process.exit()` after a fetch aborts on Node 24 on Windows — libuv asserts and
+the shell sees 127, so `npm run admin` reported failure on a run that worked
+and a deliberate exit 1 lost its code. Both scripts set `process.exitCode` now.
+
+---
 
 ## Accounts are made by invitation
 

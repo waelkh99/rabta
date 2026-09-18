@@ -128,6 +128,16 @@ class ConnectFailed implements Exception {
   String toString() => 'ConnectFailed($reason)';
 }
 
+/// An invitation that was not created, and why.
+class InviteFailed implements Exception {
+  const InviteFailed(this.reason);
+
+  final String reason;
+
+  @override
+  String toString() => 'InviteFailed($reason)';
+}
+
 /// A reply that was not sent, and why — as the code the function returned.
 ///
 /// The reason stays a code all the way to the widget that shows it, so the
@@ -254,6 +264,35 @@ class Inbox {
         .order('last_message_at', ascending: false);
 
     return inboxOrder(rows.map(Conversation.fromRow).toList());
+  }
+
+  /// Creates an account for someone, and gives back the link that lets them
+  /// set their own password.
+  ///
+  /// Whether the caller may do this is decided on the server, from their user
+  /// record rather than from their token. Nothing here is a permission check —
+  /// the client only decides whether to draw the button.
+  Future<String> invite(String email) async {
+    try {
+      final response = await _db.functions.invoke(
+        'admin-invite',
+        body: {'email': email.trim()},
+      );
+
+      final link = (response.data as Map?)?['link'] as String?;
+      if (link == null) throw const InviteFailed('failed');
+
+      return link;
+    } on FunctionException catch (error) {
+      final details = error.details;
+      final reason = details is Map ? details['reason'] : null;
+
+      throw InviteFailed(reason is String ? reason : 'unreachable');
+    } on InviteFailed {
+      rethrow;
+    } catch (_) {
+      throw const InviteFailed('unreachable');
+    }
   }
 
   /// The seller's connected accounts, including ones no longer receiving.

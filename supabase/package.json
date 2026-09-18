@@ -7,7 +7,8 @@
   "scripts": {
     "test": "node --test \"tests/*.test.ts\"",
     "events": "node scripts/events.mjs",
-    "invite": "node scripts/invite.mjs"
+    "invite": "node scripts/invite.mjs",
+    "admin": "node scripts/admin.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8"

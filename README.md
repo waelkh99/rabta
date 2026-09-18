@@ -88,10 +88,22 @@ There is no public sign-up: `disable_signup` is on, so an account only exists
 because we made one. Inviting is how, and it means the seller chooses their own
 password — we never know it and it never travels through a chat.
 
+From inside the product, an admin can do this on the invite screen — the
+person-add control in the header. From the command line:
+
 ```
 cd supabase
 npm run invite -- them@example.com          # sends the invitation by email
 npm run invite -- them@example.com --link   # prints the link instead
+```
+
+Admins are the accounts allowed to create other accounts. Granting it needs the
+service key, so there is no screen for it:
+
+```
+npm run admin                        who is an admin
+npm run admin -- them@example.com    make one
+npm run admin -- them@example.com --revoke
 ```
 
 Use `--link` until custom SMTP is configured. Supabase's built-in sender is

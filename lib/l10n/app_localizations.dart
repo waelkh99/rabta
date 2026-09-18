@@ -217,6 +217,102 @@ abstract class L {
   /// **'إرسال الردود غير متاح بعد.'**
   String get replyingNotBuilt;
 
+  /// No description provided for @invite.
+  ///
+  /// In ar, this message translates to:
+  /// **'دعوة'**
+  String get invite;
+
+  /// No description provided for @inviteTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'دعوة بائع'**
+  String get inviteTitle;
+
+  /// No description provided for @inviteBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'يُنشئ هذا حساباً جديداً على ربطة. يختار صاحبه كلمة المرور بنفسه من الرابط، فلا نعرفها ولا تمر في محادثة.'**
+  String get inviteBody;
+
+  /// No description provided for @inviteAction.
+  ///
+  /// In ar, this message translates to:
+  /// **'إنشاء دعوة'**
+  String get inviteAction;
+
+  /// No description provided for @inviteCreating.
+  ///
+  /// In ar, this message translates to:
+  /// **'جارٍ الإنشاء'**
+  String get inviteCreating;
+
+  /// No description provided for @inviteLinkTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'الرابط جاهز'**
+  String get inviteLinkTitle;
+
+  /// No description provided for @inviteLinkBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'أرسله إلى {email}. يعمل مرة واحدة، وتنتهي صلاحيته خلال 24 ساعة.'**
+  String inviteLinkBody(String email);
+
+  /// No description provided for @copyLink.
+  ///
+  /// In ar, this message translates to:
+  /// **'نسخ الرابط'**
+  String get copyLink;
+
+  /// No description provided for @linkCopied.
+  ///
+  /// In ar, this message translates to:
+  /// **'نُسخ الرابط'**
+  String get linkCopied;
+
+  /// No description provided for @inviteAnother.
+  ///
+  /// In ar, this message translates to:
+  /// **'دعوة شخص آخر'**
+  String get inviteAnother;
+
+  /// No description provided for @inviteFailedNotAdmin.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا تملك صلاحية إنشاء الحسابات.'**
+  String get inviteFailedNotAdmin;
+
+  /// No description provided for @inviteFailedExists.
+  ///
+  /// In ar, this message translates to:
+  /// **'هذا البريد له حساب بالفعل.'**
+  String get inviteFailedExists;
+
+  /// No description provided for @inviteFailedInvalid.
+  ///
+  /// In ar, this message translates to:
+  /// **'هذا ليس بريداً إلكترونياً صحيحاً.'**
+  String get inviteFailedInvalid;
+
+  /// No description provided for @inviteFailedEmpty.
+  ///
+  /// In ar, this message translates to:
+  /// **'اكتب البريد الإلكتروني أولاً.'**
+  String get inviteFailedEmpty;
+
+  /// No description provided for @inviteFailedOther.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعذّر إنشاء الدعوة. حاول مرة أخرى.'**
+  String get inviteFailedOther;
+
+  /// Custom SMTP is not configured yet, so the link is handed over rather than sent.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا يُرسل الرابط بالبريد بعد، فانسخه وأرسله بنفسك.'**
+  String get inviteNoEmailYet;
+
   /// No description provided for @setPasswordTitle.
   ///
   /// In ar, this message translates to:

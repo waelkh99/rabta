@@ -168,9 +168,15 @@ only; the receiving path in section 2 is still uncovered.
       `npm run invite -- them@example.com`. Walked end to end: the link lands
       on a choose-a-password screen, and the seller can then sign out and sign
       back in with what they chose.
-- [ ] Custom SMTP, so invitations actually arrive — Supabase's built-in sender
-      is rate limited and not for production. Until then use `--link` and send
-      the link yourself.
+- [x] Inviting from inside the product, for admins only — a screen that
+      creates the account and hands back the link. Verified in a browser: an
+      admin sees it, a seller does not, and a seller's own token is refused by
+      the server with `not_admin` even when the request is made by hand.
+- [ ] Custom SMTP, so invitations actually arrive — **deferred deliberately**,
+      see `DECISIONS.md`. Supabase's built-in sender is rate limited and not
+      for production. Until then the link is handed over rather than emailed,
+      which the invite screen says. Close this before the first paying
+      customer.
 - [ ] Site URL set to the application's origin — still `http://localhost:3000`,
       the Supabase default, which is where any link falls back to
 - [ ] Password reset, so a forgotten password is not a support message — the

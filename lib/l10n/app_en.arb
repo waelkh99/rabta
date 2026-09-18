@@ -28,6 +28,26 @@
   "replyWindowClosedLong": "The reply window has closed. You can answer again once this customer writes to you.",
   "replyingNotBuilt": "Replying is not built yet.",
 
+  "invite": "Invite",
+  "inviteTitle": "Invite a seller",
+  "inviteBody": "This creates a new Rabta account. They choose their own password from the link, so we never know it and it never travels through a chat.",
+  "inviteAction": "Create invitation",
+  "inviteCreating": "Creating",
+  "inviteLinkTitle": "The link is ready",
+  "inviteLinkBody": "Send it to {email}. It works once, and expires within 24 hours.",
+  "@inviteLinkBody": {
+    "placeholders": { "email": { "type": "String" } }
+  },
+  "copyLink": "Copy link",
+  "linkCopied": "Link copied",
+  "inviteAnother": "Invite someone else",
+  "inviteFailedNotAdmin": "You are not allowed to create accounts.",
+  "inviteFailedExists": "That email already has an account.",
+  "inviteFailedInvalid": "That is not a valid email address.",
+  "inviteFailedEmpty": "Enter an email address first.",
+  "inviteFailedOther": "Could not create the invitation. Try again.",
+  "inviteNoEmailYet": "Links are not emailed yet, so copy it and send it yourself.",
+
   "setPasswordTitle": "Choose a password",
   "setPasswordWelcome": "Welcome to Rabta. Choose a password for your account, and use it to sign in from now on.",
   "setPasswordRenew": "Choose a new password for your account.",

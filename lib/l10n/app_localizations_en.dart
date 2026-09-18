@@ -85,6 +85,58 @@ class LEn extends L {
   String get replyingNotBuilt => 'Replying is not built yet.';
 
   @override
+  String get invite => 'Invite';
+
+  @override
+  String get inviteTitle => 'Invite a seller';
+
+  @override
+  String get inviteBody =>
+      'This creates a new Rabta account. They choose their own password from the link, so we never know it and it never travels through a chat.';
+
+  @override
+  String get inviteAction => 'Create invitation';
+
+  @override
+  String get inviteCreating => 'Creating';
+
+  @override
+  String get inviteLinkTitle => 'The link is ready';
+
+  @override
+  String inviteLinkBody(String email) {
+    return 'Send it to $email. It works once, and expires within 24 hours.';
+  }
+
+  @override
+  String get copyLink => 'Copy link';
+
+  @override
+  String get linkCopied => 'Link copied';
+
+  @override
+  String get inviteAnother => 'Invite someone else';
+
+  @override
+  String get inviteFailedNotAdmin => 'You are not allowed to create accounts.';
+
+  @override
+  String get inviteFailedExists => 'That email already has an account.';
+
+  @override
+  String get inviteFailedInvalid => 'That is not a valid email address.';
+
+  @override
+  String get inviteFailedEmpty => 'Enter an email address first.';
+
+  @override
+  String get inviteFailedOther => 'Could not create the invitation. Try again.';
+
+  @override
+  String get inviteNoEmailYet =>
+      'Links are not emailed yet, so copy it and send it yourself.';
+
+  @override
   String get setPasswordTitle => 'Choose a password';
 
   @override

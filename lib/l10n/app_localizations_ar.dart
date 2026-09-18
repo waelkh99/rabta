@@ -87,6 +87,58 @@ class LAr extends L {
   String get replyingNotBuilt => 'إرسال الردود غير متاح بعد.';
 
   @override
+  String get invite => 'دعوة';
+
+  @override
+  String get inviteTitle => 'دعوة بائع';
+
+  @override
+  String get inviteBody =>
+      'يُنشئ هذا حساباً جديداً على ربطة. يختار صاحبه كلمة المرور بنفسه من الرابط، فلا نعرفها ولا تمر في محادثة.';
+
+  @override
+  String get inviteAction => 'إنشاء دعوة';
+
+  @override
+  String get inviteCreating => 'جارٍ الإنشاء';
+
+  @override
+  String get inviteLinkTitle => 'الرابط جاهز';
+
+  @override
+  String inviteLinkBody(String email) {
+    return 'أرسله إلى $email. يعمل مرة واحدة، وتنتهي صلاحيته خلال 24 ساعة.';
+  }
+
+  @override
+  String get copyLink => 'نسخ الرابط';
+
+  @override
+  String get linkCopied => 'نُسخ الرابط';
+
+  @override
+  String get inviteAnother => 'دعوة شخص آخر';
+
+  @override
+  String get inviteFailedNotAdmin => 'لا تملك صلاحية إنشاء الحسابات.';
+
+  @override
+  String get inviteFailedExists => 'هذا البريد له حساب بالفعل.';
+
+  @override
+  String get inviteFailedInvalid => 'هذا ليس بريداً إلكترونياً صحيحاً.';
+
+  @override
+  String get inviteFailedEmpty => 'اكتب البريد الإلكتروني أولاً.';
+
+  @override
+  String get inviteFailedOther => 'تعذّر إنشاء الدعوة. حاول مرة أخرى.';
+
+  @override
+  String get inviteNoEmailYet =>
+      'لا يُرسل الرابط بالبريد بعد، فانسخه وأرسله بنفسك.';
+
+  @override
   String get setPasswordTitle => 'اختر كلمة المرور';
 
   @override

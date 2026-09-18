@@ -82,22 +82,26 @@ const response = await fetch(
 
 const answer = await response.json().catch(() => null);
 
+// Set rather than called. process.exit() while the fetch's socket is still
+// open aborts the process on Windows — libuv asserts in async.c and the shell
+// sees 127, so a deliberate failure loses its exit code and a clean run looks
+// like a missing command.
 if (!response.ok) {
   console.error(`Failed (${response.status}):`, JSON.stringify(answer, null, 2));
-  process.exit(1);
-}
-
-console.log(`Invited ${email}`);
-console.log(`  lands at: ${redirectTo}`);
-
-if (linkOnly) {
-  console.log(`\n  ${answer.action_link}\n`);
-  console.log("Send that to them yourself. It expires — Supabase's default is");
-  console.log("24 hours — and it is single use.");
+  process.exitCode = 1;
 } else {
-  console.log("\nAn invitation email has been sent.");
-  console.log("If it does not arrive, custom SMTP is probably not configured:");
-  console.log("Supabase's built-in sender is rate limited and not for production.");
+  console.log(`Invited ${email}`);
+  console.log(`  lands at: ${redirectTo}`);
+
+  if (linkOnly) {
+    console.log(`\n  ${answer.action_link}\n`);
+    console.log("Send that to them yourself. It expires — Supabase's default is");
+    console.log("24 hours — and it is single use.");
+  } else {
+    console.log("\nAn invitation email has been sent.");
+    console.log("If it does not arrive, custom SMTP is probably not configured:");
+    console.log("Supabase's built-in sender is rate limited and not for production.");
+  }
 }
 
 // The workspace is created by the handle_new_user trigger the moment the user

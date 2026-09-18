@@ -41,6 +41,29 @@
   "replyWindowClosedLong": "أُغلقت نافذة الرد. يمكنك الرد مجدداً عندما يراسلك هذا الزبون.",
   "replyingNotBuilt": "إرسال الردود غير متاح بعد.",
 
+  "invite": "دعوة",
+  "inviteTitle": "دعوة بائع",
+  "inviteBody": "يُنشئ هذا حساباً جديداً على ربطة. يختار صاحبه كلمة المرور بنفسه من الرابط، فلا نعرفها ولا تمر في محادثة.",
+  "inviteAction": "إنشاء دعوة",
+  "inviteCreating": "جارٍ الإنشاء",
+  "inviteLinkTitle": "الرابط جاهز",
+  "inviteLinkBody": "أرسله إلى {email}. يعمل مرة واحدة، وتنتهي صلاحيته خلال 24 ساعة.",
+  "@inviteLinkBody": {
+    "placeholders": { "email": { "type": "String" } }
+  },
+  "copyLink": "نسخ الرابط",
+  "linkCopied": "نُسخ الرابط",
+  "inviteAnother": "دعوة شخص آخر",
+  "inviteFailedNotAdmin": "لا تملك صلاحية إنشاء الحسابات.",
+  "inviteFailedExists": "هذا البريد له حساب بالفعل.",
+  "inviteFailedInvalid": "هذا ليس بريداً إلكترونياً صحيحاً.",
+  "inviteFailedEmpty": "اكتب البريد الإلكتروني أولاً.",
+  "inviteFailedOther": "تعذّر إنشاء الدعوة. حاول مرة أخرى.",
+  "inviteNoEmailYet": "لا يُرسل الرابط بالبريد بعد، فانسخه وأرسله بنفسك.",
+  "@inviteNoEmailYet": {
+    "description": "Custom SMTP is not configured yet, so the link is handed over rather than sent."
+  },
+
   "setPasswordTitle": "اختر كلمة المرور",
   "setPasswordWelcome": "أهلاً بك في ربطة. اختر كلمة مرور لحسابك لتدخل بها من الآن فصاعداً.",
   "@setPasswordWelcome": {
