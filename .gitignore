@@ -53,3 +53,8 @@ supabase/.branches/
 .env
 .env.*
 !.env.example
+
+# The Flutter application's configuration, passed with --dart-define-from-file.
+# The publishable key in it is safe in a browser — row level security is what
+# protects the data — but keeping it out means rotating a key is not a commit.
+env.json
