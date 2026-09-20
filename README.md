@@ -1,182 +1,157 @@
 # Rabta
 
-One inbox for customer conversations from Instagram and Facebook Messenger.
+**One inbox for Instagram and Facebook Messenger, with an assistant that
+answers customers when the seller cannot.**
 
-Built for sellers who currently switch between Meta's apps all day. Phase One
-is a web application; the backend runs on Supabase.
+Small shops in Jordan sell through Instagram and Messenger. They run two apps,
+miss messages between them, and lose sales to questions asked at eleven at
+night and answered the next afternoon. Rabta puts both channels in one place
+and puts something in the shop overnight.
 
 ---
 
-## Documentation
+## The inbox
 
-- `SETUP.md` — getting a machine ready to work on this
-- `CHECKLIST.md` — Phase One progress
-- `STATUS.md` — where the work currently stands
-- `CLAUDE.md` — what the product is and how it should behave
-- `DECISIONS.md` — decisions that are settled, and why
+Every conversation from both platforms, in one list.
+
+- **Both channels, one workspace.** Not two inboxes side by side — one list,
+  sorted by what needs attention, with each conversation showing where it came
+  from.
+- **Arabic and English throughout**, right-to-left and left-to-right, following
+  the browser and overridable per session. Western numerals in both, because
+  that is what sellers write.
+- **Unread and waiting are different things.** A conversation the customer is
+  waiting on is grouped apart from one already dealt with.
+- **Attachments** — photos, videos, voice notes and shared posts are shown for
+  what they are rather than rendering as a blank row.
+- **Replies go out through Meta's Send API** and come back as the seller's own
+  words, with the 24-hour reply window surfaced before they type rather than
+  after Meta refuses.
+
+## The assistant
+
+It answers customers from the shop's own catalog, and hands over anything it
+would have to invent.
+
+- **It sells rather than answering questions.** A customer who says "I'm
+  looking for a gift for my mother" gets two or three real suggestions with a
+  reason, not a request to be more specific. Out of stock is answered with what
+  *is* in stock; over budget is answered with the cheaper thing.
+- **It writes Jordanian**, in Arabic script, in the customer's own dialect —
+  including when they type Arabic in Latin letters. Modern Standard Arabic
+  reads *more* robotic than a bot, not less. No terms of endearment, ever.
+- **It addresses people correctly.** Arabic marks gender in almost every verb;
+  it decides once from what the customer says about themselves, then from their
+  name, and holds it. It may use their first name where that sounds human, and
+  never in a way that reads like a call centre.
+- **It reads the kind of message before answering it.** A pleasantry gets the
+  pleasantry back and nothing else. A greeting gets a greeting, not a catalogue.
+  Suggestions are earned by the customer saying what they want.
+- **It states prices; it does not negotiate them.** Asked for a discount it
+  gives the listed price, says plainly whether there is a sale, offers something
+  that moves the sale forward, and flags the conversation — without inventing a
+  policy in either direction.
+- **It never goes silent.** Handing over is a last resort and it always says
+  something first. An unanswered customer is the failure this exists to prevent.
+- **It knows a gap from a fresh start.** Someone picking up yesterday's thread
+  gets it picked up; a question nobody ever answered gets answered late rather
+  than never.
+
+### What stops it inventing things
+
+The model is the part that can be swapped. The guards are the design.
+
+- **Deterministic guards before the call** — the reply window, whether a human
+  is already at the desk, how many times it has answered in a row, and a
+  monthly ceiling. Most turns never reach the API.
+- **A grounding check on every number.** Every digit in a reply must appear in
+  the shop's own facts or in what the customer wrote, or the reply is held back.
+  An invented price is the one failure that loses a seller their customer.
+- **A claim check for promises with no digits in them** — that the price is
+  fixed, that something is selling fast, that it will arrive tomorrow. Those
+  have no numbers for the first check to catch, and every one of them was seen
+  in testing.
+- **Whatever it cannot verify, it hands over** — and the seller sees why, in
+  plain words, on the conversation.
+
+---
+
+## How it is built
+
+| | |
+|---|---|
+| Client | Flutter web, Arabic/English, RTL |
+| Backend | Supabase — Postgres, Auth, Edge Functions (Deno) |
+| Messaging | Meta Graph API, webhook-driven |
+| Assistant | `claude-sonnet-5`, prompt-cached, roughly $4–7 per seller per month |
+| Tests | 321 backend, 86 client, plus scripted conversations against the live model |
+
+Row level security on every table, proven against a second seller rather than
+assumed. Signature verification on every webhook delivery. Secrets live as
+function environment variables, never in the database — Postgres has no
+column-level RLS, so anything a seller must not change cannot sit on a table
+they can write to.
+
+Sellers connect their own accounts through Facebook Login for Business. There
+is no public sign-up: accounts exist by invitation, and the seller chooses
+their own password, so it never travels through a chat.
+
+---
+
+## Where it stands
+
+Phase One is functionally complete. Phase Two is deployed and answering real
+messages.
+
+Not built yet: marking an AI-answered conversation in the list, browser
+notifications, and drafts for threads the assistant handed over. The product
+is not publicly launched — Meta app review and hosting are the remaining
+blockers, both tracked in `STATUS.md`.
+
+---
+
+## Reading the repository
+
+- `CLAUDE.md` — what the product is, how it should behave, and what is
+  deliberately out of scope
+- `DECISIONS.md` — every settled decision and the reasoning behind it,
+  including what was measured, what was wrong first, and Meta's constraints
+- `CHECKLIST.md` — what has been built and proven, phase by phase
+- `STATUS.md` — where the work stands right now
 - `WEBHOOKS.md` — the webhook service specification
-- `ONBOARDING.md` — the seller's first ten minutes, and what it requires
+- `ONBOARDING.md` — the seller's first ten minutes
+
+`DECISIONS.md` is the one worth reading. It records the failures as carefully
+as the results — an assistant that answered an English customer in Arabic, one
+that invented a delivery date out of the seller's own past reply, one that
+asked a browsing customer what size they wanted.
 
 ---
 
-## Getting started
-
-Work through `SETUP.md`. It takes about half an hour, most of it downloads, and
-each step says how to confirm it worked.
-
-The short version, once the tools are installed:
+## Working on it
 
 ```
-git clone https://github.com/waelkh99/rabta
-cd rabta
-flutter pub get
-cd supabase && npm install
-supabase login && supabase link --project-ref xejtffbpfguwvybrwqqj
-# restore supabase/.env (Meta secrets) from a password manager
-# create supabase/.env.local (Supabase URL + secret key) — see SETUP.md
-npm test
+cd supabase && npm test        # backend: typechecks every function, then runs
+flutter test && flutter analyze
+
+cd supabase && npm run events      # what Meta actually sent
+cd supabase && npm run assistant   # what the assistant did, and why
+cd supabase && npm run catalog     # everything the assistant is allowed to know
+cd supabase && npm run replay      # replay a chat against the real shop
+cd supabase && npm run live        # scripted chats against the real model
 ```
 
-56 passing tests means the machine is set up correctly.
+The last two spend real money. They exist because "does this read like a
+person" is the one requirement no assertion can check, and between them they
+have found more defects than the unit tests have.
 
-Docker is not needed. The database and functions are hosted, and the tests run
-Postgres in-process.
+Run the client with `flutter run -d chrome --dart-define-from-file=env.json
+--web-port=5353`. The port is pinned because `meta-oauth` only returns a
+browser to an origin on its allowlist, and an allowlist cannot hold a port that
+changes every run.
 
----
-
-## Running the application
-
-The Supabase URL and publishable key are **compiled in**, so a build without
-them produces an application that cannot reach the database whatever is in the
-environment when it runs. That is the cause of a "Missing SUPABASE_URL" screen.
-
-Create `env.json` in the repository root — it is git-ignored:
-
-```json
-{
-  "SUPABASE_URL": "https://xejtffbpfguwvybrwqqj.supabase.co",
-  "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_..."
-}
-```
-
-The publishable key is in the dashboard under Settings > API Keys. It is meant
-to be public and is safe in a browser — row level security is what protects the
-data, not the key — but keeping it out of the repository means rotating it is
-not a commit.
-
-```
-flutter run -d chrome --dart-define-from-file=env.json --web-port=5353
-flutter build web --release --dart-define-from-file=env.json
-```
-
-`.vscode/launch.json` passes the file already, so starting a debug session from
-the editor works without flags.
-
-The port is pinned rather than left to Flutter's random choice because
-`meta-oauth` will only return a browser to an origin on its allowlist, and an
-allowlist cannot hold a port that changes on every run. Change it in one place
-and it has to change in `supabase/functions/meta-oauth/state.ts` too.
-
-The interface is Arabic and English, and follows the browser's language, falling
-back to Arabic. `?lang=ar` or `?lang=en` overrides that, which is how to see the
-other language without changing the whole browser. There is also a language
-switch on the sign-in screen and in the inbox header.
-
-## Giving someone an account
-
-There is no public sign-up: `disable_signup` is on, so an account only exists
-because we made one. Inviting is how, and it means the seller chooses their own
-password — we never know it and it never travels through a chat.
-
-From inside the product, an admin can do this on the invite screen — the
-person-add control in the header. From the command line:
-
-```
-cd supabase
-npm run invite -- them@example.com          # sends the invitation by email
-npm run invite -- them@example.com --link   # prints the link instead
-```
-
-Admins are the accounts allowed to create other accounts. Granting it needs the
-service key, so there is no screen for it:
-
-```
-npm run admin                        who is an admin
-npm run admin -- them@example.com    make one
-npm run admin -- them@example.com --revoke
-```
-
-Use `--link` until custom SMTP is configured. Supabase's built-in sender is
-rate limited to a handful of messages an hour and is explicitly not for
-production, so a real invitation can fail to arrive at the worst moment.
-
-The link lands on a screen that asks them to choose a password, and their
-workspace is created by the database trigger the moment the account exists.
-Links expire — Supabase's default is 24 hours — and are single use.
-
-`--return <origin>` sets where the link lands, defaulting to the development
-origin. It must be an allowed redirect URL on the project, or Supabase quietly
-substitutes the Site URL instead.
-
-Sign in while developing with `webhook-test@rabta.local` / `rabta-dev-2026` —
-see `STATUS.md` for what that account owns.
-
-**Never make that account an admin.** Its password is in this file and in the
-repository's history, so an admin flag on it would hand account creation to
-anyone who can read the repo. Grant admin to a real account instead.
-
----
-
-## Everyday commands
-
-```
-cd supabase && npm test                        # run the backend tests
-cd supabase && npm run events                  # show what Meta actually sent
-cd supabase && npm run assistant               # show what the AI did, and why
-cd supabase && npm run catalog                 # show what the AI is allowed to know
-cd supabase && npm run replay                  # replay a chat against the real shop
-cd supabase && npm run live                    # scripted chats against the real model
-supabase db push                               # apply new migrations
-supabase functions deploy meta-webhook         # deploy the webhook
-supabase secrets set --env-file supabase/.env  # update function secrets
-```
-
-`npm run events` reads `webhook_events`, which is where every delivery is
-stored before anything is done with it. It takes an object filter and a count:
-`npm run events -- instagram`, `npm run events -- page 25`. It needs
-`supabase/.env.local`.
-
-The four assistant commands exist because the Supabase CLI has no
-`functions logs`, and because the rows are better evidence than logs anyway:
-
-- **`npm run assistant`** — every recent conversation's `ai_state`, the reason
-  it stepped back, and the messages with who wrote each. The first thing to run
-  when a seller says the assistant did something odd.
-- **`npm run catalog`** — everything the assistant is allowed to know. The
-  answer to "did it make that up?": if a detail is not printed, it was
-  invented.
-- **`npm run replay`** — replays a conversation against the **real** catalog
-  and the **real** voice examples from the database. Takes the customer's lines
-  as arguments, and `REPLAY_NAME` to try a different customer name. Sends to
-  Anthropic; sends nothing to Meta and writes nothing back.
-- **`npm run live`** — nine scripted Jordanian conversations against the real
-  model, with each reply priced. Takes a variant name to run one model:
-  `npm run live -- "Sonnet 5"`. It costs money, which is why it is not part of
-  `npm test`.
-
-The last two spend real money on every run. They exist because "does this read
-like a person" is the one requirement no assertion can check, and between them
-they have found more defects than the unit tests have.
-
----
-
-## Before committing
-
-`supabase/.env` holds the Meta app secret; `supabase/.env.local` holds a
-Supabase secret key that bypasses row level security. Both are protected by
-`.gitignore` alone. Check `git status` before any commit that touches that
-directory.
-
-The two are separate on purpose: `supabase secrets set --env-file` rejects any
-name beginning with `SUPABASE_`, so the Supabase credentials cannot live in
-`.env` without breaking it.
+`supabase/.env` and `supabase/.env.local` hold the Meta app secret and a
+Supabase key that bypasses row level security. Both are protected by
+`.gitignore` alone — worth a glance at `git status` before any commit that
+touches `supabase/`. Why they must stay separate, and why `META_VERIFY_TOKEN`
+cannot be recovered if lost, are in `DECISIONS.md` under Platform constraints.

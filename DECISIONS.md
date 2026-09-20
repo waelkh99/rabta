@@ -2139,6 +2139,41 @@ Testing section of `CLAUDE.md`.
 These are not choices. They are limits Meta imposes, recorded here so they are
 not rediscovered later as bugs.
 
+### `META_VERIFY_TOKEN` cannot be recovered, only replaced
+
+Recorded here on 21 September 2026 when `SETUP.md` was deleted, because it is
+the one thing in that file that was neither obvious nor reconstructible.
+
+`META_APP_SECRET` is always recoverable from the Meta app dashboard, under App
+Settings > Basic. `META_VERIFY_TOKEN` is not. Supabase stores it, and
+`supabase secrets list` returns only a digest — never the value. Losing
+`supabase/.env` therefore means generating a new token and making both sides
+agree again:
+
+```
+cp supabase/.env.example supabase/.env     # paste the app secret in
+openssl rand -hex 32                       # paste as META_VERIFY_TOKEN
+supabase secrets set --env-file supabase/.env
+```
+
+Then set the same value in the Meta dashboard, and confirm the handshake
+answers `hello` and nothing else:
+
+```
+TOKEN=$(grep '^META_VERIFY_TOKEN=' supabase/.env | cut -d= -f2-)
+curl -s "https://xejtffbpfguwvybrwqqj.supabase.co/functions/v1/meta-webhook?hub.mode=subscribe&hub.verify_token=$TOKEN&hub.challenge=hello"
+```
+
+Anything other than `hello` means the token on the function and the token in
+the dashboard disagree.
+
+**The two env files stay separate for a reason**, and it is the same kind of
+constraint: `supabase secrets set --env-file` **rejects any secret whose name
+begins with `SUPABASE_`**. So Meta's secrets live in `supabase/.env`, which
+that command is pointed at, and the Supabase credentials live in
+`supabase/.env.local`, which only local tooling reads. Merging them breaks the
+command.
+
 ### Replies are only allowed inside a time window
 
 A seller cannot reply to a customer whenever they want. Messenger and Instagram
