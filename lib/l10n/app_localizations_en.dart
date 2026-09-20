@@ -85,6 +85,186 @@ class LEn extends L {
   String get replyingNotBuilt => 'Replying is not built yet.';
 
   @override
+  String get menu => 'Go to';
+
+  @override
+  String get inbox => 'Inbox';
+
+  @override
+  String get shop => 'Your shop';
+
+  @override
+  String get shopCurrency => 'Currency';
+
+  @override
+  String get shopCurrencyBody =>
+      'Written the way you write it to a customer, and repeated back the same way.';
+
+  @override
+  String get shopDelivery => 'Delivery';
+
+  @override
+  String get shopDeliveryBody =>
+      'Where you deliver and what you charge. This is what the assistant answers \"how much is delivery\" with.';
+
+  @override
+  String get shopDeliveryEmpty => 'No areas added yet.';
+
+  @override
+  String get shopZoneAdd => 'Add an area';
+
+  @override
+  String get shopZoneName => 'Area';
+
+  @override
+  String get shopZoneFee => 'Fee';
+
+  @override
+  String get shopZoneFeeHint =>
+      'Leave it empty if the fee varies. The assistant will say it depends rather than invent a number.';
+
+  @override
+  String get shopZoneNoFee => 'Depends';
+
+  @override
+  String get shopDeliveryNote => 'Other delivery rules';
+
+  @override
+  String get shopDeliveryNoteHint =>
+      'Such as free over 50 dinars, or same day inside Amman.';
+
+  @override
+  String get shopLocations => 'Shop locations';
+
+  @override
+  String get shopLocationsHint =>
+      'Your address or pickup point. One branch per line.';
+
+  @override
+  String get shopHours => 'Opening hours';
+
+  @override
+  String get shopHoursHint =>
+      'Such as Saturday to Thursday 10am to 8pm, closed Friday.';
+
+  @override
+  String get shopAbout => 'Anything else';
+
+  @override
+  String get shopAboutBody =>
+      'Whatever else you want the assistant to know: how to order, cash on delivery, returns, or anything particular to you.';
+
+  @override
+  String get shopAboutHint =>
+      'The assistant reads this as you wrote it. It is also where to correct it if it keeps getting something wrong.';
+
+  @override
+  String get products => 'Products';
+
+  @override
+  String get productsBody =>
+      'What you sell, so the assistant knows what to answer. A name and a price is enough.';
+
+  @override
+  String get productsEmpty => 'No products yet.';
+
+  @override
+  String get productAdd => 'Add a product';
+
+  @override
+  String get productEdit => 'Edit';
+
+  @override
+  String get productDelete => 'Delete';
+
+  @override
+  String get productSave => 'Save';
+
+  @override
+  String get productName => 'Name';
+
+  @override
+  String get productPrice => 'Price';
+
+  @override
+  String get productDescription => 'Description';
+
+  @override
+  String get productInStock => 'In stock';
+
+  @override
+  String get productOutOfStock => 'Out of stock';
+
+  @override
+  String get productDeleteTitle => 'Delete this product?';
+
+  @override
+  String productDeleteBody(String name) {
+    return 'The assistant will stop mentioning it. $name';
+  }
+
+  @override
+  String get productDeleteConfirm => 'Delete';
+
+  @override
+  String get catalogSaveFailed => 'That did not save. Try again.';
+
+  @override
+  String get catalogFailed => 'Products could not be opened';
+
+  @override
+  String get catalogFailedBody => 'Check your connection and try again.';
+
+  @override
+  String get catalogPaste => 'Paste a list';
+
+  @override
+  String get catalogPasteBody =>
+      'Copy the rows from Excel or Google Sheets and paste them here. They are added to your list, not swapped for it.';
+
+  @override
+  String get catalogPasteHint => 'Paste the rows here';
+
+  @override
+  String get catalogPasteAdd => 'Add';
+
+  @override
+  String get catalogPasteNothing =>
+      'No products were found in what you pasted.';
+
+  @override
+  String catalogPasteAdded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count products added',
+      one: 'One product added',
+      zero: 'Nothing was added',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get catalogTemplateCopy => 'Copy a blank template';
+
+  @override
+  String get catalogTemplateCopied => 'Template copied. Paste it into Excel.';
+
+  @override
+  String get assistantTitle => 'The assistant';
+
+  @override
+  String get assistantBody =>
+      'Answers your customers from your list, suggests what might suit them, and brings you anything it should not answer itself.';
+
+  @override
+  String get assistantNeedsCatalog =>
+      'Add a product first. With no list, the assistant has nothing to answer from.';
+
+  @override
+  String get sentAutomatically => 'Automatic reply';
+
+  @override
   String get invite => 'Invite';
 
   @override

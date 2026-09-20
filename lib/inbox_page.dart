@@ -26,7 +26,10 @@ import 'data.dart';
 import 'details_panel.dart';
 import 'invite_page.dart';
 import 'locale_switch.dart';
+import 'menu.dart';
 import 'platform_icon.dart';
+import 'products_page.dart';
+import 'shop_page.dart';
 import 'strings.dart';
 import 'theme.dart';
 import 'wordmark.dart';
@@ -177,6 +180,30 @@ class _InboxPageState extends State<InboxPage> {
     });
   }
 
+  /// Needed because the button that opens the menu is inside the same Scaffold
+  /// it belongs to, so there is no ancestor to reach it through.
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  void _openMenu() => _scaffoldKey.currentState?.openDrawer();
+
+  Future<void> _openShop() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => ShopPage(inbox: _inbox)),
+    );
+
+    if (mounted) await _refresh();
+  }
+
+  Future<void> _openProducts() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => ProductsPage(inbox: _inbox)),
+    );
+
+    // The catalog may have changed, and with it whether the assistant is
+    // answering at all. The list shows what it did, so it is read again.
+    if (mounted) await _refresh();
+  }
+
   Future<void> _openAccounts() async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => AccountsPage(inbox: _inbox)),
@@ -210,6 +237,16 @@ class _InboxPageState extends State<InboxPage> {
     final colors = context.rabta;
 
     return Scaffold(
+      key: _scaffoldKey,
+      // Opens from the start edge, which follows the reading direction — the
+      // right in Arabic, the left in English — because Flutter resolves it
+      // against the locale rather than pinning it to one side.
+      drawer: AppMenu(
+        inbox: _inbox,
+        onProducts: _openProducts,
+        onShop: _openShop,
+        onAccounts: _openAccounts,
+      ),
       body: SafeArea(
         child: FutureBuilder<List<Conversation>>(
           future: _conversations,
@@ -253,6 +290,7 @@ class _InboxPageState extends State<InboxPage> {
               }),
               onSignOut: () => Supabase.instance.client.auth.signOut(),
               onAccounts: _openAccounts,
+              onMenu: _openMenu,
               inbox: _inbox,
             );
 
@@ -372,6 +410,7 @@ class _ConversationList extends StatelessWidget {
     required this.onOpen,
     required this.onSignOut,
     required this.onAccounts,
+    required this.onMenu,
     required this.inbox,
   });
 
@@ -382,6 +421,7 @@ class _ConversationList extends StatelessWidget {
   final ValueChanged<Conversation> onOpen;
   final VoidCallback onSignOut;
   final VoidCallback onAccounts;
+  final VoidCallback onMenu;
 
   @override
   Widget build(BuildContext context) {
@@ -398,6 +438,7 @@ class _ConversationList extends StatelessWidget {
             waiting: waiting,
             onSignOut: onSignOut,
             onAccounts: onAccounts,
+            onMenu: onMenu,
             inbox: inbox,
           ),
           Expanded(
@@ -456,6 +497,7 @@ class _ListHeader extends StatelessWidget {
     required this.waiting,
     required this.onSignOut,
     required this.onAccounts,
+    required this.onMenu,
     required this.inbox,
   });
 
@@ -463,6 +505,7 @@ class _ListHeader extends StatelessWidget {
   final int waiting;
   final VoidCallback onSignOut;
   final VoidCallback onAccounts;
+  final VoidCallback onMenu;
 
   @override
   Widget build(BuildContext context) {
@@ -503,19 +546,11 @@ class _ListHeader extends StatelessWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  InviteButton(inbox: inbox),
                   IconButton(
-                    onPressed: onAccounts,
-                    icon: const Icon(Icons.link, size: 17),
+                    onPressed: onMenu,
+                    icon: const Icon(Icons.menu, size: 19),
                     color: colors.muted,
-                    tooltip: context.l.accounts,
-                    visualDensity: VisualDensity.compact,
-                  ),
-                  IconButton(
-                    onPressed: onSignOut,
-                    icon: const Icon(Icons.logout, size: 17),
-                    color: colors.muted,
-                    tooltip: context.l.signOut,
+                    tooltip: context.l.menu,
                     visualDensity: VisualDensity.compact,
                   ),
                 ],
@@ -1254,10 +1289,15 @@ class _Bubble extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
                 // The customer sits on the surface; the seller's own words
-                // carry the accent. No border on either — the ground behind
-                // them does the separating, and a hairline around every bubble
-                // is what makes an interface look like a default kit.
-                color: inbound ? colors.surface : colors.accent,
+                // carry the accent; the assistant's carry teal. No border on
+                // any of them — the ground behind them does the separating,
+                // and a hairline around every bubble is what makes an
+                // interface look like a default kit.
+                color: switch (message) {
+                  _ when inbound => colors.surface,
+                  _ when message.byAssistant => colors.assistant,
+                  _ => colors.accent,
+                },
                 borderRadius: BorderRadiusDirectional.only(
                   topStart: const Radius.circular(16),
                   topEnd: const Radius.circular(16),
@@ -1270,7 +1310,27 @@ class _Bubble extends StatelessWidget {
               // mistake looks correct in whichever language you tested in.
               child: Directionality(
                 textDirection: directionOf(message.text),
-                child: _Body(message: message, inbound: inbound),
+                child: message.byAssistant
+                    // The colour is the signal a seller reads at a glance, but
+                    // it cannot be the only one: violet and teal are close in
+                    // lightness, so anyone who cannot separate the two hues
+                    // would have nothing to go on. One word costs a line and
+                    // removes the doubt.
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            context.l.sentAutomatically,
+                            style: Style.meta.copyWith(
+                              color: colors.onAccent.withValues(alpha: 0.75),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          _Body(message: message, inbound: inbound),
+                        ],
+                      )
+                    : _Body(message: message, inbound: inbound),
               ),
             ),
           ),

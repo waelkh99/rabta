@@ -22,6 +22,7 @@ class RabtaColors extends ThemeExtension<RabtaColors> {
     required this.onAccent,
     required this.accentSoft,
     required this.urgent,
+    required this.assistant,
     required this.instagram,
     required this.messenger,
   });
@@ -64,6 +65,18 @@ class RabtaColors extends ThemeExtension<RabtaColors> {
   /// A reply window about to close, and nothing else.
   final Color urgent;
 
+  /// A message the assistant sent, and nothing else.
+  ///
+  /// Teal because it has to be told apart from the accent at a glance and from
+  /// across the thread: it is the furthest readable hue from the violet that
+  /// is not already spoken for by `urgent` or by either platform colour.
+  ///
+  /// Colour is the main signal but deliberately not the only one. These two
+  /// bubble fills differ by 1.72:1 in luminance, so a seller who cannot
+  /// separate violet from teal would have nothing left to go on — which is why
+  /// an assistant message also carries a word saying so.
+  final Color assistant;
+
   final Color instagram;
   final Color messenger;
 
@@ -89,6 +102,7 @@ class RabtaColors extends ThemeExtension<RabtaColors> {
     onAccent: Color(0xFFFFFFFF),
     accentSoft: Color(0xFFEDE1FC),
     urgent: Color(0xFFD1365B),
+    assistant: Color(0xFF0B7A6E),
     instagram: Color(0xFFE1306C),
     messenger: Color(0xFF0866FF),
   );
@@ -109,6 +123,7 @@ class RabtaColors extends ThemeExtension<RabtaColors> {
     onAccent: Color(0xFF1B1526),
     accentSoft: Color(0xFF2E2440),
     urgent: Color(0xFFFF8098),
+    assistant: Color(0xFF58D5C9),
     instagram: Color(0xFFF06595),
     messenger: Color(0xFF5B9DFF),
   );
@@ -128,6 +143,7 @@ class RabtaColors extends ThemeExtension<RabtaColors> {
     Color? onAccent,
     Color? accentSoft,
     Color? urgent,
+    Color? assistant,
     Color? instagram,
     Color? messenger,
   }) =>
@@ -143,6 +159,7 @@ class RabtaColors extends ThemeExtension<RabtaColors> {
         onAccent: onAccent ?? this.onAccent,
         accentSoft: accentSoft ?? this.accentSoft,
         urgent: urgent ?? this.urgent,
+        assistant: assistant ?? this.assistant,
         instagram: instagram ?? this.instagram,
         messenger: messenger ?? this.messenger,
       );
@@ -162,6 +179,7 @@ class RabtaColors extends ThemeExtension<RabtaColors> {
       onAccent: Color.lerp(onAccent, other.onAccent, t)!,
       accentSoft: Color.lerp(accentSoft, other.accentSoft, t)!,
       urgent: Color.lerp(urgent, other.urgent, t)!,
+      assistant: Color.lerp(assistant, other.assistant, t)!,
       instagram: Color.lerp(instagram, other.instagram, t)!,
       messenger: Color.lerp(messenger, other.messenger, t)!,
     );

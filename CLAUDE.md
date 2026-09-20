@@ -40,10 +40,15 @@ The goal is to make managing customer conversations simpler than switching betwe
 
 Do not add these unless explicitly requested:
 
-- AI-generated replies.
-- Automatic AI responses.
+- ~~AI-generated replies.~~ **Requested 19 September 2026. Now Phase Two —
+  see below.**
+- ~~Automatic AI responses.~~ **Requested 19 September 2026. Now Phase Two —
+  see below.**
+- ~~Product catalog management.~~ **Partly requested 19 September 2026.** A
+  product catalog exists in Phase Two so the AI can answer questions from it.
+  It is not inventory management: no stock counts, no variants, no SKUs, no
+  images.
 - Order management.
-- Product catalog management.
 - Inventory management.
 - Delivery company integrations.
 - Payments.
@@ -53,6 +58,98 @@ Do not add these unless explicitly requested:
 - Other social media platforms.
 
 Do not add features simply because they may be useful later.
+
+The struck-through lines are kept rather than deleted so that a future reader
+can see they were deliberately out of scope and were then deliberately asked
+for. They do not widen Phase One. Phase One's goal and success criteria above
+are unchanged.
+
+---
+
+## Phase Two
+
+Phase Two adds an AI assistant that answers customer inquiries the seller has
+not got to yet. Requested by the product owner on 19 September 2026, after
+Phase One was functionally complete.
+
+The problem it solves is the one that costs a seller money: a customer asks a
+price at 11pm and gets an answer the next afternoon, or never.
+
+The AI should:
+
+- Answer basic inquiries — price, availability, basic product facts — from the
+  seller's own product catalog.
+- Hand anything else to the seller rather than guess.
+- Write like the seller, not like a chatbot.
+
+The goal is that **no customer inquiry goes unanswered, and the seller does not
+feel replaced.**
+
+### What "not robotic" means here
+
+The product owner's stated reason for building this is that ordinary chatbots
+are too robotic and generic. That is a requirement, not a preference, and it
+has three parts:
+
+- **The seller's voice.** The AI writes from the seller's own past replies, so
+  it sounds like their shop rather than like an assistant. With one limit:
+  **no terms of endearment** — no حبيبتي, no عزيزتي, no "dear" — however freely
+  the seller uses them. Warm and professional, never familiar.
+- **The customer's language.** The product mainly serves **Jordan**, so
+  customers write Jordanian and wider Levantine dialect, often in Latin
+  letters. Replying in Modern Standard Arabic reads *more* robotic than a bot,
+  not less.
+- **Knowing when to stop.** Handing a conversation over is a good outcome, not
+  a failure. An AI that answers everything badly is worse than one that answers
+  half and says so.
+
+### Still out of scope in Phase Two
+
+Insights and recommendations to the seller, analytics, order management, stock
+decrementing, product variants, SKUs and product images.
+
+The catalog exists so the model can answer questions. It is not a place for the
+seller to run their inventory, and it should not grow into one without a
+decision that says so.
+
+`DECISIONS.md` holds the settled Phase Two decisions and the reasoning behind
+each. `CHECKLIST.md` tracks progress.
+
+### Anything the seller writes down, the assistant should be able to read
+
+**A standing rule, asked for by the product owner on 20 September 2026.**
+
+The assistant can only answer from what it is given. Every time this product
+gains a place for the seller to record something — a new field, a new section,
+a new screen — that information has to be **fed to the assistant as well**, or
+it will keep telling customers it does not know things the seller has already
+written down.
+
+This is easy to forget because the two halves look unrelated: one is a form,
+the other is a prompt. They are not. A field the seller fills in and the
+assistant never sees is a field that makes the product look broken.
+
+So whenever a new source of seller-written information is added:
+
+1. Add it to `renderFacts` in `supabase/functions/meta-webhook/ai.ts`, and to
+   the query that feeds it in `process.ts`.
+2. Say in the instructions what the assistant may do with it, and what it may
+   not.
+3. Check it against the guards. `claimsAreGrounded` refuses words the shop
+   never wrote — if the new data makes some of them legitimate, the guard has
+   to learn that too. A discount field is exactly this case.
+4. Re-run `npm run replay` against a real shop, not only the scripted harness.
+
+**Known and waiting:** the products section needs expanding. It holds a name,
+a price, a description and an in-stock boolean, and that is thin — sellers have
+more to say about what they sell than fits in one free-text line. Whatever it
+grows into, the assistant reads it. The sales and discounts section is the
+other one already promised: when it exists, the assistant reads whatever
+applies to the item the customer is asking about, and stops saying "حالياً ما
+في خصم" by default.
+
+None of this widens Phase Two's goal. It is a rule about keeping the assistant
+in step with the product, not a licence to add features.
 
 ---
 
@@ -161,17 +258,18 @@ Later phases may include:
 
 - WhatsApp support;
 - customer profiles across multiple channels;
-- AI-assisted replies;
-- AI-powered customer service;
-- product and order information;
+- order information;
 - delivery company integrations;
 - sales insights;
 - conversation analytics;
 - automation.
 
+AI-assisted replies and AI-powered customer service have moved off this list.
+They were requested on 19 September 2026 and are Phase Two, described above.
+
 These are future possibilities only.
 
-They should not influence Phase One unless explicitly requested.
+They should not influence Phase One or Phase Two unless explicitly requested.
 
 ---
 

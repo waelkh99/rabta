@@ -132,6 +132,10 @@ anyone who can read the repo. Grant admin to a real account instead.
 ```
 cd supabase && npm test                        # run the backend tests
 cd supabase && npm run events                  # show what Meta actually sent
+cd supabase && npm run assistant               # show what the AI did, and why
+cd supabase && npm run catalog                 # show what the AI is allowed to know
+cd supabase && npm run replay                  # replay a chat against the real shop
+cd supabase && npm run live                    # scripted chats against the real model
 supabase db push                               # apply new migrations
 supabase functions deploy meta-webhook         # deploy the webhook
 supabase secrets set --env-file supabase/.env  # update function secrets
@@ -141,6 +145,28 @@ supabase secrets set --env-file supabase/.env  # update function secrets
 stored before anything is done with it. It takes an object filter and a count:
 `npm run events -- instagram`, `npm run events -- page 25`. It needs
 `supabase/.env.local`.
+
+The four assistant commands exist because the Supabase CLI has no
+`functions logs`, and because the rows are better evidence than logs anyway:
+
+- **`npm run assistant`** — every recent conversation's `ai_state`, the reason
+  it stepped back, and the messages with who wrote each. The first thing to run
+  when a seller says the assistant did something odd.
+- **`npm run catalog`** — everything the assistant is allowed to know. The
+  answer to "did it make that up?": if a detail is not printed, it was
+  invented.
+- **`npm run replay`** — replays a conversation against the **real** catalog
+  and the **real** voice examples from the database. Takes the customer's lines
+  as arguments, and `REPLAY_NAME` to try a different customer name. Sends to
+  Anthropic; sends nothing to Meta and writes nothing back.
+- **`npm run live`** — nine scripted Jordanian conversations against the real
+  model, with each reply priced. Takes a variant name to run one model:
+  `npm run live -- "Sonnet 5"`. It costs money, which is why it is not part of
+  `npm test`.
+
+The last two spend real money on every run. They exist because "does this read
+like a person" is the one requirement no assertion can check, and between them
+they have found more defects than the unit tests have.
 
 ---
 

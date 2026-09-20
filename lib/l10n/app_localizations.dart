@@ -217,6 +217,318 @@ abstract class L {
   /// **'إرسال الردود غير متاح بعد.'**
   String get replyingNotBuilt;
 
+  /// No description provided for @menu.
+  ///
+  /// In ar, this message translates to:
+  /// **'التنقّل'**
+  String get menu;
+
+  /// No description provided for @inbox.
+  ///
+  /// In ar, this message translates to:
+  /// **'الرسائل'**
+  String get inbox;
+
+  /// No description provided for @shop.
+  ///
+  /// In ar, this message translates to:
+  /// **'المتجر'**
+  String get shop;
+
+  /// No description provided for @shopCurrency.
+  ///
+  /// In ar, this message translates to:
+  /// **'العملة'**
+  String get shopCurrency;
+
+  /// No description provided for @shopCurrencyBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'تُكتب كما تكتبها لزبونك، ويعيدها المساعد كما هي.'**
+  String get shopCurrencyBody;
+
+  /// No description provided for @shopDelivery.
+  ///
+  /// In ar, this message translates to:
+  /// **'التوصيل'**
+  String get shopDelivery;
+
+  /// No description provided for @shopDeliveryBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'المناطق التي توصل إليها وأجرة كل منها. هذا ما يجيب به المساعد عن «قديش التوصيل».'**
+  String get shopDeliveryBody;
+
+  /// No description provided for @shopDeliveryEmpty.
+  ///
+  /// In ar, this message translates to:
+  /// **'لم تُضف أي منطقة بعد.'**
+  String get shopDeliveryEmpty;
+
+  /// No description provided for @shopZoneAdd.
+  ///
+  /// In ar, this message translates to:
+  /// **'أضف منطقة'**
+  String get shopZoneAdd;
+
+  /// No description provided for @shopZoneName.
+  ///
+  /// In ar, this message translates to:
+  /// **'المنطقة'**
+  String get shopZoneName;
+
+  /// No description provided for @shopZoneFee.
+  ///
+  /// In ar, this message translates to:
+  /// **'الأجرة'**
+  String get shopZoneFee;
+
+  /// No description provided for @shopZoneFeeHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'اتركها فارغة إذا كانت الأجرة تختلف. سيقول المساعد إنها تعتمد، ولن يخترع رقماً.'**
+  String get shopZoneFeeHint;
+
+  /// No description provided for @shopZoneNoFee.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعتمد'**
+  String get shopZoneNoFee;
+
+  /// No description provided for @shopDeliveryNote.
+  ///
+  /// In ar, this message translates to:
+  /// **'قواعد أخرى للتوصيل'**
+  String get shopDeliveryNote;
+
+  /// No description provided for @shopDeliveryNoteHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'مثل: مجاني فوق 50 ديناراً، أو التوصيل داخل عمّان بنفس اليوم.'**
+  String get shopDeliveryNoteHint;
+
+  /// No description provided for @shopLocations.
+  ///
+  /// In ar, this message translates to:
+  /// **'مواقع المتجر'**
+  String get shopLocations;
+
+  /// No description provided for @shopLocationsHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'العنوان أو مكان الاستلام. اكتب كل فرع في سطر.'**
+  String get shopLocationsHint;
+
+  /// No description provided for @shopHours.
+  ///
+  /// In ar, this message translates to:
+  /// **'أوقات الدوام'**
+  String get shopHours;
+
+  /// No description provided for @shopHoursHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'مثل: السبت إلى الخميس من 10 صباحاً إلى 8 مساءً، الجمعة مغلق.'**
+  String get shopHoursHint;
+
+  /// No description provided for @shopAbout.
+  ///
+  /// In ar, this message translates to:
+  /// **'معلومات أخرى'**
+  String get shopAbout;
+
+  /// No description provided for @shopAboutBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'أي شيء آخر تريد أن يعرفه المساعد: طريقة الطلب، الدفع عند الاستلام، الإرجاع، أو أي تفصيل يخصك.'**
+  String get shopAboutBody;
+
+  /// No description provided for @shopAboutHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'يقرأه المساعد كما كتبته. هذا أيضاً مكانك لتصحيحه إذا ظل يخطئ في شيء.'**
+  String get shopAboutHint;
+
+  /// No description provided for @products.
+  ///
+  /// In ar, this message translates to:
+  /// **'المنتجات'**
+  String get products;
+
+  /// No description provided for @productsBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'ما تبيعه، ليعرف المساعد بماذا يجيب. الاسم والسعر يكفيان.'**
+  String get productsBody;
+
+  /// No description provided for @productsEmpty.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد منتجات بعد.'**
+  String get productsEmpty;
+
+  /// No description provided for @productAdd.
+  ///
+  /// In ar, this message translates to:
+  /// **'أضف منتجاً'**
+  String get productAdd;
+
+  /// No description provided for @productEdit.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعديل'**
+  String get productEdit;
+
+  /// No description provided for @productDelete.
+  ///
+  /// In ar, this message translates to:
+  /// **'حذف'**
+  String get productDelete;
+
+  /// No description provided for @productSave.
+  ///
+  /// In ar, this message translates to:
+  /// **'حفظ'**
+  String get productSave;
+
+  /// No description provided for @productName.
+  ///
+  /// In ar, this message translates to:
+  /// **'الاسم'**
+  String get productName;
+
+  /// No description provided for @productPrice.
+  ///
+  /// In ar, this message translates to:
+  /// **'السعر'**
+  String get productPrice;
+
+  /// No description provided for @productDescription.
+  ///
+  /// In ar, this message translates to:
+  /// **'الوصف'**
+  String get productDescription;
+
+  /// No description provided for @productInStock.
+  ///
+  /// In ar, this message translates to:
+  /// **'متوفر'**
+  String get productInStock;
+
+  /// No description provided for @productOutOfStock.
+  ///
+  /// In ar, this message translates to:
+  /// **'غير متوفر'**
+  String get productOutOfStock;
+
+  /// No description provided for @productDeleteTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'حذف هذا المنتج؟'**
+  String get productDeleteTitle;
+
+  /// No description provided for @productDeleteBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'لن يذكره المساعد بعد الآن. {name}'**
+  String productDeleteBody(String name);
+
+  /// No description provided for @productDeleteConfirm.
+  ///
+  /// In ar, this message translates to:
+  /// **'حذف'**
+  String get productDeleteConfirm;
+
+  /// No description provided for @catalogSaveFailed.
+  ///
+  /// In ar, this message translates to:
+  /// **'لم يُحفظ. حاول مرة أخرى.'**
+  String get catalogSaveFailed;
+
+  /// No description provided for @catalogFailed.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعذّر فتح المنتجات'**
+  String get catalogFailed;
+
+  /// No description provided for @catalogFailedBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'تحقق من اتصالك ثم أعد المحاولة.'**
+  String get catalogFailedBody;
+
+  /// No description provided for @catalogPaste.
+  ///
+  /// In ar, this message translates to:
+  /// **'لصق قائمة'**
+  String get catalogPaste;
+
+  /// No description provided for @catalogPasteBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'انسخ الصفوف من ملف إكسل أو من جدول جوجل، ثم الصقها هنا. تُضاف إلى قائمتك ولا تستبدلها.'**
+  String get catalogPasteBody;
+
+  /// No description provided for @catalogPasteHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'الصق الصفوف هنا'**
+  String get catalogPasteHint;
+
+  /// No description provided for @catalogPasteAdd.
+  ///
+  /// In ar, this message translates to:
+  /// **'إضافة'**
+  String get catalogPasteAdd;
+
+  /// No description provided for @catalogPasteNothing.
+  ///
+  /// In ar, this message translates to:
+  /// **'لم نجد أي منتج في ما لصقته.'**
+  String get catalogPasteNothing;
+
+  /// No description provided for @catalogPasteAdded.
+  ///
+  /// In ar, this message translates to:
+  /// **'{count, plural, =0{لم يُضف شيء} =1{أُضيف منتج واحد} =2{أُضيف منتجان} few{أُضيفت {count} منتجات} many{أُضيف {count} منتجاً} other{أُضيف {count} منتج}}'**
+  String catalogPasteAdded(int count);
+
+  /// No description provided for @catalogTemplateCopy.
+  ///
+  /// In ar, this message translates to:
+  /// **'انسخ نموذجاً فارغاً'**
+  String get catalogTemplateCopy;
+
+  /// No description provided for @catalogTemplateCopied.
+  ///
+  /// In ar, this message translates to:
+  /// **'نُسخ النموذج. الصقه في إكسل.'**
+  String get catalogTemplateCopied;
+
+  /// No description provided for @assistantTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'المساعد'**
+  String get assistantTitle;
+
+  /// No description provided for @assistantBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'يرد على زبائنك من قائمتك، ويقترح عليهم ما قد يناسبهم، ويحوّل إليك كل ما لا يصح أن يجيب عنه بنفسه.'**
+  String get assistantBody;
+
+  /// No description provided for @assistantNeedsCatalog.
+  ///
+  /// In ar, this message translates to:
+  /// **'أضف منتجاً أولاً. من دون قائمة لا يملك المساعد ما يجيب به.'**
+  String get assistantNeedsCatalog;
+
+  /// On a message the assistant sent instead of the seller. The bubble is already a different colour; this is the wording a seller who cannot tell the two colours apart relies on, so it has to say plainly who wrote it.
+  ///
+  /// In ar, this message translates to:
+  /// **'رد تلقائي'**
+  String get sentAutomatically;
+
   /// No description provided for @invite.
   ///
   /// In ar, this message translates to:

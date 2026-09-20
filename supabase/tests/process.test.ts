@@ -3,10 +3,17 @@ import { test } from "node:test";
 
 import { parseWebhookPayload } from "../functions/meta-webhook/parse.ts";
 import {
+  autoReply,
   processMessage,
   refreshCustomerProfile,
 } from "../functions/meta-webhook/process.ts";
-import type { AccountRef, Store } from "../functions/meta-webhook/process.ts";
+import type {
+  AccountRef,
+  AiContext,
+  AiPrompt,
+  Store,
+} from "../functions/meta-webhook/process.ts";
+import { HANDOVER_LINE, MAX_CONSECUTIVE_AI } from "../functions/meta-webhook/ai.ts";
 import type { CustomerProfile } from "../functions/meta-webhook/profile.ts";
 import type { NormalisedMessage, Platform } from "../functions/meta-webhook/parse.ts";
 
@@ -75,6 +82,88 @@ class FakeStore implements Store {
       ...profile,
       fetchedAt: new Date().toISOString(),
     });
+    return Promise.resolve();
+  }
+
+  // -- the AI path -----------------------------------------------------------
+
+  /** Overridden per test. Defaults to a workspace with the AI switched on. */
+  context: AiContext | null = {
+    workspaceId: "ws_1",
+    enabled: true,
+    customerName: "سارة",
+    windowExpiresAt: new Date(SENT_MS + 12 * 3_600_000).toISOString(),
+    lastMessageAt: new Date(SENT_MS).toISOString(),
+    lastSellerReplyAt: null,
+    consecutiveAiReplies: 0,
+    aiRepliesThisMonth: 0,
+  };
+
+  prompt: AiPrompt = {
+    shop: {
+      currency: "د.ا",
+      deliveryNote: null,
+      locations: null,
+      hours: null,
+      about: null,
+    },
+    zones: [{ name: "عمّان", fee: "2.000" }],
+    products: [{ name: "فستان أحمر", price: "25.500", description: null, inStock: true }],
+    examples: ["اهلا وسهلا"],
+    turns: [{ inbound: true, text: "قديش سعر الفستان؟" }],
+  };
+
+  /** Mirrors the conditional update: the first caller wins, the rest do not. */
+  claimed = new Set<string>();
+  claims = 0;
+  finished: { state: string; reason: string | null }[] = [];
+  aiReplies: { mid: string; text: string }[] = [];
+
+  aiContext(_conversationId: string): Promise<AiContext | null> {
+    return Promise.resolve(this.context);
+  }
+
+  /**
+   * Mirrors the real predicate: a run that started before the message it is
+   * answering has not considered it, so it may claim. A second run for the
+   * same message finds the timestamp already past it and cannot.
+   */
+  claimedAt = new Map<string, string>();
+
+  claimAiRun(conversationId: string, now: Date, answering: string): Promise<boolean> {
+    this.claims++;
+
+    const held = this.claimedAt.get(conversationId);
+    const stale = new Date(now.getTime() - 2 * 60_000).toISOString();
+    const free = held === undefined || held < stale || held < answering;
+
+    if (!free) return Promise.resolve(false);
+
+    this.claimedAt.set(conversationId, now.toISOString());
+    this.claimed.add(conversationId);
+    return Promise.resolve(true);
+  }
+
+  aiPrompt(_workspaceId: string, _conversationId: string): Promise<AiPrompt> {
+    return Promise.resolve(this.prompt);
+  }
+
+  insertAiReply(
+    _conversationId: string,
+    _workspaceId: string,
+    mid: string,
+    text: string,
+  ): Promise<void> {
+    this.aiReplies.push({ mid, text });
+    return Promise.resolve();
+  }
+
+  finishAiRun(
+    _conversationId: string,
+    state: "answered" | "escalated",
+    reason: string | null,
+  ): Promise<void> {
+    this.finished.push({ state, reason });
     return Promise.resolve();
   }
 }
@@ -420,4 +509,510 @@ test("a message for an unconnected account is never looked up", async () => {
     "fresh",
   );
   assert.equal(asked.length, 0);
+});
+
+// ---------------------------------------------------------------------------
+// Answering the customer
+//
+// Every path through autoReply, exercised against the fake store. These also
+// stand in for a type check: nothing in this project typechecks the Edge
+// Functions, so a Store the fake does not really satisfy has to be caught by
+// running it.
+// ---------------------------------------------------------------------------
+
+/** The model and Meta, both faked. Records what each was sent. */
+function assistant(decision: unknown, { sendFails = false, metaError = false } = {}) {
+  const calls: string[] = [];
+  /** The request bodies, so a test can assert what reached the model. */
+  const sent: string[] = [];
+
+  const fetcher = ((url: string, init?: RequestInit) => {
+    const target = String(url);
+    calls.push(target);
+    if (typeof init?.body === "string") sent.push(init.body);
+
+    if (target.includes("anthropic")) {
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: () =>
+          Promise.resolve({
+            content: [{ type: "text", text: JSON.stringify(decision) }],
+            usage: { cache_read_input_tokens: 9000 },
+          }),
+      } as Response);
+    }
+
+    if (sendFails) return Promise.reject(new Error("network"));
+
+    return Promise.resolve({
+      json: () =>
+        Promise.resolve(
+          metaError
+            ? { error: { message: "outside window", code: 10 } }
+            : { message_id: "mid_from_meta" },
+        ),
+    } as Response);
+  }) as unknown as typeof fetch;
+
+  return { fetcher, calls, sent };
+}
+
+/** No waiting, and a clock fixed just after the message arrived. */
+const immediately = (fetcher: typeof fetch) => ({
+  fetcher,
+  wait: () => Promise.resolve(),
+  clock: () => new Date(SENT_MS + 30_000),
+});
+
+async function storedInbound(store: FakeStore, mid = "ai_1", text = "بكم الفستان؟") {
+  store.connect("messenger", PAGE_ID);
+  const message = inbound(mid, text);
+  const outcome = await processMessage(store, message);
+  return { message, outcome };
+}
+
+test("a customer asking a catalog question gets an answer", async () => {
+  const store = new FakeStore();
+  store.tokens.set(`acct_messenger_${PAGE_ID}`, "page-token");
+  const { message, outcome } = await storedInbound(store);
+
+  const { fetcher, calls } = assistant({ handOver: false, text: "25.500 دينار" });
+  const result = await autoReply(store, "key", message, outcome, immediately(fetcher));
+
+  assert.equal(result, "answered");
+  assert.deepEqual(store.aiReplies, [{ mid: "mid_from_meta", text: "25.500 دينار" }]);
+  assert.deepEqual(store.finished, [{ state: "answered", reason: null }]);
+
+  // Stored under Meta's id, which is what stops the echo of our own reply
+  // arriving through the webhook and appearing twice.
+  assert.ok(calls.some((url) => url.includes("anthropic")));
+  assert.ok(calls.some((url) => url.includes("graph.facebook.com")));
+});
+
+test("the AI stays silent when the seller has not switched it on", async () => {
+  // The state every workspace starts in, so this is the common path.
+  const store = new FakeStore();
+  store.context = { ...store.context!, enabled: false };
+  const { message, outcome } = await storedInbound(store);
+
+  const { fetcher, calls } = assistant({ handOver: false, text: "anything" });
+  const result = await autoReply(store, "key", message, outcome, immediately(fetcher));
+
+  assert.equal(result, "off");
+  assert.equal(calls.length, 0, "nothing may be spent on a workspace with the AI off");
+  assert.equal(store.finished.length, 0, "and nothing is marked on the conversation");
+});
+
+test("no API key is the same as the AI being off", async () => {
+  const store = new FakeStore();
+  const { message, outcome } = await storedInbound(store);
+
+  const { fetcher, calls } = assistant({ handOver: false, text: "hi" });
+  const result = await autoReply(store, "", message, outcome, immediately(fetcher));
+
+  assert.equal(result, "off");
+  assert.equal(calls.length, 0);
+});
+
+test("a redelivered message is not answered again", async () => {
+  // Meta retries, and answering twice would send the customer the same
+  // sentence twice, which cannot be repaired afterwards.
+  const store = new FakeStore();
+  store.tokens.set(`acct_messenger_${PAGE_ID}`, "page-token");
+  const { message, outcome } = await storedInbound(store);
+
+  const { fetcher } = assistant({ handOver: false, text: "25.500" });
+  await autoReply(store, "key", message, outcome, immediately(fetcher));
+
+  const again = await processMessage(store, message);
+  assert.equal(again.status, "duplicate");
+
+  const second = await autoReply(store, "key", message, again, immediately(fetcher));
+  assert.equal(second, "not-applicable");
+  assert.equal(store.aiReplies.length, 1, "the customer was written to once");
+});
+
+test("the echo of our own reply is not answered", async () => {
+  const store = new FakeStore();
+  store.connect("messenger", PAGE_ID);
+
+  const echo: NormalisedMessage = { ...inbound("echo_1", "25000"), direction: "outbound" };
+  const outcome = await processMessage(store, echo);
+
+  const { fetcher, calls } = assistant({ handOver: false, text: "again" });
+  const result = await autoReply(store, "key", echo, outcome, immediately(fetcher));
+
+  assert.equal(result, "not-applicable");
+  assert.equal(calls.length, 0);
+});
+
+test("a burst of messages produces one reply, not three", async () => {
+  // The customer sends three fragments. Each delivery starts its own run; the
+  // ones that wake to find a newer message stand down.
+  const store = new FakeStore();
+  store.tokens.set(`acct_messenger_${PAGE_ID}`, "page-token");
+  store.connect("messenger", PAGE_ID);
+
+  const first = inbound("burst_1", "هلو");
+  const outcomeFirst = await processMessage(store, first);
+
+  // By the time this run wakes, a later fragment has landed.
+  store.context = {
+    ...store.context!,
+    lastMessageAt: new Date(SENT_MS + 5_000).toISOString(),
+  };
+
+  const { fetcher, calls } = assistant({ handOver: false, text: "25.500" });
+  const result = await autoReply(store, "key", first, outcomeFirst, immediately(fetcher));
+
+  assert.equal(result, "superseded");
+  assert.equal(calls.length, 0, "the model is not asked about a half-finished thought");
+  assert.equal(store.claims, 0, "and the conversation is not claimed");
+});
+
+test("two runs for the same conversation cannot both answer", async () => {
+  const store = new FakeStore();
+  store.tokens.set(`acct_messenger_${PAGE_ID}`, "page-token");
+  const { message, outcome } = await storedInbound(store);
+
+  const { fetcher } = assistant({ handOver: false, text: "25.500" });
+
+  const first = await autoReply(store, "key", message, outcome, immediately(fetcher));
+  const second = await autoReply(store, "key", message, outcome, immediately(fetcher));
+
+  assert.equal(first, "answered");
+  assert.equal(second, "busy");
+  assert.equal(store.aiReplies.length, 1);
+});
+
+test("a customer's follow-up is answered, not swallowed by the last run", async () => {
+  // The bug this pins: the assistant answered "مرحبا", the customer wrote
+  // again 36 seconds later, and that message was silently dropped because the
+  // conversation was still inside the claim window. It looked, from outside,
+  // as though the assistant had died mid-conversation.
+  const store = new FakeStore();
+  store.tokens.set(`acct_messenger_${PAGE_ID}`, "page-token");
+  store.connect("messenger", PAGE_ID);
+
+  const first = inbound("follow_1", "مرحبا");
+  const firstOutcome = await processMessage(store, first);
+
+  const { fetcher } = assistant({ handOver: false, text: "مرحبا، كيف أساعدك؟" });
+  assert.equal(
+    await autoReply(store, "key", first, firstOutcome, immediately(fetcher)),
+    "answered",
+  );
+
+  // Half a minute later, well inside the window the old claim held.
+  const laterMs = SENT_MS + 36_000;
+  const second: NormalisedMessage = {
+    ...inbound("follow_2", "شفت عندكم فستان"),
+    sentAt: new Date(laterMs).toISOString(),
+  };
+  const secondOutcome = await processMessage(store, second);
+
+  store.context = { ...store.context!, lastMessageAt: new Date(laterMs).toISOString() };
+
+  const { fetcher: again } = assistant({ handOver: false, text: "عندنا فستان أحمر" });
+  const result = await autoReply(store, "key", second, secondOutcome, {
+    fetcher: again,
+    wait: () => Promise.resolve(),
+    clock: () => new Date(laterMs + 30_000),
+  });
+
+  assert.equal(result, "answered", "the follow-up must be answered too");
+  assert.equal(store.aiReplies.length, 2);
+});
+
+test("a guard that fires hands over instead of asking the model", async () => {
+  // The seller is at their desk, so the guard is cheaper than a model call and
+  // the customer is about to be answered by a person anyway.
+  const store = new FakeStore();
+  store.context = { ...store.context!, lastSellerReplyAt: new Date(SENT_MS).toISOString() };
+  const { message, outcome } = await storedInbound(store);
+
+  const { fetcher, calls } = assistant({ handOver: false, text: "hello" });
+  const result = await autoReply(store, "key", message, outcome, immediately(fetcher));
+
+  assert.equal(result, "escalated");
+  assert.equal(calls.length, 0, "a guard must be cheaper than a model call");
+  assert.deepEqual(store.finished, [{ state: "escalated", reason: "seller_present" }]);
+  assert.equal(store.aiReplies.length, 0, "the seller is here; no line is needed");
+});
+
+test("running out of replies tells the customer instead of going quiet", async () => {
+  // This is the change. A conversation that hit the streak cap used to simply
+  // stop, with nothing sent, which from the customer's side is identical to
+  // the assistant having died.
+  const store = new FakeStore();
+  store.tokens.set(`acct_messenger_${PAGE_ID}`, "page-token");
+  store.context = { ...store.context!, consecutiveAiReplies: MAX_CONSECUTIVE_AI };
+  const { message, outcome } = await storedInbound(store);
+
+  const { fetcher, calls } = assistant({ handOver: false, text: "never asked for" });
+  const result = await autoReply(store, "key", message, outcome, immediately(fetcher));
+
+  assert.equal(result, "escalated");
+  assert.equal(calls.length, 1, "Meta was asked to send, the model was not asked anything");
+  assert.equal(store.aiReplies.length, 1);
+  assert.equal(store.aiReplies[0].text, HANDOVER_LINE.arabic);
+  assert.deepEqual(store.finished, [{ state: "escalated", reason: "ai_streak" }]);
+});
+
+test("the hand-over line is said once, not on every message after it", async () => {
+  // The line is itself an AI reply, so it pushes the streak one past the cap.
+  // A customer who keeps writing must not keep receiving the same sentence.
+  const store = new FakeStore();
+  store.tokens.set(`acct_messenger_${PAGE_ID}`, "page-token");
+  store.context = { ...store.context!, consecutiveAiReplies: MAX_CONSECUTIVE_AI + 1 };
+  const { message, outcome } = await storedInbound(store);
+
+  const { fetcher } = assistant({ handOver: false, text: "never asked for" });
+  const result = await autoReply(store, "key", message, outcome, immediately(fetcher));
+
+  assert.equal(result, "escalated");
+  assert.equal(store.aiReplies.length, 0, "they have already been told");
+});
+
+test("an English customer is handed over in English", async () => {
+  const store = new FakeStore();
+  store.tokens.set(`acct_messenger_${PAGE_ID}`, "page-token");
+  store.connect("messenger", PAGE_ID);
+  store.context = { ...store.context!, consecutiveAiReplies: MAX_CONSECUTIVE_AI };
+
+  const message = inbound("en_1", "do you have it in blue?");
+  const outcome = await processMessage(store, message);
+
+  const { fetcher } = assistant({ handOver: false, text: "unused" });
+  await autoReply(store, "key", message, outcome, immediately(fetcher));
+
+  assert.equal(store.aiReplies[0].text, HANDOVER_LINE.english);
+});
+
+test("nothing is said when the send would fail anyway", async () => {
+  // Outside the window Meta refuses everything, so a hand-over line would burn
+  // a Graph call to produce a message nobody receives.
+  const store = new FakeStore();
+  store.tokens.set(`acct_messenger_${PAGE_ID}`, "page-token");
+  store.context = {
+    ...store.context!,
+    windowExpiresAt: new Date(SENT_MS - 1000).toISOString(),
+    consecutiveAiReplies: MAX_CONSECUTIVE_AI,
+  };
+  const { message, outcome } = await storedInbound(store);
+
+  const { fetcher, calls } = assistant({ handOver: false, text: "unused" });
+  const result = await autoReply(store, "key", message, outcome, immediately(fetcher));
+
+  assert.equal(result, "escalated");
+  assert.equal(calls.length, 0);
+  assert.equal(store.aiReplies.length, 0);
+  assert.deepEqual(store.finished, [{ state: "escalated", reason: "window_closed" }]);
+});
+
+test("the model handing over still answers the customer", async () => {
+  // The heart of it. Answering and handing over used to be alternatives, so a
+  // customer who asked one answerable thing and one unanswerable one got
+  // nothing at all.
+  const store = new FakeStore();
+  store.tokens.set(`acct_messenger_${PAGE_ID}`, "page-token");
+
+  // The customer raised the discount, so the assistant may say the word back.
+  // Without that it would be a promise nobody made and would be held — which
+  // is the claim check behaving correctly, and is why the turns matter here.
+  store.prompt = {
+    ...store.prompt,
+    turns: [{ inbound: true, text: "قديش الفستان؟ وفي خصم؟" }],
+  };
+
+  const { message, outcome } = await storedInbound(store);
+
+  const { fetcher } = assistant({
+    text: "الفستان 25.5. بخصوص الخصم، صاحب المحل رح يرد عليك",
+    handOver: true,
+    reason: "wants a discount",
+  });
+  const result = await autoReply(store, "key", message, outcome, immediately(fetcher));
+
+  assert.equal(result, "escalated");
+  assert.deepEqual(store.finished, [{ state: "escalated", reason: "wants a discount" }]);
+  assert.equal(store.aiReplies.length, 1, "the customer hears back even so");
+  assert.match(store.aiReplies[0].text, /25\.5/);
+});
+
+test("an answer the model could not produce still says something", async () => {
+  const store = new FakeStore();
+  store.tokens.set(`acct_messenger_${PAGE_ID}`, "page-token");
+  const { message, outcome } = await storedInbound(store);
+
+  const { fetcher } = assistant({ nonsense: true });
+  const result = await autoReply(store, "key", message, outcome, immediately(fetcher));
+
+  assert.equal(result, "escalated");
+  assert.deepEqual(store.finished, [{ state: "escalated", reason: "no usable answer" }]);
+  assert.equal(store.aiReplies[0].text, HANDOVER_LINE.arabic);
+});
+
+test("an invented price never reaches the customer", async () => {
+  // The catalog says 25.500. The model says 19.750. Nothing is sent.
+  const store = new FakeStore();
+  store.tokens.set(`acct_messenger_${PAGE_ID}`, "page-token");
+  const { message, outcome } = await storedInbound(store);
+
+  const { fetcher, calls } = assistant({ handOver: false, text: "19.750 دينار" });
+  const result = await autoReply(store, "key", message, outcome, immediately(fetcher));
+
+  assert.equal(result, "escalated");
+  assert.match(store.finished[0].reason ?? "", /never gave it/);
+
+  // The invented number is what must not reach them. Something does — the
+  // fixed hand-over line, which carries no numbers at all.
+  assert.equal(store.aiReplies.length, 1);
+  assert.equal(store.aiReplies[0].text, HANDOVER_LINE.arabic);
+  assert.ok(
+    !calls.some((url) => url.includes("19.750")),
+    "the invented price was never sent",
+  );
+});
+
+test("the customer's name travels from the conversation row to the model", async () => {
+  // It sat in the database unused. Without it the model had no signal for
+  // which grammatical gender to address an Arabic customer in.
+  const store = new FakeStore();
+  store.tokens.set(`acct_messenger_${PAGE_ID}`, "page-token");
+  store.context = { ...store.context!, customerName: "سارة الخطيب" };
+  const { message, outcome } = await storedInbound(store);
+
+  const { fetcher, sent } = assistant({ handOver: false, text: "أهلين" });
+  await autoReply(store, "key", message, outcome, immediately(fetcher));
+
+  assert.ok(
+    sent.some((body) => body.includes("سارة الخطيب")),
+    "the name must reach the request",
+  );
+});
+
+test("a promise the shop never made never reaches the customer", async () => {
+  // The catalog says nothing about when anything arrives. The number check is
+  // blind to this — "بكرا" has no digits — which is exactly why it exists.
+  const store = new FakeStore();
+  store.tokens.set(`acct_messenger_${PAGE_ID}`, "page-token");
+  const { message, outcome } = await storedInbound(store);
+
+  const { fetcher } = assistant({ handOver: false, text: "أكيد، بنوصلك بكرا" });
+  const result = await autoReply(store, "key", message, outcome, immediately(fetcher));
+
+  assert.equal(result, "escalated");
+  assert.match(store.finished[0].reason ?? "", /promise the shop never made/);
+
+  // And they are still told something, rather than left waiting.
+  assert.equal(store.aiReplies.length, 1);
+  assert.equal(store.aiReplies[0].text, HANDOVER_LINE.arabic);
+});
+
+test("a promise the shop DID make goes through untouched", async () => {
+  // Otherwise the guard withholds the shop's own words from its own customer.
+  const store = new FakeStore();
+  store.tokens.set(`acct_messenger_${PAGE_ID}`, "page-token");
+  store.prompt = {
+    ...store.prompt,
+    shop: { ...store.prompt.shop!, deliveryNote: "بنوصل بكرا لعمّان" },
+  };
+  const { message, outcome } = await storedInbound(store);
+
+  const { fetcher } = assistant({ handOver: false, text: "أكيد، بنوصلك بكرا" });
+  const result = await autoReply(store, "key", message, outcome, immediately(fetcher));
+
+  assert.equal(result, "answered");
+  assert.equal(store.aiReplies[0].text, "أكيد، بنوصلك بكرا");
+});
+
+test("emoji are tidied rather than held back", async () => {
+  // Unlike an invented fact. Removing an emoji costs the customer nothing, so
+  // withholding the whole reply over one would be the wrong trade.
+  const store = new FakeStore();
+  store.tokens.set(`acct_messenger_${PAGE_ID}`, "page-token");
+  const { message, outcome } = await storedInbound(store);
+
+  const { fetcher } = assistant({ handOver: false, text: "تمام 😍 خدي وقتك 🌸🌸" });
+  const result = await autoReply(store, "key", message, outcome, immediately(fetcher));
+
+  assert.equal(result, "answered");
+  assert.equal(store.aiReplies[0].text, "تمام خدي وقتك 🌸");
+});
+
+test("a reply too long for Instagram escalates rather than being rejected", async () => {
+  const store = new FakeStore();
+  store.tokens.set(`acct_instagram_${PAGE_ID}`, "page-token");
+  store.connect("instagram", PAGE_ID);
+
+  const message: NormalisedMessage = { ...inbound("ig_1", "بكم؟"), platform: "instagram" };
+  const outcome = await processMessage(store, message);
+
+  const { fetcher } = assistant({ handOver: false, text: "ا".repeat(1200) });
+  const result = await autoReply(store, "key", message, outcome, immediately(fetcher));
+
+  assert.equal(result, "escalated");
+  assert.match(store.finished[0].reason ?? "", /too_long/);
+
+  // Meta would have rejected the long one and the customer would have received
+  // nothing. The hand-over line fits.
+  assert.equal(store.aiReplies.length, 1);
+  assert.equal(store.aiReplies[0].text.length < 1000, true);
+});
+
+test("Meta refusing the send leaves the conversation with the seller", async () => {
+  // The window closed between our check and the call. No message row is
+  // written for something the customer never received.
+  const store = new FakeStore();
+  store.tokens.set(`acct_messenger_${PAGE_ID}`, "page-token");
+  const { message, outcome } = await storedInbound(store);
+
+  const { fetcher } = assistant({ handOver: false, text: "25.500" }, { metaError: true });
+  const result = await autoReply(store, "key", message, outcome, immediately(fetcher));
+
+  assert.equal(result, "escalated");
+  assert.equal(store.aiReplies.length, 0, "nothing is stored that was not sent");
+  assert.match(store.finished[0].reason ?? "", /send window_closed/);
+});
+
+test("an account with no token escalates rather than throwing", async () => {
+  const store = new FakeStore();
+  const { message, outcome } = await storedInbound(store);
+
+  const { fetcher } = assistant({ handOver: false, text: "25.500" });
+  const result = await autoReply(store, "key", message, outcome, immediately(fetcher));
+
+  assert.equal(result, "escalated");
+  assert.match(store.finished[0].reason ?? "", /token/);
+});
+
+test("the model being unreachable marks nothing, so the next message retries", async () => {
+  const store = new FakeStore();
+  const { message, outcome } = await storedInbound(store);
+
+  const fetcher = (() => Promise.reject(new Error("network"))) as unknown as typeof fetch;
+  const result = await autoReply(store, "key", message, outcome, {
+    fetcher,
+    wait: () => Promise.resolve(),
+    clock: () => new Date(SENT_MS + 30_000),
+  });
+
+  assert.equal(result, "failed");
+  assert.equal(store.finished.length, 0, "an unreachable model is not an escalation");
+});
+
+test("a message for an account we do not hold is left alone", async () => {
+  const store = new FakeStore();
+  const message = inbound("orphan_1", "hello");
+  const outcome = await processMessage(store, message);
+
+  assert.equal(outcome.status, "unknown-account");
+
+  const { fetcher, calls } = assistant({ handOver: false, text: "hi" });
+  const result = await autoReply(store, "key", message, outcome, immediately(fetcher));
+
+  assert.equal(result, "not-applicable");
+  assert.equal(calls.length, 0);
 });

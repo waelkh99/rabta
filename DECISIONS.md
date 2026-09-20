@@ -725,6 +725,1326 @@ product without the one screen a new customer cannot start without.
 
 ---
 
+### 2026-09-19 — Phase Two: the AI answers what it can and hands over the rest
+
+Decided by the product owner. Phase One was functionally complete, and the gap
+it left was inquiries arriving when nobody is looking.
+
+**The shape of it.** The AI answers basic inquiries — price, availability,
+basic product facts — from the seller's own catalog, and escalates everything
+else to the seller. The goal in the product owner's words is that **no customer
+inquiry gets missed.**
+
+**Why not a fully supervised drafting tool.** That was proposed first, and
+argued for: if a human approves every message, nothing wrong ever reaches a
+customer. It was rejected because it does not solve the stated problem. The
+value is answering at 11pm when the seller is asleep; a draft waiting in a box
+is still an unanswered customer. "Supervised" and "nothing gets missed" cannot
+both be fully true, and the product owner chose the second.
+
+**Why not fully autonomous either.** The escalation path is what keeps this
+honest. An AI that answers everything badly is worse than one that answers half
+and says so. The deterministic guards recorded below are what enforce it.
+
+**The catalog is a real table the seller controls**, plus a fillable template
+for bulk entry — the product owner's decision over the leaner alternative of a
+single free-text blob. It holds name, price, description and an in-stock
+boolean. It is deliberately **not** inventory management: no stock counts, no
+variants, no SKUs, no images. `CLAUDE.md` still rules those out.
+
+`in_stock` is a boolean rather than free text on purpose. Free-text
+availability invites the model to turn "usually available" into a promise.
+
+**The trigger is split**, because the two halves serve different people:
+
+- **Auto-answer fires on message arrival.** It has to. Waiting for the seller
+  to open the thread would defeat the entire point.
+- **Drafts are generated when the seller opens an escalated thread.** This half
+  serves the seller, not the customer, and is sequenced last.
+
+**Notification is the inbox, plus a browser notification and title badge.** The
+inbox already does most of this: grouping is driven by `last_message_at` versus
+`last_inbound_at`, so an escalated conversation stays in the waiting group with
+no new mechanism at all. The browser notification closes a gap already listed
+as unbuilt in `STATUS.md`.
+
+**The AI starts reserved and is loosened by the seller.** `enabled` defaults to
+false. A `caution` setting of `reserved` answers only what is literally in the
+catalog; `normal` also handles greetings and delivery questions. It is a prompt
+string selected by a setting, **not a learning system** — do not build one
+without a decision that says so.
+
+**Consequences:**
+
+- An AI-answered conversation leaves the waiting group on its own, which means
+  the seller can stop seeing what the AI said. It must carry a visible marker.
+  In the first month, the seller reviewing those replies is the entire safety
+  net.
+- `theme.dart` reserves `accent` for "the seller's own actions and their own
+  words, and nothing else". An AI message must not use it. How an AI message is
+  shown is an open UX decision, not something to settle in passing.
+
+---
+
+### 2026-09-19 — What the AI costs, and the model that serves it
+
+**`claude-haiku-4-5`**, at $1/MTok in and $5/MTok out. The work is a short,
+well-scoped generation with the catalog already in the prompt; it does not need
+a larger model. Sonnet 5 is exactly 2× and Opus 5 roughly 5×, and both remain
+available if measurement says Haiku cannot hold the dialect.
+
+The target subscription is **$20–30/month**, which is what makes the numbers
+below matter rather than being trivia.
+
+**The cache marker is set on every request, with the 1-hour TTL.**
+
+*This started out as "conditional on the prefix reaching 4096 tokens" and was
+simplified while implementing, once the cost of an unmet minimum was checked
+rather than assumed.* Both facts still hold:
+
+- Haiku 4.5's minimum cacheable prefix is **4096 tokens**. Below that,
+  `cache_control` **silently does nothing** — `cache_creation_input_tokens: 0`,
+  no error, no warning. A small seller's catalog will not reach it.
+- Use the **1-hour TTL**, not the 5-minute default. Writes cost 1.25× at 5
+  minutes and 2× at 1 hour; reads cost 0.1× and refresh the timer for free. At
+  the expected traffic — roughly one event every 15 minutes in business hours —
+  a 5-minute entry is dead on most requests and would pay the write premium
+  nearly every time, costing *more* than not caching at all.
+
+What changed is the conclusion drawn from the first point. An unmet minimum
+writes **nothing**, so it costs nothing: the marker is a free no-op and a small
+shop simply does not benefit, rather than paying for the attempt. (That is a
+different case from a prefix which is long enough but *changes* every request —
+that one does pay the write premium for reads it never gets, and is the case
+the caching guidance warns about.) So there is no branch: mark it always.
+
+Rough monthly cost per seller at ~1,900 replies: about **$7** for a small
+catalog, about **$7** for a large one *with* caching, and about **$21** for a
+large one without it. That last figure is why the marker matters at all.
+
+**The number to watch is `cache_read_input_tokens`.** If it stays at zero
+across repeated requests, something is invalidating the prefix — most likely
+the catalog rendering differently between calls, or the voice examples changing
+on every seller reply — and the $21 row is what the bill will look like.
+`readUsage` in `ai.ts` exists to surface exactly that.
+
+**The monthly ceiling is derived, not counted.** `count(*) from messages where
+workspace_id = $1 and origin = 'ai' and created_at >= date_trunc('month',
+now())`. A stored counter was rejected: it has to be kept in sync, it can
+drift, and it would have to live on a table the seller can write to.
+
+**Why that last point matters generally:** Postgres has no column-level row
+level security. Every column on a client-writable table is client-writable. Any
+value the seller must not be able to change belongs on a table with no policies
+— the `account_tokens` pattern — or must not be stored at all.
+
+---
+
+### 2026-09-19 — How the AI is triggered: no cron, no queue
+
+The auto-answer runs **inside the background task the webhook already has**,
+next to `refreshCustomerProfile` in `meta-webhook`'s post-200 work. It sleeps
+about 30 seconds, re-reads the conversation, and returns if `last_message_at`
+moved — meaning another delivery owns the burst.
+
+**Why the sleep:** customers send three fragments in a row. One answer per
+burst is cheaper and better manners. Three fragments means three sleeping
+tasks and exactly one survivor.
+
+**Why this fails well:** if the isolate is recycled mid-sleep, the result is no
+reply at all. The thread stays in the waiting group and the seller answers it.
+Silence, not a double-send.
+
+**pg_cron plus pg_net was proposed and rejected.** Recorded because it is an
+obvious idea that will be proposed again:
+
+1. **It breaks the test suite on contact.** `tests/helpers/db.ts` reads every
+   `.sql` in `migrations/` and executes it into PGlite. A `create extension`
+   line throws at boot and kills all 126 existing tests, none of which are
+   about AI. Working around it means either undocumented dashboard state or
+   shim code for something the tests cannot exercise anyway.
+2. **pg_net cannot tell you whether it worked.** It is fire-and-forget with a
+   5-second default timeout, against a model call of 2–5 seconds plus a Graph
+   send. Healthy runs would routinely be logged as timeouts.
+3. **It would put the service-role key in the database.** That key bypasses row
+   level security and today exists only as a function environment variable.
+   Storing it as a row to call our own backend is a worse trust boundary for no
+   capability gained.
+
+Revisit it when the failed-event retry sweep is actually built and cron has two
+callers. Until then it is one mechanism serving one need.
+
+**The claim asks whether a message has been considered, not whether a run
+happened recently.** *Corrected 19 September, after the first version dropped a
+real customer's message in production.*
+
+The first version allowed a claim only when `ai_last_run_at` was null or older
+than two minutes. That is the right shape for stopping two runs colliding on
+one burst, and the wrong shape for everything else: a customer who writes again
+inside the window is new work, and the previous run's own timestamp locked the
+conversation against it. Seen live — the assistant answered "مرحبا", the
+customer wrote "شفت عندكم فستان" thirty-six seconds later, and that message was
+never answered at all. From outside it looks as though the assistant died
+mid-conversation, which is worse than it never having spoken.
+
+The predicate now also allows a claim when the last run started **before the
+message being answered**, since such a run cannot have considered it. The
+double-send guarantee survives: two runs for the same message race, the first
+sets `ai_last_run_at` to now, and now is after that message, so the second
+matches no clause.
+
+PostgREST cannot compare two columns, so the message's own timestamp is passed
+as a value rather than read from `last_inbound_at`.
+
+**Concurrency is one conditional UPDATE**, not a lock:
+
+```sql
+update conversations set ai_last_run_at = now()
+ where id = $1
+   and (ai_last_run_at is null or ai_last_run_at < now() - interval '2 minutes')
+returning id
+```
+
+Zero rows back means another run owns this conversation. This is atomic by
+Postgres guarantee: the second UPDATE blocks on the row lock, then re-evaluates
+its WHERE against the committed new version under READ COMMITTED and matches
+nothing. Advisory locks were rejected — they are connection-scoped and
+PostgREST pools connections, so there is no reasoning about when the lock
+drops.
+
+**Double-sending the same sentence to a customer is the one failure that
+cannot be repaired after the fact.** It is why this is a claim and not a flag.
+
+---
+
+### 2026-09-19 — The guards that keep the model out of the room
+
+Most turns should never reach the API. These run first, cost nothing, and are
+pure functions that can be tested exhaustively without a network:
+
+| Condition | Action |
+|---|---|
+| Reply window closed | Skip — the send would fail anyway |
+| Latest inbound has no text (sticker or image only) | Escalate |
+| Three or more consecutive AI replies with no seller message | Escalate |
+| Seller sent anything in the last 15 minutes | Escalate — a human is present |
+| Monthly ceiling reached | Escalate |
+
+Two more run on the way back out, after the model has answered:
+
+- **The grounding check.** Every digit-run in the reply must appear in the
+  rendered catalog or in the conversation, or the reply is escalated instead of
+  sent. An invented price is the single failure that loses a seller their
+  customer, and this catches it deterministically rather than hoping the model
+  behaves.
+- **`checkText`**, the existing helper. Instagram's limit is 1000 characters
+  and Arabic runs long. Over-length escalates rather than letting Meta reject
+  the send and the customer receive nothing.
+
+The guards are the design. The model is the part that can be swapped.
+
+---
+
+### 2026-09-19 — It holds the conversation, and hands over when it would have to invent
+
+Asked for by the product owner after watching the first real reply: it should
+"be able to hold a basic conversation to an extent", and the seller picks it up
+after that.
+
+**Both caution settings are about facts, not about talking.** They used to
+escalate anything that was not a price, which would hand a "مرحبا" to the shop
+owner and leave the customer watching silence over something anyone could
+answer. Now the assistant carries the ordinary run of a chat — greeting back,
+acknowledging, asking which item or size they mean, quoting what is written —
+and escalates the moment an answer would need a fact nobody wrote down.
+
+Measured on a seven-turn thread, each reply fed back in. On the careful setting
+it held six turns and handed over on "طيب امتى بيوصل؟", because no delivery time
+is written anywhere:
+
+    ← مرحبا              → مرحبا، كيف أساعدك؟
+    ← شو عندكم؟           → عندنا فستان أحمر وشنطة يد. شو اللي بدك؟
+    ← قديش الفستان الأحمر؟  → الفستان الأحمر 25.5 دينار، وفيه مقاسات S و M و L.
+    ← في مقاس M؟          → آه، مقاس M موجود.
+    ← تمام، بتوصلوا لعمّان؟ → آه، التوصيل لعمّان 2.5 دينار، أو مجاني فوق 50.
+    ← طيب امتى بيوصل؟      → handed to the seller
+
+**A greeting gets a greeting.** The first real reply in production answered
+"مرحبا" with a price and a delivery fee nobody had asked for. Part of that was
+our own mess — a synthetic test message had left a real question unanswered in
+the thread, and the model answered it — but the rule is worth stating anyway: a
+shop that answers hello with a price list is a leaflet, not a person.
+
+**It is told not to add numbers up.** On the freer setting it offered a total —
+25.5 plus 2.5 delivery — which is correct arithmetic and which the grounding
+check then holds back, because the sum appears nowhere in the shop's facts.
+Loosening the check to allow arithmetic would weaken the one guard against
+invented prices, so the instruction goes the other way: give the parts and let
+the customer add them up. Just as useful, and it stays grounded.
+
+**Usage is logged per reply.** `cacheRead` staying at zero for a shop with a
+large catalog is the signal that the cached prefix is being invalidated, which
+would roughly ten times the input cost and would otherwise show up only on an
+invoice.
+
+---
+
+### 2026-09-19 — What the model actually did, measured
+
+The first run against the real API. Recorded because two of these were
+assumptions that turned out to need work, and one was an assumption that held.
+
+**Jordanian dialect holds on Haiku 4.5.** "اكيد بنوصل إربد، التوصيل 3.5 د.ا" —
+dialect, not Modern Standard Arabic, and visibly shaped by the seller's own
+example replies. The largest assumption in the cost model, and it survived.
+
+**Arabizi is answered in Arabic script — decided by the product owner, and the
+better call.** It was first built to mirror the customer's script, on the
+reasoning that someone typing in Latin letters may not have an Arabic keyboard.
+That reasoning is about *input*: anyone who types Arabizi reads Arabic script
+perfectly well, so answering in script costs them nothing and a shop that
+writes back in Latin letters looks careless. The dialect is still mirrored —
+only the script is normalised. "2adesh se3r el shanta?" is answered "الشنطة بـ
+18 دينار ومتوفرة هلق".
+
+**The seller's own example replies decide the reply's language, and no wording
+stops them.** Normalising Arabizi to Arabic script turned an English customer's
+question into an Arabic answer. Putting the language rule first, giving it
+worked examples, and telling the model outright that the examples do not decide
+the language all failed. Removing the examples fixed it instantly — the same
+question came back "The red dress is 25.5 JD."
+
+So the fix is structural rather than more instruction text: **the shop's Arabic
+example replies are withheld when the customer is plainly writing English.**
+Arabic typed in Latin letters still counts as Arabic, detected by the digits
+Arabizi borrows for letters Latin does not have — "2adesh", "a7mar", "3a" —
+which it glues to letters in a way ordinary English does not. "I want 2
+dresses" has a space and is not caught.
+
+It is a heuristic, and it fails back to the behaviour we already had. The
+general lesson is worth more than the rule: **a few examples outweigh a great
+deal of instruction**, so when the model will not obey a rule, look at what is
+being shown to it before writing the rule again.
+
+**No pet names, ever — decided by the product owner.** A seller may call every
+customer حبيبتي; a shop's assistant should not. Warm and professional, never
+familiar.
+
+This one *does* survive the examples, which is worth knowing given the language
+rule did not. Measured against a seller whose every example reply used an
+endearment, and including the two cases most likely to draw one out — a bare
+"مرحبا" and a "شكرا كتير" — none of nine replies used one, while the tone stayed
+Levantine and friendly: "أهلاً وسهلاً، كيف أساعدك؟".
+
+So it stays an instruction rather than a filter over the finished reply. A
+filter would have to cut a word out of a written sentence, and would read worse
+than the problem it solved. **Why one rule holds and the other does not seems
+to be the shape of it:** "never do X" survives contrary examples, while "do Y
+when the examples show Z" does not.
+
+**It could not answer "are you open today", and said so.** It knew the opening
+hours and not what day it was, and refused to guess rather than inventing one.
+Correct, and a gap: the current time is now sent — **after** the cache
+breakpoint, because it changes every minute and inside the prefix it would
+invalidate the whole cache on every single request.
+
+**Caching behaves exactly as the cost model assumed.** A 220-product shop wrote
+12,930 tokens on the first call and read all 12,930 back on the second, with 37
+uncached. A five-product shop wrote and read nothing at all — confirming that
+below the 4,096-token minimum the marker is a free no-op, which is what
+justifies setting it unconditionally rather than measuring the prefix first.
+
+**Cost is lower than estimated: about $0.0013 a reply**, roughly $2.50 per
+seller per month at 1,900 replies, against $7 estimated. The estimate assumed a
+10,000-token prompt; a real small shop's is closer to 1,100. The $7 figure
+still stands for a shop with a few hundred products.
+
+**The end-to-end run escalated rather than delivering**, because Meta refused
+the send with `window_closed`. That is the designed failure path working in
+production — the conversation went back to the seller and no message row was
+written for something the customer never received. Meta's 24-hour window opens
+on a real message from the customer; a synthetic signed delivery does not open
+it, so a genuine reply to a genuine customer is still unproven.
+
+---
+
+### 2026-09-19 — The product serves Jordan, not Iraq
+
+Stated by the product owner partway through Phase Two, after a good deal had
+been written on the wrong assumption. Recorded rather than quietly corrected,
+because the assumption had reached the schema.
+
+Three things changed, and two of them were defects rather than wording:
+
+- **Prices carry three decimal places.** The Jordanian dinar divides into 1000
+  fils, so 12.750 is an ordinary price. `numeric(12,2)` would have rounded it
+  to 12.75 — the application quietly changing a number the seller typed, and
+  the kind of thing nobody notices until a customer is quoted wrong.
+- **Price parsing broke on the currency itself.** "د.ا" — the dinar — contains
+  a dot. The parser stripped everything that was not a digit or a dot, which
+  left "30.750." and parsed as nothing at all, so a price written the ordinary
+  way came out empty. It now takes the first number in the cell instead.
+- **The dialect named in the prompt.** Jordanian and wider Levantine — "قديش
+  سعرها", "بتوصلوا عمان؟" — not Iraqi. Naming the wrong one would have been
+  worse than naming none, since the whole point is not sounding generic.
+
+The default currency is `د.ا`, and it is stored rather than assumed: dollars
+circulate too, and the wrong unit is as bad as the wrong number.
+
+---
+
+### 2026-09-19 — The shop's own facts, beside its catalog
+
+Asked for by the product owner: name and price "won't cut it", and delivery
+fees, currency and locations "must be accounted for".
+
+A catalog answers "how much is the red dress". It cannot answer "how much is
+delivery to Irbid", "do you deliver to Aqaba", "are you open now" or "where are
+you" — and those are asked as often as anything about a product. Without them
+the assistant hands back most of an ordinary conversation, which reads as
+broken rather than careful.
+
+**Delivery is a list of zones plus a note**, not one or the other. The list
+gives "how much to Irbid" an exact answer instead of an interpretation of
+prose, and keeps the invented-number guard meaningful. The note holds the rules
+a list cannot — free over 50 dinars, same day inside Amman.
+
+**A zone with no fee is not free.** It means the shop covers that place but the
+price depends, which is a truthful answer. Requiring a number would make the
+seller invent one and the assistant repeat it.
+
+**Locations, hours and "anything else" are free text.** Real hours are "السبت
+إلى الخميس ١٠ص-٨م، الجمعة مغلق", and a structured editor for that is a lot of
+screen for something the model reads as a sentence anyway. The same goes for a
+shop with two branches. The catch-all field is deliberately open — no shop is
+the same shape as the next, and a field per fact is a form nobody finishes. It
+is also the escape hatch when the assistant keeps getting something wrong.
+
+**A product gained nothing but a better-labelled details box.** A code, a sale
+price and a category were all offered and all declined. The existing
+description field is the flexible one; it just needed to say that the assistant
+reads it.
+
+**`ai_settings` was folded into `shop`.** Both were one row per workspace, and
+two settings tables means two queries, two policies and a standing question
+about which one a new setting belongs in. Done while the only data in it was a
+single test row.
+
+**One function renders what the model is told and what the guard searches.**
+`renderFacts` produces a single string used for both. If those two came from
+different code, a delivery fee the model was given could be refused on the way
+out as a number it made up — the assistant escalating its own correct answer.
+
+---
+
+### 2026-09-19 — The grounding check compares numbers, not digits
+
+*Replaces the digit-substring approach recorded the same day.*
+
+It compared the digits a number was written with, which broke the moment fils
+arrived: the seller types 25.500, the catalog stores 25.5, the model answers
+"25.500", and the check rejected it. The assistant would have escalated its own
+correct answer.
+
+It now parses both sides into numbers. A comma is a thousands separator and a
+dot a decimal point — 1,250 is one thousand two hundred and fifty, 1.250 is one
+and a quarter dinars.
+
+**The floor is gone, too.** Small numbers used to be exempt as "probably a
+quantity". Delivery in Jordan costs 2 or 3 dinars, so that exempted exactly the
+figures most worth guarding. Every number is checked now, and a reply
+mentioning a number nobody wrote down is escalated rather than sent. Escalating
+is the safe failure: the seller answers it.
+
+---
+
+### 2026-09-19 — Settings save one field at a time
+
+The shop screen writes only the field that changed, rather than the whole row.
+
+Found by running it: two edits in quick succession and the second silently
+undid the first. Each save sent a complete row built from whatever the screen
+had last loaded, so the second carried a stale copy of the first.
+
+Sending only what changed removes the race, and makes clearing a field
+possible — an absent value and a value set to nothing look identical when the
+whole object is copied and replaced.
+
+---
+
+### 2026-09-19 — Products are their own screen, reached from a side menu
+
+Decided by the product owner: "a standalone page where the seller views and
+controls his products", reached through "something like a side menu".
+
+**The screen.** `products_page.dart`, its own route with add, edit and delete,
+following the shape `accounts_page.dart` already set: the `Future` is the
+state, a per-row busy id rather than a screen-wide flag, and a refresh by
+reassigning the future. The assistant's own switch sits at the top of it,
+because the two are one decision — an assistant with no catalog has nothing to
+say, and a catalog with the assistant off is a list nobody reads. The switch is
+disabled until a product exists, and says why.
+
+**The menu replaces a row of unlabelled icons.** The inbox header had grown to
+three: products, accounts, sign out. Three icons a seller has to hover to
+identify is three guesses a day. The drawer names them.
+
+**A drawer rather than a permanent rail.** A rail costs horizontal space on
+every screen, and this product already spends that on three panes above
+1180px. The menu is opened perhaps a few times a day — the seller lives in the
+inbox — so it does not earn permanent space.
+
+**The menu lives on the inbox only.** Products and Accounts are pushed routes
+and carry a back arrow. One way in, one way out. A drawer on every screen as
+well as a back arrow would be two ways to leave and a question about where you
+are.
+
+Flutter resolves a drawer against the locale, so it opens from the right in
+Arabic and the left in English with no code to say so. Verified in a browser in
+both.
+
+---
+
+### 2026-09-19 — A catalog is pasted, not uploaded
+
+The plan said a downloadable template the seller fills in and uploads. It is a
+paste box instead, and the parser accepts tabs as well as commas.
+
+**Why.** Copying cells out of Excel or Google Sheets puts **tab-separated**
+text on the clipboard. So if the parser reads tabs, a seller selects their rows,
+copies, and pastes — no file to save, no format to choose, no upload control,
+and nothing to explain. Reading only commas would have turned each pasted row
+into one long product name with the price buried in it.
+
+**What it avoids.** File upload on Flutter web needs either a new dependency or
+`package:web` with `dart:js_interop`. The second is worse than it looks: those
+imports are web-only, and `lib/` is imported by the VM test suite, so the
+parsing would have had to move behind conditional imports to stay testable. The
+paste box needs none of it, and the parsing stays pure functions with tests.
+
+A blank template is still offered, copied to the clipboard rather than
+downloaded, so a seller who wants the column names can paste them into Excel.
+It carries a **UTF-8 byte order mark** — without it Excel reads the file in the
+system codepage and every Arabic product name arrives as mojibake.
+
+Add real file upload if sellers ask for it. Nobody has.
+
+---
+
+### 2026-09-19 — An assistant message is teal, and says so
+
+Decided by the product owner: automatic replies get their own colour rather
+than the quieter label that was proposed.
+
+**Why a colour at all.** The seller is accountable for everything that leaves
+their inbox. The one thing they must never have to work out is which messages
+they wrote themselves, and in the first months — when they are deciding whether
+to trust this — that check is the whole safety net.
+
+**Teal, `#0B7A6E` light and `#58D5C9` dark.** The palette is deliberately tight
+and three of its colours were already spoken for: `accent` is the seller's own
+words and nothing else, `urgent` is a closing reply window and nothing else,
+and both platform colours appear on the same row. Teal is the furthest readable
+hue from the violet that none of those had claimed.
+
+Measured rather than assumed: message text on it is **5.22:1** in light and
+**9.96:1** in dark, both past the 4.5:1 needed for normal text. Verified again
+in a browser by reading the rendered pixels — the bubble is `#0b7a6e` against
+the seller's `#6010c0` and the customer's `#ffffff`.
+
+**Colour is not the only signal, and this part was not optional.** The two
+bubble fills differ by only **1.72:1** in luminance, so they are told apart by
+hue alone. A seller who cannot separate violet from teal would have nothing
+left to go on, which is the one accessibility rule worth spending a line of
+interface on. Every assistant message also carries a short word — "رد تلقائي" /
+"Automatic reply" — above its text.
+
+**`origin` is read together with `direction`.** The column carries a value on
+inbound rows where it means nothing, so reading it alone would paint a
+customer's own messages as machine-written.
+
+---
+
+### 2026-09-19 — Where the AI code lives, and what it reuses
+
+**One file, `meta-webhook/ai.ts`**, mirroring `profile.ts`: pure functions plus
+`fetcher: typeof fetch = fetch` injected so it is testable with no network. One
+caller means one file. A `_shared/ai.ts` plus `_shared/claude.ts` pair was
+proposed and cut — two shared modules for one consumer.
+
+The orchestration — `autoReply` — lives in `process.ts` beside
+`refreshCustomerProfile`, for the same reason the profile split works that way:
+the pure decisions sit in their own file, and the part that needs a `Store`
+sits with the other code that needs one.
+
+**The Edge Functions are typechecked with `deno check`, added 19 September.**
+
+They were not, until this was written. `node --test` uses native type
+stripping, which removes types without checking them, so a `Store`
+implementation missing a method compiled to nothing and failed only when the
+line ran — which is exactly what happened: five methods were added to `Store`,
+the fake store did not implement them, and all 193 tests stayed green.
+
+`npm test` now runs `npm run typecheck` first. It takes about a third of a
+second warm, so there is no reason to skip it. Two things were needed to make
+it work:
+
+- `@types/node` as a dev dependency, for the `node:test` and `node:assert`
+  imports in the test files.
+- `supabase/deno.json` with `"nodeModulesDir": "auto"`, without which Deno
+  cannot resolve supabase-js's own npm dependencies and the entrypoints cannot
+  be checked at all.
+
+It found two real problems in code written before Phase Two. Both were
+type-only fixes with no change in behaviour:
+
+- `send-message/index.ts` read six fields off a row that supabase-js had
+  widened to a union it could not see through, because the select uses an
+  embedded join and there are no generated schema types. The row is now named
+  explicitly at the query.
+- `meta-oauth/index.ts` passed a possibly-undefined Page name where null was
+  expected. Meta does return Pages without names, and undefined would have
+  silently dropped the field from the write rather than storing null.
+
+Generating schema types (`supabase gen types`) would remove the need for the
+first cast, and is worth doing once the CLI is set up here.
+
+**The `send.ts` helpers are imported across function directories, not moved.**
+`checkText`, `checkWindow`, `sendRequest`, `readSendResult` and `refusalFor`
+are already pure and already tested. `send-message/index.ts` already imports
+`../_shared/origins.ts` and ships today, which proves the CLI bundles the
+entrypoint's whole module graph — `_shared` is a deploy-slug convention, not a
+bundler rule. The cost is deploy coupling: change `send.ts` and redeploy both
+functions.
+
+**The request shape**, recorded because two of these are easy to get wrong:
+
+- `model: "claude-haiku-4-5"`, `max_tokens: 300`.
+- **No `thinking` and no `output_config.effort`.** Haiku 4.5 rejects `effort`
+  outright and takes `budget_tokens` rather than adaptive thinking. We use
+  neither.
+- Structured output via `output_config.format`, returning
+  `{action: "reply" | "escalate", text?, reason?}`. The JSON arrives as the
+  first `text` block — parse it, never string-match it.
+
+**The seller's own past replies are the voice.** A stable slice of their last
+~40 outbound messages goes into the prompt as style exemplars. The slice must
+be refreshed on a slow cadence, not per reply — otherwise the prefix changes
+every time the seller types and the cache never hits.
+
+This exists to solve a specific problem: customers write Jordanian and wider
+Levantine dialect, frequently in Latin letters ("2adesh el si3r", "fi bl azra2?"). A
+model answering in Modern Standard Arabic reads *more* robotic than a bot. If
+live testing shows plain instructions carry the dialect well enough, drop the
+exemplars — they are the largest single part of the prefix.
+
+---
+
+### 2026-09-20 — The assistant sells. It was an answering machine.
+
+Asked for by the product owner, in their words: it "can only handle very
+specific cases, and it expects the customer to know exactly what he wants".
+What they wanted instead was "the guy that could tour you around the shop, give
+you details when you ask, upsell, give options and reason with the customer to
+get him to buy" — and, added straight after, **"but not too pushy"**.
+
+The model was not the problem. Four things in our own code were.
+
+**1. Silence was the default outcome.** Every one of the six exits in
+`autoReply` ended by marking the conversation escalated and sending the customer
+nothing. Six ways to go quiet, one way to speak, in a feature whose stated
+purpose is that no inquiry goes unanswered. From the customer's side an
+assistant that hands over is indistinguishable from one that has died.
+
+**2. It died at the third reply.** `MAX_CONSECUTIVE_AI` was 3. The seven-turn
+transcript recorded on 19 September as proof it could hold a conversation was
+fed in by hand and never passed through `guard`; in production that thread
+stopped after "قديش الفستان الأحمر؟" — the point the customer was closest to
+buying. It is now 8, and reaching it sends a line rather than vanishing.
+
+**3. The prompt had no vendor in it.** Ten prohibitions and no instruction to
+sell. Nothing told it to offer the nearest thing when the answer was no, to name
+two options for a customer who was vague, or to say what *was* in stock. It was
+written to prevent a bad reply rather than to produce a good one, so it waited
+to be asked an exact question. "One or two sentences, never a list" then
+forbade the one format an alternative needs.
+
+**4. `reserved` was the default, and it was written as "stop".** *"Keep talking
+as long as you are sure, and stop the moment you would have to invent
+something."*
+
+**What replaces it.** One decision shape with two independent fields — `text`,
+always sent, and `handOver`, which tells the seller to take over. They used to
+be alternatives, so a customer who asked one answerable thing and one
+unanswerable one received nothing at all. Now they get the answer and the seller
+gets the rest. `text` has no exception: **there is no shape the model can return
+that leaves the customer in silence.**
+
+The instructions are a brief rather than a rulebook — show them around, never
+stop at no, name what is in stock when the asked-for thing is not, point at the
+cheaper thing when it is over their budget, ask the one question that moves this
+forward. Then a section that exists because of the product owner's second
+sentence: **DO NOT PUSH.** No invented urgency, no asking twice, a second item
+mentioned once and dropped if they do not pick it up.
+
+**Handing over is a last resort and is never silent.** The guards that speak are
+`ai_streak` and `ceiling`, and only at the exact moment the limit is crossed —
+the hand-over line is itself an AI reply, so it pushes the count one past the
+limit and the next message finds the equality false. Said once, no new state.
+`conversations.ai_state` was the obvious flag and is the wrong one: nothing
+clears it, so a conversation escalated once would never hear the line again.
+`window_closed` and `no_window` stay silent because Meta would refuse the send;
+`seller_present` stays silent because the seller is about to answer in person.
+
+**`assistant_caution` is deleted.** Both settings were limits on what the
+assistant could say, and both produced this complaint. There is nothing left for
+the setting to choose between. A control over behaviour nobody has tuned is a
+control nobody can set well; it comes back when there is a real difference for
+it to name.
+
+**A photo on its own is no longer refused.** `last_message_type` is not read any
+more, and attachment-only rows are no longer filtered out of the conversation.
+They reach the model as `[the customer sent a photo]`, which it answers by
+saying it cannot see it and asking what it is. On Instagram, a screenshot of a
+story with no words is a normal way to open a sale, and it used to get silence.
+
+---
+
+### 2026-09-20 — What the rewrite got wrong, measured against the real API
+
+`supabase/scripts/live-ai.ts` runs nine scripted Jordanian conversations through
+the real model and prints the transcripts. It is not part of `npm test` — it
+costs money and needs a key. It exists because "does this read like a person" is
+the one requirement no assertion can check, and it found five defects that 260
+passing unit tests went straight past. Each now has a test of its own.
+
+**A large Arabic catalog beats any language instruction.** An English customer —
+"do you deliver to Amman? and what do you have for around 15?" — was answered in
+Arabic on two runs of three, *with the shop's Arabic examples already withheld*.
+Isolated: a five-product shop answers in English every time, the same shop with
+a full Arabic catalog, hours, address and notes does not. Putting the rule first
+did not help; repeating it at the end did not help.
+
+So the model is no longer asked to work the language out. `readsAsArabic`
+already decides it, for the examples; the same answer is now **stated as a
+fact** in a block after the cache breakpoint. Three of three in English.
+
+The general lesson extends the one from 19 September. That one was *a few
+examples outweigh a great deal of instruction*. This one is broader: **anything
+you can decide deterministically, decide deterministically and tell the model.**
+Instruction wording is the weakest lever in the file.
+
+**The instructions must not quote a reply in Arabic.** The first draft showed a
+model greeting — "مرحبا" answered with "أهلين! شو بتدوري عليه؟" — and that alone
+put the English failure back. Arabic naming what a *customer* writes is fine,
+and the dialect rule needs it. Arabic showing what the *shop* writes is not.
+There is a test that scans the instructions for exactly this.
+
+**It switched numeral systems mid-conversation.** "32 دينار" in one reply and
+"٣٢ دينار" in the next. The interface is Western numerals everywhere and so is
+the seller's own list. Now an explicit rule.
+
+**It switched gender mid-sentence.** "شو بتدوري عليه" then "قول لي وبساعدك".
+Nothing reads more plainly as nobody being there.
+
+**It invented a policy, which the grounding check cannot catch.** Asked to come
+down on price it answered "السعر ثابت" — the shop's policy, stated as fact,
+written down nowhere. The grounding check only sees digits, and that sentence
+has none. Haggling is now named in the instructions as the clearest hand-over
+there is, with the invented sentence quoted back. It now hands over *and*
+answers: "صاحب المحل بيقدر يرد عليك أحسن مني على الموضوع".
+
+**Our own placeholder decided the language.** `[the customer sent a photo]` is
+English, written by us, so an Arabic customer who sent only a photo was answered
+in English. Attachment markers are skipped when choosing the language, and a
+customer who has written no words at all defaults to Arabic.
+
+**What is left, and is Haiku's rather than ours.** The prose wobbles
+occasionally — "بتنال ايدك أيهما أكتر؟" is not a sentence. It is the strongest
+argument yet for measuring Sonnet 5 against this prompt, which doubles the cost
+per the 19 September model.
+
+**Also unresolved: the voice examples leak facts.** The shop's own past replies
+are given "for TONE ONLY", and it copied a delivery time out of one — "بيوصلك
+خلال يومين", a promise nobody authorised. Words, not digits, so the grounding
+check missed it. Not fixed here.
+
+---
+
+### 2026-09-20 — Sonnet 5, because it costs 8% more and not 100%
+
+Asked for by the product owner: to stand next to ManyChat and the rest, "we
+need something smarter". Measured rather than argued — nine scripted
+conversations, fifteen replies, three variants, same prompt and same shop.
+
+| | per reply | per seller per month (1,900 replies) | cached |
+|---|---|---|---|
+| Haiku 4.5 | $0.00339 | **$6.44** | nothing — 43,671 uncached input tokens |
+| Sonnet 5, thinking off | $0.00365 | **$6.94** | 44,512 read, 6,654 written |
+| Sonnet 5, adaptive thinking | $0.00381 | $7.23 | same |
+
+**The sticker price says 2×. The bill says 8%.** Sonnet 5 is $2/$10 per MTok
+against Haiku's $1/$5, and it still lands within a rounding error, because of
+one number nobody had looked up: **the minimum cacheable prefix is 1,024 tokens
+on Sonnet 5 and 4,096 on Haiku 4.5.** A real shop's prompt lands between the
+two. Haiku cached *nothing at all* across fifteen replies — every request paid
+full input price — while Sonnet read 44,512 tokens back at a tenth of base.
+
+The 19 September entry recorded that a small shop "simply does not benefit"
+from caching below the minimum, and treated that as free. It is free in the
+sense that the marker costs nothing. It was not free in the sense that
+mattered: it meant the cheaper model was the one paying full price on every
+token, which is why the two models converge.
+
+**This reverses for a large catalog.** Once the prefix clears 4,096 tokens
+Haiku caches too and the gap goes back towards 2×. The 19 September measurement
+of a 220-product shop was 12,930 tokens, so a shop that size on Sonnet is
+roughly $14/month rather than $7. Re-run `npm run live` when such a seller
+exists; `HAIKU` is kept in `ai.ts` for exactly that.
+
+**Thinking is switched off explicitly, and that line is the whole migration.**
+Haiku 4.5 rejects `output_config.effort`, takes `budget_tokens` rather than
+adaptive thinking, and does no thinking unless asked — so omitting the field
+was correct. Sonnet 5 defaults the other way: **omitting `thinking` runs
+adaptive thinking.** Changing the model string alone would have quietly started
+paying to reason about "قديش سعر الفستان؟". Adaptive was measured anyway: 4%
+dearer, and the replies were not better. Every fact is already in the prompt and
+the answer is two sentences.
+
+**What the money actually buys.** Sonnet gives a reason where Haiku gives a
+list. Asked "شو بتنصحني؟" for a gift:
+
+    Haiku   → الفستان الأحمر إذا أمك بتحب تطلع... أما إذا بتفضل حاجة يومية...
+              واللي بتحب تلبس شال...  (three options, no recommendation)
+
+    Sonnet  → أنا بميل للشال، لأنه شي بتلبسه كل يوم وبيدفّي بهالجو، وألوانه
+              بتناسب أي ذوق.  (a recommendation, and why)
+
+That is the difference the product owner asked for, and it is not a difference
+any amount of prompt work was going to produce on the smaller model.
+
+**Sonnet found a defect the prompt had missed, now fixed.** It offered
+"وعم يلاقوا إقبال كبير" — other people are buying this. Nobody told it that;
+manufactured popularity is pressure dressed as a fact, and it has no digits so
+the grounding check cannot see it. Named explicitly in DO NOT PUSH.
+
+**Open, and the product owner's call: emoji.** Sonnet closed a browsing
+conversation with "أي استفسار انا هون 🌸". No rule covers it. The no-pet-names
+rule was about familiarity, not warmth, and a Jordanian shop on Instagram uses
+emoji freely — but the seller's own example replies have none.
+
+---
+
+### 2026-09-20 — A promise with no digits in it is still a promise
+
+Asked for by the product owner alongside the move to Sonnet 5: "enforce not
+generating answers not based on facts". **Enforce**, not instruct — which is
+the right word, because instructing had already been tried and had already
+failed three times.
+
+`numbersAreGrounded` sees digits and nothing else. Every leak found against the
+real API had none:
+
+- "السعر ثابت" — a price policy nobody wrote down.
+- "عم يلاقوا إقبال كبير" — manufactured popularity.
+- "بيوصلك خلال يومين" — a delivery time lifted out of the seller's own past
+  reply, which is shown to the model for tone and is not a source of facts.
+
+All three were already forbidden in the instructions when the model wrote them.
+
+**So the watched-word check.** The same rule the numbers get, applied to a
+small list of words a reply only reaches for when it is promising something: a
+price policy, scarcity, a discount, a guarantee, a delivery time. A watched
+word may appear in a reply only if it appears in what the shop wrote down or in
+what the customer said — searching the same two haystacks as the number check,
+so there is one idea here rather than two.
+
+That second haystack is what keeps it usable. A shop whose delivery note says
+"بنوصل بكرا" may promise tomorrow; a customer who asks "في خصم؟" may be answered
+about a discount. Only an *invented* one is held.
+
+**It is a word list, not a fact-checker, and the code says so.** A fabricated
+sentence using none of those words still goes through. The upgrade path is a
+second model call to check the first, which doubles cost and latency and is
+itself fallible — worth doing only if measurement shows leaks that matter. A
+failure here is safe in the way the rest of this is: the conversation goes to
+the seller and the customer gets the hand-over line, not silence.
+
+**Measured: nine conversations, fifteen replies, zero held back.** No false
+positives, which was the real risk — a check that gags good replies would undo
+the work of the rewrite.
+
+---
+
+### 2026-09-20 — Emoji: yes, rarely, and decided in code rather than asked for
+
+The product owner's call: "Its ok to use emojis as long as they are the safe
+ones but keep it to a minimum like when closing a chat."
+
+**Safe** is a short allow-list — 🌸 🙏 ✨ 🙂 👋. No hearts and no faces beyond a
+plain smile: those sit in the same family as the pet names ruled out on
+19 September. Warmth is fine, familiarity is not, and 😍 from a shop to a
+customer is familiarity.
+
+**Minimum** was asked of the model first, and the model did not deliver it.
+Told to save them for a closing, Sonnet 5 put one on a price quote, on a
+question back, and on a product list — most replies in the run.
+
+So it is decided in `tidyEmoji`, by the same reasoning that settled the
+language: **what can be decided deterministically should be.** At most one, at
+the end, and only on a reply containing no digit and no question mark. A digit
+or a question mark stands in for "this reply is doing work" — a price, a fee, a
+size, or a question the shop is still waiting on an answer to. A closing has
+neither.
+
+It is a proxy and it is named as one in the code. It will occasionally strip an
+emoji from a warm reply that happens to contain a number; that failure is
+invisible, and the opposite one is a shop that punctuates its prices with
+smileys.
+
+**Emoji are stripped, not escalated — the one place a finished reply is
+edited.** The 19 September decision rejected filtering replies because cutting
+a word out of a written sentence reads worse than the problem it solves. An
+emoji is not a word: removing it changes nothing the customer needed to read.
+An invented fact still hands the conversation over, because there is no way to
+remove it without changing what the sentence says.
+
+**After: three of fifteen replies carry one, all of them closings** — "تمام،
+خذي وقتك وارجعيلي متى ما حبيتي 🌸", and the hand-over line on a haggling
+customer.
+
+---
+
+### 2026-09-20 — Read what kind of message it is before answering it
+
+From a real thread, shown as a screenshot. The customer wrote "يغطيك العافية" —
+a pleasantry, nothing asked — and got back **"نعم، عندنا فستان أحمر. إي مقاس
+بدّك؟"**. The product owner's words: "That's not friendly like at all and its so
+context unaware, like I still haven't said anything and its recommending stuff,
+let the customer talk be intelligent."
+
+**Reproduced first, and the reproduction is the useful part.** Run against the
+current code, that same message comes back "الله يعافيك 🙏" — no red dress. The
+screenshot is the **deployed** function, which is still running the code from
+before the 20 September rewrite. Nothing from that day has been deployed.
+
+So the reported failure was already fixed. The complaint underneath it was not,
+and it was mine:
+
+**"A greeting gets a greeting and a way in... name the KINDS of thing you
+sell."** That line was my own addition earlier the same day, written against a
+"dead end" worry the product owner never raised. It did exactly what it said:
+asked "كيفك؟" — how are you — the assistant replied "أهلاً فيكي، تمام الحمدلله
+🙂 عنا فساتين وشناط وشيلان حلوة، شو بتدوري عليه؟". A product list, at someone
+who had asked after its health.
+
+**What replaces it is a triage, before anything else in the prompt.**
+
+- A **pleasantry** is not an opening. "يعطيك العافية", "تسلم إيديك", "شكراً",
+  "كيفك؟" are ritual; the whole reply is the matching ritual back, and then it
+  stops. No product, no category, no price, not even a question.
+- A **greeting** is an opening and nothing more. Greet back, ask what they are
+  after. Do not list what the shop sells.
+- A **question or a want** is where all the selling behaviour starts. Only once
+  the customer has said something does the assistant suggest, compare or offer
+  an alternative.
+
+*Suggesting before they have told you anything is not helpfulness, it is a
+billboard in a conversation.*
+
+**"نعم" is named specifically.** The dialect rule had been in the prompt since
+19 September and the real reply still opened with Modern Standard Arabic. A
+general rule did not stop it; naming the word does — along with "هل", "ماذا",
+"لماذا", "أريد".
+
+**Measured after, on the same messages:** every pleasantry gets the ritual and
+nothing else — "الله يعافيك", "الله يسلمك", "العفو". "مرحبا" gets "أهلاً وسهلاً
+فيكِ، تفضلي شو بتدوّري عليه؟" with no catalog. And the selling behaviour it now
+gates is intact: "بدي هدية لأمي" still draws two options with a reason, an
+out-of-stock item still names an alternative, a low budget still gets the
+cheaper thing.
+
+**The ritual replies then leaked the other way**, which is worth recording
+because it is the same mistake in reverse: given the formulas, the assistant
+opened an ordinary gift enquiry with "تسلم إيدك" — thanking a customer who had
+thanked nobody. The rule now says those replies are only for when the matching
+phrase was said to you.
+
+**A test was narrowed, deliberately.** "The instructions quote no Arabic reply
+the model could copy" existed because Arabic model replies used to drag an
+English customer into Arabic. The pleasantry rules cannot be written any other
+way — there is no English gloss that teaches "يعطيك العافية" → "الله يعافيك".
+It is safe now because the root cause was fixed properly on the same day: the
+customer's language is decided by `readsAsArabic` and stated to the model as a
+fact. Re-measured against the large all-Arabic shop that used to break it —
+"hi", "thanks a lot!" and "do you deliver to Amman?" came back in English six
+times out of six. What stays forbidden is the risky class: an Arabic sentence
+that offers stock or quotes a price.
+
+**Two things measured in passing.**
+
+- **The claim check earned its place on live output.** Asked to come down on
+  price, the assistant wrote "السعر عنا ثابت حسب ما بعرف" — an invented price
+  policy, no digits in it — and the watched-word guard held the reply and
+  handed over. That is the guard catching a real case, not a synthetic one.
+- **Steady-state cost is about half the earlier figure.** A run against a warm
+  cache came in at **$0.00193 a reply, ~$3.67 per seller per month**, against
+  the ~$7 measured when every run paid a cold cache write. The $7 figures were
+  worst-case, not typical.
+
+---
+
+### 2026-09-20 — The assistant reads the price out. It does not discuss it.
+
+Decided by the product owner: "I don't want the agent to discuss prices, it
+simply lists the prices it sees... any price discussion should be dealt with
+gently. Not outright refusal."
+
+Both halves matter, and before this the assistant was failing the second one
+twice over. Asked to come down on price it either invented a policy — "السعر
+ثابت", which the watched-word check then held, leaving the customer with a bare
+hand-over line — or it handed over with nothing useful said. From the
+customer's side both read as a door closing.
+
+**The rule now has its own section in the prompt, because a bullet was not
+enough.** The number in the shop's facts is the price and the only thing the
+assistant knows about cost: no discount list, no offer, no margin, and nothing
+written down about whether this shop bargains at all. So:
+
+- Say the listed price again, warmly, as information and not as a verdict.
+- Say someone will come back to them about the price, and hand over. That
+  decision belongs to the shop.
+- **Never** say the price is fixed, final, or the best available, and never say
+  there is no discount — nobody said any of that, and stating it as the shop's
+  position is inventing a policy.
+- **Never** offer a discount, a round-down or a better price. Not the
+  assistant's to give.
+
+*A customer asking for a better price is a customer who wants to buy.*
+
+**Measured on seven ways of asking** — "بتنزلي السعر شوي؟", "آخر سعر؟", "في
+خصم؟", "غالي شوي", "ما بتعملي حسم للزباين الدايمين؟", "لو أخدت كمان وحدة بتخففي
+السعر؟", "can you do 28?". All seven now give the listed number and a gentle
+hand-over. Nothing was held back by either guard, and nothing was refused. The
+best of them answered "مافي عندي معلومة عن خصم حالياً، السعر المكتوب 32 دينار" —
+which is the honest shape: it does not know, rather than there being none.
+
+**The assistant stopped naming the shop owner.** In one conversation it wrote
+"صاحب المحل" and then "صاحبة المحل" — it does not know who runs the shop or
+whether they are a man or a woman, and picking one is inventing a fact about a
+real person. It now says "رح نرجعلك", and `HANDOVER_LINE` was changed to match:
+"رح نرجعلك بأقرب وقت." / "We'll get back to you shortly."
+
+**The Arabic-quote guard caught our own new text**, which is the second time it
+has paid for itself. The price section was first written with a worked example
+— "سعر الشنطة عنا 32 دينار" — and the test refusing Arabic sentences that quote
+a price failed on it. Replaced with an English gloss. The guard is doing the
+job it was narrowed to do.
+
+**Recorded, not built: the sales and discounts section.** The product owner:
+"Later down the line, when we add the sales/discounts section we will make the
+agent read from it whatever suits the item the customer is talking about." When
+that exists it joins `renderFacts` beside the catalog and the delivery zones,
+and this section's first line changes from "the number in the shop's facts is
+the price" to "the number, and any discount written against that item". Nothing
+about that is built, and `CLAUDE.md` still rules out a catalog that grows into
+inventory management. It is written down here so the shape is known when
+somebody asks for it, not so it gets built early.
+
+---
+
+### 2026-09-20 — It is the shop. It does not defer, and it does not hedge.
+
+Three corrections from the product owner in one sitting, all of them about
+confidence rather than correctness.
+
+**1. No third party. "We are the shop owners of sorts."** The assistant had
+been deferring on every hand-over — "رح يرد عليك صاحب المحل" — and inventing
+that person's gender while it did: "صاحب المحل" in one reply and "صاحبة المحل"
+in the next, in one conversation. It now speaks as the shop in the first
+person, and the instructions say outright that there is nobody behind it. The
+`handOver` flag is described to the model as *"a flag on our side; the customer
+never hears about it"* — including in the JSON schema, which sits in the same
+context and is where the phrase "the shop owner" survived longest.
+`HANDOVER_LINE` became "رح نرجعلك بجواب بأقرب وقت." / "We'll get back to you
+with an answer shortly."
+
+Measured: a full nine-conversation run with no "صاحب", no "صاحبة", no "حدا من
+المحل", no owner and no manager anywhere in it.
+
+**2. No hedging. "Indecisive answers don't give the customer any
+confidence."** The replies it was producing were honest and weak — "مافي عندي
+معلومة عن خصم حالياً", "رح نرجعلك بجواب لو في إمكانية بالسعر". *A shop that
+sounds unsure about its own prices is a shop nobody buys from.* Everything in
+the shop's facts, it knows; it states it plainly. When it genuinely does not
+know, that is one plain commitment and then silence — never two, and never
+about something it has already answered.
+
+The specific failure was answering the price and then promising to go and check
+it: "سعر الشنطة 32 دينار. رح نرجعلك بجواب بخصوص السعر." The second sentence
+takes back the first. A price objection is now **moved forward** with something
+that is actually written down — a cheaper item, free delivery over the written
+amount, the sizes it comes in. That is what someone who runs a shop does with a
+price objection: hands the customer a way to say yes.
+
+**3. "Currently we don't have a sale on this item" — not "I don't have
+information about a discount".** The product owner's wording, and it overturns
+a rule written earlier the same day. It is not an invented policy, because a
+discount *would* be written in the shop's facts, so its absence there is the
+answer. Saying "I don't know" about something visible in front of you is a
+hedge dressed as honesty.
+
+That required the watched-word check to change: **a negation is not a
+promise.** "حالياً ما في خصم على هالقطعة" is stripped before the check runs, so
+ruling a sale out passes while claiming one still fails — including a sentence
+that does both: "ما في خصم عام بس بعطيكي خصم خاص" is caught.
+
+The distinction the prompt now draws, and it is a fine one worth keeping
+straight: *"السعر ثابت" is a policy you invented. "حالياً ما في خصم" is what the
+shop's own list says.*
+
+**4. An upsell may not be built on invented qualities.** The product owner:
+"trying to upsell shouldn't include any made up information." Measured — asked
+to recommend a handbag whose entire description is "جلد طبيعي بني", it called
+it "أنيق وثابت" and a gift that "تدوم". Elegant, hard-wearing and lasting are
+three claims nobody wrote down, and an upsell built on them is the same lie as
+an invented price. The reason to buy now comes out of the shop's own
+description or not at all, with an escape hatch so the rule does not just push
+the model towards a different adjective: **if there is nothing to praise, say
+what the thing is and stop.**
+
+**And it stopped reasoning in front of the customer.** "بس عندي تنورة...
+بصراحة ما في تنورات ثانية عنا" — it began offering a second skirt, found there
+wasn't one, and said so mid-sentence. Honest, and it reads as someone working
+it out while you watch. Check the list, then write one finished sentence.
+
+**The watched list became patterns rather than bare words**, because a bare
+word was too blunt: "ثابت" caught "شي أنيق وثابت" — hard-wearing, about a
+handbag — and withheld a good recommendation to send a bare hand-over line
+instead. The word only matters next to a price, so that is what the pattern
+says. The matched text itself is now what the seller sees as the reason, which
+reads better than a pattern would.
+
+**What is left, and is not fixable this way.** One adjective still slipped
+through the final run — "شي أغلى شوي وثابت أكتر", more durable, about the same
+bag. Invented qualities are not deterministically catchable without false
+positives that cost more than the leak does; the instruction reduces them and
+will not eliminate them. Recorded rather than papered over.
+
+**`unusable` is now logged.** It happened once in a live run and did not
+reproduce in three attempts on the same input — the worst kind of failure to
+have no record of, because the customer silently gets the fixed line instead of
+an answer. `ask` now returns a short snippet of what came back, and the webhook
+logs it. It is the shop's own outgoing text, never the customer's.
+
+---
+
+### 2026-09-20 — Deployed, and what the live shop showed that the harness could not
+
+Deployed as version 13, then 14 after the fix below. The verify handshake
+returns the challenge on the right token and 403 on a wrong one.
+
+**`supabase db push` was deliberately not run.** `20260920000001_assistant.sql`
+drops `shop.assistant_caution`, and a web build still running the old
+`data.dart` selects that column — the shop screen would break. Nothing in the
+assistant needs it. It goes after the client is rebuilt.
+
+**The CLI has no `functions logs`, so the evidence comes from the rows.** Two
+scripts were added, and both immediately earned it:
+
+- `npm run assistant` — every recent conversation's `ai_state`, its escalation
+  reason, and the messages with who wrote each.
+- `npm run catalog` — everything the assistant is allowed to know. The answer
+  to "did it make that up?": if a detail is not printed, it was invented.
+- `npm run replay` — replays a conversation against the **real** catalog and
+  the **real** voice examples, pulled from the database.
+
+**The red dress was not invented, and the reason matters.** The reported
+screenshot — "يغطيك العافية" answered with "نعم، عندنا فستان أحمر. إي مقاس
+بدّك؟" — turned out to have a cause the reproduction missed. The thread carried
+an unanswered question from the day before:
+
+    09-19 11:13  customer > شفت عندكم فستان      <- never answered
+    09-20 19:45  customer > يغطيك العافية
+
+The old instruction was "reply to the customer's newest messages — the ones
+since the shop last wrote", and both of those qualified. So it answered the
+older one, a day late, and ignored the newer one. The triage fixes the
+ordering. **What it does not fix, and is now open:** the triage answers the
+pleasantry and stops, which leaves that day-old question unanswered forever —
+in a feature whose stated goal is that no inquiry goes unanswered.
+
+**The seller's own thread is teaching the assistant its voice, out of test
+data.** `aiPrompt` takes the tone examples from outbound messages with origin
+'seller', and the six it is actually getting are:
+
+    نعم، الشحن مجاني داخل المدينة.
+    شكراً لتواصلك معنا.
+    تفضل، الشحن مجاني 2026
+    مرحبا، سعر iPhone 15 Pro هو 1200 دولار؟
+    ?????? ??? ????? ?????? ?? ????. Test reply 1200.
+    test 33
+
+Every one a synthetic test message. That "نعم" is where the screenshot's
+Modern Standard "نعم" came from — a prompt rule was written against the
+symptom, and the cause was that the shop appears to talk that way. The rule
+holds anyway: the same shop now answers "الله يعافيك". They should still be
+deleted.
+
+**A real catalog is one product, and the harness has eight.** Every "offer an
+alternative", "name what is in stock instead", "point at the cheaper thing"
+rule has nowhere to go in a one-product shop, and the scripted harness could
+never have shown that. `npm run replay` exists so the real shape can be tested.
+
+---
+
+### 2026-09-20 — The question you ask depends on how far along they are
+
+Reported from the live thread. Asked "بدور على هدية لعيد الام كيف ممكن تساعدني"
+— looking for a Mother's Day gift, how can you help — the assistant described
+the one dress it has and asked **"أي مقاس بدك؟"**, of a customer who had never
+said they wanted the dress.
+
+**The prompt was doing exactly as it was told.** The bullet read: *"Ask at most
+one question, and make it the one that moves this forward: which size, which
+colour, which of the two."* With one product "which of the two" is unavailable,
+so it took the next item on the list.
+
+A size question is a *closing* question. It assumes a decision, and to a
+customer who is still looking it reads as being hurried — which is the thing
+the product owner has now objected to three separate times.
+
+So the question is matched to the stage. Someone who has only said what they
+are looking for has not chosen anything: ask what helps them choose — who it is
+for, what they usually like, what they want to spend — or ask nothing and offer
+to say more. "أي مقاس بدك؟" belongs only after they show interest in one
+particular thing.
+
+Measured against the real one-product shop, replaying the real conversation:
+
+    ← بدور على هدية لعيد الام كيف ممكن تساعدني
+    → عنا فستان أحمر قطن، سعره 25.5 د.ا ومتوفر بمقاسات S وM وL.
+      بتحبي أخبرك أكتر عنه؟
+    ← تمام بدي اشتريه
+    → تمام! أي مقاس بدك، S ولا M ولا L؟
+
+The size question moved to where it belongs, on its own.
+
+**The other half of the report was a false alarm, and checking it was the
+point.** The assistant had said the dress was cotton. `npm run catalog` shows
+the description is literally "قطن، مقاسات S M L" — the fabric and the sizes are
+both the seller's own words. Nothing invented. That script exists so this
+question can be answered in seconds rather than argued about.
+
+---
+
+### 2026-09-20 — Arabic makes you choose a gender, so choose deliberately
+
+Raised by the product owner: Arabic marks the person you are addressing in
+nearly every verb and pronoun, so the assistant has to get it right, and
+"if the username is ambiguous stick to male wording and the customer would
+correct".
+
+**The signal was in the database and was never sent.** `conversations.
+customer_name` is filled by `refreshCustomerProfile` from Meta's profile API,
+and `aiPrompt` never passed it to the model. The strongest available signal for
+how to address someone was sitting one table away while the model guessed. It
+is now read in `aiContext` — the conversation row is already being fetched, so
+it costs no extra query — and sent after the cache breakpoint with the clock
+and the language, because it changes with every conversation and inside the
+prefix it would write a cache entry per customer and read none.
+
+**The order of evidence, and it matters:**
+
+1. What the customer says about themselves. "أنا مبسوطة" settles it.
+2. Their name, when Meta gave us one.
+3. Otherwise the **masculine** — the ordinary Arabic default for someone you
+   have not met, and a customer it does not fit will say so.
+
+Their own words come first because a Meta profile name is often a business, a
+handle, or simply wrong.
+
+**Measured against the real one-product shop, four ways:**
+
+| name we hold | addressed as | used the name |
+|---|---|---|
+| Wael K. Saleh | masculine — فيك، بتحب، خذ وقتك | "وائل", greeting and closing |
+| سارة الخطيب | feminine — بتحبي، خدي وقتك | "سارة", greeting |
+| rabta_store_92 | masculine | no — correctly left out |
+| (none) | masculine | no |
+
+---
+
+### 2026-09-20 — It may use the customer's name, and judge where
+
+Also the product owner's: "If the agent is super sure it recognizes the name,
+and its clear like a jack, Ahmad whatever, it can use it in welcoming or ending
+messages" — then, a moment later, "or whenever/wherever it finds suitable".
+
+So **placement is the model's judgement, not a whitelist.** Greeting and
+closing are where it sits most naturally and the instructions say so, but it
+may use the name wherever it genuinely fits.
+
+**The real constraint is frequency, not position.** Never twice in one message,
+and not in every message. A name in every reply is worse than no name at all,
+and repeating it back while quoting somebody a price is a call centre rather
+than a shop.
+
+**Certainty is the other constraint.** Only a personal first name it actually
+recognises — not a business or brand name, not a handle like `ahmad_shop_92`,
+not initials, not a name it is unsure how to read. First name only: "Wael K.
+Saleh" is "وائل", never the surname and never the whole thing. If any part of
+that is in doubt, the name is left out — a warm reply without a name is
+perfectly good, and one that gets somebody's name wrong is not.
+
+That rule held under test: both the handle and the empty name produced replies
+with no name in them at all.
+
+**A brittle test was fixed on the way.** Two cache tests located the breakpoint
+by counting back from the end of the `system` array, so every volatile block
+added after it broke them — three times in one day. They now assert by content:
+everything after the breakpoint must be the clock, the language, or the name,
+and everything before it must be stable. A test that breaks on every ordinary
+change stops meaning anything.
+
+---
+
+### 2026-09-19 — `conversations_owner_update` is fine. ~~It is missing `with check`.~~
+
+**This entry was wrong when first written, and is corrected here rather than
+deleted.** It originally claimed that `conversations_owner_update` had a
+security gap, because it has a `using` clause and no `with check`, and that a
+seller could therefore move a conversation into another workspace. A migration
+was written to "fix" it.
+
+**There is no gap.** When `with check` is omitted, Postgres uses the `using`
+expression for both — which rows you may act on *and* which rows you may leave
+behind. The policy already refuses the move.
+
+This was settled by running it, not by reading the documentation: the test "a
+seller cannot move their own conversation into another workspace" in
+`tests/schema.test.ts` passes identically with the original policy and with the
+rewritten one. The rewrite was therefore dropped. Dropping and recreating a
+working policy on a live table is churn and a brief window of risk in exchange
+for no change in behaviour.
+
+**What is true, and is the reason the mistake was worth making:** `using` and
+`with check` are only interchangeable while they are the same expression. The
+moment a policy wants them to differ — a seller who may *read* a wider set than
+they may *write* — the implicit behaviour stops being what you want, silently.
+
+So the new `products` and `ai_settings` policies spell `with check` out even
+though it is redundant today. Not because it is required, but so that widening
+`using` later cannot quietly widen what may be written too.
+
+**The general lesson is about method, not about policies.** The claimed gap
+looked obviously right, was recorded as a finding, and was wrong. What caught
+it was writing the test first, breaking the thing on purpose, and noticing that
+the test passed anyway. A test that cannot fail proves nothing — see the
+Testing section of `CLAUDE.md`.
+
+---
+
 ## Platform constraints
 
 These are not choices. They are limits Meta imposes, recorded here so they are
@@ -740,6 +2060,15 @@ This is a user-facing problem, not a technical detail. If the seller opens an
 old conversation, types a reply and watches it fail, the application looks
 broken. The inbox must make the state of a conversation clear before the seller
 starts typing.
+
+**The human agent tag and the AI.** The 7-day extension exists for a *human*
+agent. Claiming it on a conversation the AI answered would be dishonest and a
+policy risk, so the default is that we do not. Recorded here rather than in the
+Phase Two decisions because it is a Meta constraint, not a choice of ours.
+
+Meta's disclosure requirements for automated experiences have **not** been
+checked. They are listed as an open question and must be verified against
+current policy before the AI speaks to a real customer — not assumed.
 
 ### Message history starts when the account is connected
 
@@ -809,3 +2138,74 @@ settled the cheaper they are.
 
 - **Attachment media: stored or proxied?** Depends partly on what Supabase
   storage costs at the volumes we expect. Also tracked in `WEBHOOKS.md`.
+
+### Phase Two
+
+- **Standing: every new place the seller writes something must be fed to the
+  assistant.** Asked for by the product owner on 20 September 2026 and written
+  into `CLAUDE.md` as a rule rather than left here as a question, because it
+  applies to work that has not been proposed yet. The assistant answers only
+  from what it is given, so a field the seller fills in and the assistant never
+  sees makes the product look broken. Four steps each time: add it to
+  `renderFacts` and the query behind it, say in the instructions what may be
+  done with it, check whether `claimsAreGrounded` needs to learn that some
+  previously forbidden words are now legitimate, and re-run `npm run replay`
+  against a real shop.
+
+- **Expand the products section.** Named by the product owner as the next thing
+  the catalog needs. It currently holds a name, a price, a free-text
+  description and an in-stock boolean, which is thin — a seller has more to say
+  about what they sell than fits on one line, and the assistant is limited to
+  exactly what is there. What it should grow into is not decided; `CLAUDE.md`
+  still rules out stock counts, variants, SKUs and images, so this is a
+  decision to take deliberately rather than by accretion.
+
+- **The sales and discounts section**, already promised. When it exists the
+  assistant reads whatever applies to the item being asked about, and the
+  blanket "حالياً ما في خصم على هالقطعة" stops being the default answer. The
+  negation exemption in `claimsAreGrounded` was built for exactly the world
+  where that sentence is true; it will need revisiting when it is not.
+
+- **A question asked before the shop last replied, and never answered.** Seen
+  live: "شفت عندكم فستان" sat unanswered from 19 September, and the pleasantry
+  sent on 20 September was answered with it instead. The triage now answers the
+  pleasantry and stops, which is right for the pleasantry and leaves the older
+  question unanswered for good. In a feature whose stated goal is that no
+  inquiry goes unanswered, that needs a decision.
+
+- **Clear the synthetic test messages out of the seller's own thread.** The
+  shop's voice examples are taken from its outbound messages, and all six it is
+  currently learning from are test data — "test 33", an iPhone 15 Pro priced in
+  dollars, a row of question marks. Not a code change; someone has to delete
+  them.
+
+- **What does Meta require us to disclose about automated replies?** Not
+  checked. Must be verified against current policy before the AI answers a real
+  customer, not assumed. This is the one open question that can block the
+  feature outright.
+
+- **How is an AI-sent message shown in the thread?** `theme.dart` reserves
+  `accent` for the seller's own words and nothing else, so an AI message cannot
+  use it. Proposed: the outbound bubble shape with a `muted` label. Needs a
+  decision before it is built — a seller who cannot tell at a glance what they
+  said and what the AI said has lost the thing that makes this safe.
+
+- ~~**Do the voice exemplars survive?**~~ **Answered 20 September 2026: they
+  survive, and they leak.** They still shape the voice, and they are still
+  withheld from a customer writing English. But "for TONE ONLY, do not copy the
+  content" does not hold: a delivery time was lifted out of a seller's own past
+  reply — "بيوصلك خلال يومين" — and sent to a customer as a promise. It has no
+  digits, so the grounding check cannot see it. **Open in its place: what stops
+  a fact leaking out of an exemplar?**
+
+- ~~**Should escalation cover an upset customer?**~~ **Closed 20 September
+  2026.** A complaint and an upset customer are both named in the hand-over
+  list. It costs nothing, and since the rewrite handing over no longer means
+  the customer hears silence — they are answered and the seller is told.
+
+- **Can Haiku 4.5 hold the dialect?** **Mostly, measured 20 September 2026.**
+  Nine scripted conversations came back in Jordanian dialect, in Arabic script,
+  with no pet names, and read like a shop rather than a bot. The prose wobbles:
+  "بتنال ايدك أيهما أكتر؟" is not a sentence. Whether that is worth doubling the
+  cost for Sonnet 5 is the open part, and it is now a judgement call on
+  transcripts rather than an unknown.

@@ -26,11 +26,20 @@ Product context is in `CLAUDE.md`. Settled decisions are in `DECISIONS.md`.
 **Not in scope**
 
 - WhatsApp. Deferred — see `DECISIONS.md`.
-- Push notifications. Phase One is a Windows desktop application and only needs
-  realtime updates while running. Push returns with mobile.
+- Push notifications. *Corrected 19 September 2026 — this said "Phase One is a
+  Windows desktop application", which stopped being true on 17 September when
+  the product became a website (`DECISIONS.md`).* The reasoning survives the
+  correction: the application only needs realtime updates while it is open, and
+  Realtime already delivers those. Phase Two adds a browser notification and a
+  title badge, but those are client work on an open tab, not this service's.
+  Real push — reaching a seller whose tab is closed — returns with mobile.
 - Any user interface.
 - Linking the same customer across platforms.
-- Automated or AI-generated replies.
+- ~~Automated or AI-generated replies.~~ **Changed 19 September 2026.** Phase
+  Two adds an AI that answers basic customer inquiries, and it runs inside this
+  service — in the existing post-200 background task, beside the customer
+  profile refresh. See `CLAUDE.md` for the product shape and `DECISIONS.md` for
+  how it is triggered and guarded. Not built yet.
 
 ---
 

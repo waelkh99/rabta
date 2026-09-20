@@ -87,6 +87,188 @@ class LAr extends L {
   String get replyingNotBuilt => 'إرسال الردود غير متاح بعد.';
 
   @override
+  String get menu => 'التنقّل';
+
+  @override
+  String get inbox => 'الرسائل';
+
+  @override
+  String get shop => 'المتجر';
+
+  @override
+  String get shopCurrency => 'العملة';
+
+  @override
+  String get shopCurrencyBody =>
+      'تُكتب كما تكتبها لزبونك، ويعيدها المساعد كما هي.';
+
+  @override
+  String get shopDelivery => 'التوصيل';
+
+  @override
+  String get shopDeliveryBody =>
+      'المناطق التي توصل إليها وأجرة كل منها. هذا ما يجيب به المساعد عن «قديش التوصيل».';
+
+  @override
+  String get shopDeliveryEmpty => 'لم تُضف أي منطقة بعد.';
+
+  @override
+  String get shopZoneAdd => 'أضف منطقة';
+
+  @override
+  String get shopZoneName => 'المنطقة';
+
+  @override
+  String get shopZoneFee => 'الأجرة';
+
+  @override
+  String get shopZoneFeeHint =>
+      'اتركها فارغة إذا كانت الأجرة تختلف. سيقول المساعد إنها تعتمد، ولن يخترع رقماً.';
+
+  @override
+  String get shopZoneNoFee => 'تعتمد';
+
+  @override
+  String get shopDeliveryNote => 'قواعد أخرى للتوصيل';
+
+  @override
+  String get shopDeliveryNoteHint =>
+      'مثل: مجاني فوق 50 ديناراً، أو التوصيل داخل عمّان بنفس اليوم.';
+
+  @override
+  String get shopLocations => 'مواقع المتجر';
+
+  @override
+  String get shopLocationsHint =>
+      'العنوان أو مكان الاستلام. اكتب كل فرع في سطر.';
+
+  @override
+  String get shopHours => 'أوقات الدوام';
+
+  @override
+  String get shopHoursHint =>
+      'مثل: السبت إلى الخميس من 10 صباحاً إلى 8 مساءً، الجمعة مغلق.';
+
+  @override
+  String get shopAbout => 'معلومات أخرى';
+
+  @override
+  String get shopAboutBody =>
+      'أي شيء آخر تريد أن يعرفه المساعد: طريقة الطلب، الدفع عند الاستلام، الإرجاع، أو أي تفصيل يخصك.';
+
+  @override
+  String get shopAboutHint =>
+      'يقرأه المساعد كما كتبته. هذا أيضاً مكانك لتصحيحه إذا ظل يخطئ في شيء.';
+
+  @override
+  String get products => 'المنتجات';
+
+  @override
+  String get productsBody =>
+      'ما تبيعه، ليعرف المساعد بماذا يجيب. الاسم والسعر يكفيان.';
+
+  @override
+  String get productsEmpty => 'لا توجد منتجات بعد.';
+
+  @override
+  String get productAdd => 'أضف منتجاً';
+
+  @override
+  String get productEdit => 'تعديل';
+
+  @override
+  String get productDelete => 'حذف';
+
+  @override
+  String get productSave => 'حفظ';
+
+  @override
+  String get productName => 'الاسم';
+
+  @override
+  String get productPrice => 'السعر';
+
+  @override
+  String get productDescription => 'الوصف';
+
+  @override
+  String get productInStock => 'متوفر';
+
+  @override
+  String get productOutOfStock => 'غير متوفر';
+
+  @override
+  String get productDeleteTitle => 'حذف هذا المنتج؟';
+
+  @override
+  String productDeleteBody(String name) {
+    return 'لن يذكره المساعد بعد الآن. $name';
+  }
+
+  @override
+  String get productDeleteConfirm => 'حذف';
+
+  @override
+  String get catalogSaveFailed => 'لم يُحفظ. حاول مرة أخرى.';
+
+  @override
+  String get catalogFailed => 'تعذّر فتح المنتجات';
+
+  @override
+  String get catalogFailedBody => 'تحقق من اتصالك ثم أعد المحاولة.';
+
+  @override
+  String get catalogPaste => 'لصق قائمة';
+
+  @override
+  String get catalogPasteBody =>
+      'انسخ الصفوف من ملف إكسل أو من جدول جوجل، ثم الصقها هنا. تُضاف إلى قائمتك ولا تستبدلها.';
+
+  @override
+  String get catalogPasteHint => 'الصق الصفوف هنا';
+
+  @override
+  String get catalogPasteAdd => 'إضافة';
+
+  @override
+  String get catalogPasteNothing => 'لم نجد أي منتج في ما لصقته.';
+
+  @override
+  String catalogPasteAdded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'أُضيف $count منتج',
+      many: 'أُضيف $count منتجاً',
+      few: 'أُضيفت $count منتجات',
+      two: 'أُضيف منتجان',
+      one: 'أُضيف منتج واحد',
+      zero: 'لم يُضف شيء',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get catalogTemplateCopy => 'انسخ نموذجاً فارغاً';
+
+  @override
+  String get catalogTemplateCopied => 'نُسخ النموذج. الصقه في إكسل.';
+
+  @override
+  String get assistantTitle => 'المساعد';
+
+  @override
+  String get assistantBody =>
+      'يرد على زبائنك من قائمتك، ويقترح عليهم ما قد يناسبهم، ويحوّل إليك كل ما لا يصح أن يجيب عنه بنفسه.';
+
+  @override
+  String get assistantNeedsCatalog =>
+      'أضف منتجاً أولاً. من دون قائمة لا يملك المساعد ما يجيب به.';
+
+  @override
+  String get sentAutomatically => 'رد تلقائي';
+
+  @override
   String get invite => 'دعوة';
 
   @override

@@ -71,7 +71,7 @@ Deno.serve(async (request: Request) => {
     global: { headers: { Authorization: authorization } },
   });
 
-  const { data: conversation } = await seller
+  const { data: row } = await seller
     .from("conversations")
     .select(
       "id, workspace_id, account_id, customer_external_id, window_expires_at, " +
@@ -80,12 +80,22 @@ Deno.serve(async (request: Request) => {
     .eq("id", conversationId)
     .maybeSingle();
 
+  // Named here because there are no generated schema types: with an embedded
+  // join supabase-js widens the row to a union it cannot see through, and
+  // every field read off it then fails to typecheck. Type-only — this shape is
+  // exactly what the select above asks for.
+  const conversation = row as unknown as {
+    id: string;
+    workspace_id: string;
+    account_id: string;
+    customer_external_id: string;
+    window_expires_at: string | null;
+    connected_accounts: { external_id: string; platform: string };
+  } | null;
+
   if (!conversation) return refuse("not_found", 404, cors);
 
-  const account = conversation.connected_accounts as unknown as {
-    external_id: string;
-    platform: string;
-  };
+  const account = conversation.connected_accounts;
 
   const wrongText = checkText(text, account.platform);
   if (wrongText) return refuse(wrongText, 400, cors);

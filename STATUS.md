@@ -1,10 +1,10 @@
 # Where we are
 
-Updated 18 September 2026.
+Updated 19 September 2026.
 
 What is built, what is live, and what comes next. `CLAUDE.md` holds the product
 direction, `DECISIONS.md` the settled decisions and why, `CHECKLIST.md` the
-Phase One progress, and `WEBHOOKS.md` the webhook service specification.
+progress, and `WEBHOOKS.md` the webhook service specification.
 
 **In one paragraph.** Phase One is functionally complete as a product: a seller
 signs in, connects their Meta accounts, reads their Instagram and Messenger
@@ -12,13 +12,17 @@ conversations in one inbox, and replies — with messages arriving live and
 customers named. What is left is mostly not code. The Meta app is still in
 development mode, so nobody outside its own roles can connect at all, and
 Instagram has never been verified against a real delivery. There is nowhere to
-host the site yet. Those are the critical path.
+host the site yet. Those are the critical path. **Phase Two — an AI that
+answers basic inquiries from the seller's catalog — was requested on
+19 September and is live on the test account: a real customer message has been
+answered and delivered. The screens that show the seller what it did are not
+built yet.**
 
 ---
 
 ## Live right now
 
-Supabase project `xejtffbpfguwvybrwqqj`. Four migrations applied, four Edge
+Supabase project `xejtffbpfguwvybrwqqj`. Six migrations applied, four Edge
 Functions deployed.
 
 | Function | What it does | Auth |
@@ -40,8 +44,9 @@ against both the **Page** and **Instagram** objects with the same verify token.
 `META_APP_SECRET` and `META_VERIFY_TOKEN` are set on the functions. Public
 sign-up is off: `/auth/v1/settings` reports `disable_signup: true`.
 
-**126 backend tests** (`cd supabase && npm test`, about six seconds, no Docker
-and no network) and **40 client tests** (`flutter test`). Each new piece of
+**234 backend tests** (`cd supabase && npm test`, which typechecks every Edge
+Function with `deno check` first; about ten seconds, no Docker and no network)
+and **87 client tests** (`flutter test`). Each new piece of
 logic is shown to fail when deliberately broken rather than assumed to be
 covered.
 
@@ -151,6 +156,10 @@ without setting anything up again.
 - `connected_accounts` for the Facebook Page `1427711713749572` ("Rabta App")
   and the Instagram account `17841401424316998` (`djangus_w`), both connected
   through `meta-oauth` and both active
+- one product (`فستان أحمر`), a `shop` row with the assistant **enabled** and
+  set to `reserved`, and two delivery zones (عمّان 2.500, العقبة with no fee),
+  added while testing those screens. Inert until an API key exists; live the
+  moment one does
 - one conversation with the customer `28847995138118550` ("Wael K. Saleh"), its
   messages, and the raw events behind them
 
@@ -236,6 +245,131 @@ Meta's documentation says the first. Nothing has confirmed it for this app.
 
 ---
 
+## Phase Two: the backend is live, the screens are not
+
+Requested by the product owner on 19 September 2026, after Phase One was
+functionally complete. An AI answers basic customer inquiries — price,
+availability, basic product facts — from the seller's own product catalog, and
+escalates everything else to the seller. The goal is that no customer inquiry
+goes unanswered.
+
+**Live now, and answering real customers.** The migrations are applied
+(`products`, `shop`, `delivery_zones`, `messages.origin`, the `conversations`
+AI columns) and `meta-webhook` is deployed at **version 15**. Both
+`ANTHROPIC_API_KEY` and `ANTHROPIC_WORKSPACE_ID` are set on the functions, so
+the assistant is on and has answered genuine messages.
+
+**The model is `claude-sonnet-5`**, with `thinking` sent as `disabled`
+explicitly — omitting it runs adaptive thinking on Sonnet, which a bare model
+swap would have started paying for silently. Measured at roughly **$4-7 per
+seller per month** at 1,900 replies, against Haiku 4.5's $6.44: the sticker
+price is 2x and the bill is not, because Sonnet caches a prefix from 1,024
+tokens and Haiku only from 4,096, so a real small shop's prompt cached nothing
+at all on Haiku.
+
+**The assistant was rewritten on 20 September**, after the product owner's
+verdict that it was "a robotic answering machine". It now sells rather than
+answering only exact questions, never goes silent, reads what kind of message
+it is before replying, states prices without negotiating or hedging, addresses
+the customer in the right Arabic gender, and may use their first name. Every
+step of that is in `DECISIONS.md` with what was measured against the live
+model, including what it got wrong on the way.
+
+**One migration is deliberately unpushed.** `20260920000001_assistant.sql`
+drops `shop.assistant_caution`; a web build still running the old `data.dart`
+selects that column and would break. It goes after the client is rebuilt.
+Nothing in the assistant needs it.
+
+Verified against the live project rather than inferred: an anonymous read of
+`products` returns `[]` and an anonymous insert naming a real workspace is
+refused with `42501`; a genuinely signed delivery returned 200, stored its
+Arabic byte for byte, incremented unread, processed with no error, and left the
+AI columns null.
+
+**Built and seen working in a browser:** the products screen and a separate
+shop screen — currency, delivery zones and rules, locations, hours and a
+catch-all field — both reached from a side menu that replaced three unlabelled
+header icons; the catalog paste import; and the teal treatment that tells an
+assistant message from the seller's own.
+
+**Not built:** marking an AI-answered conversation in the list, the browser
+notification and title badge, and the draft-on-open for escalated threads.
+
+**How to see what it did.** The Supabase CLI has no `functions logs`, and the
+rows are better evidence anyway. From `supabase/`: `npm run assistant` for what
+the assistant did and why, `npm run catalog` for everything it is allowed to
+know — the answer to "did it make that up?" — and `npm run replay` to replay a
+conversation against the real catalog and the real voice examples without
+sending anything to Meta. `npm run live` runs nine scripted Jordanian
+conversations against the real model and prices each reply; it costs money,
+which is why it is not part of `npm test`.
+
+**Two things want a human, not code.** The shop's voice examples are taken
+from its own outbound messages, and all six it is currently learning from are
+synthetic test data left in the seller's thread — they should be deleted. And
+a customer question from 19 September, "شفت عندكم فستان", is still unanswered
+in that thread; the triage added on the 20th answers the newest message and
+stops, so it will stay that way until somebody decides otherwise.
+
+**The test workspace now has the assistant switched on**, with one product in
+it, plus a shop with delivery zones and an address. Nothing happens while there is no API key — a
+missing key means the AI is off — but the moment one is set on the functions,
+that workspace will start answering messages sent to the test Page. That is
+what we want for the first real test; it is written down so it is not a
+surprise.
+
+`CLAUDE.md` describes the product shape, `DECISIONS.md` holds the settled
+decisions with their reasoning, and `CHECKLIST.md` sections 8–12 track it.
+
+The decisions most easily lost, repeated here because they cost money or
+correctness:
+
+- **`claude-haiku-4-5`**, about $7 per seller per month at ~1,900 replies.
+- **The cache marker is always set, with the 1-hour TTL** — not the 5-minute
+  default. Below Haiku 4.5's 4096-token minimum it is a free no-op, so there is
+  no length check. Without caching at all, a seller with a large catalog costs
+  $21/month and the subscription price stops working. Watch
+  `cache_read_input_tokens`: zero across repeated calls means the prefix is
+  being invalidated and the bill will look like that $21.
+- **No pg_cron and no pg_net.** A `create extension` line in a migration kills
+  all 126 existing tests, because the PGlite harness executes every migration.
+- **A conditional UPDATE is the concurrency guard**, because double-sending the
+  same sentence to a customer cannot be repaired afterwards.
+
+**The assistant is armed and measured.** `ANTHROPIC_API_KEY` and
+`ANTHROPIC_WORKSPACE_ID` are set on the functions. The key is
+organisation-level rather than workspace-scoped, which is why the workspace has
+to be named on every request; a scoped key would not need it.
+
+Measured against the real API, not estimated:
+
+- **Jordanian dialect holds on Haiku 4.5.** "اكيد بنوصل إربد، التوصيل 3.5 د.ا",
+  not Modern Standard Arabic. The model tier is no longer a hypothesis.
+- **Arabizi is mirrored** — "2adesh se3r el shanta?" is answered in Latin
+  letters. This failed on the first run and needed the case named explicitly
+  with a worked example.
+- **Caching works, and the unconditional marker is free.** A 220-product shop
+  wrote 12,930 tokens then read all of them back; a five-product shop wrote and
+  read nothing at all.
+- **Cost is about $0.0013 a reply**, roughly **$2.50 per seller per month** at
+  1,900 replies — well under the $7 estimated, because a real small shop's
+  prompt is far smaller than the estimate assumed.
+
+**A real customer message has been answered end to end.** "مرحبا" arrived from
+Facebook at 11:01:29 and the assistant replied at 11:02:09 — 40 seconds, the
+debounce plus processing — with a Meta-issued message id, meaning Meta accepted
+and delivered it. The echo came back without duplicating.
+
+It holds a conversation rather than answering one question and stopping: six
+turns carried on the careful setting, then handed to the seller on "طيب امتى
+بيوصل؟" because no delivery time is written down anywhere. A greeting gets a
+greeting.
+
+**Unverified and potentially blocking:** Meta's disclosure requirements for
+automated experiences have not been checked against current policy.
+
+---
+
 ## Next
 
 1. Business verification and App Review, then publish the app.
@@ -244,6 +378,7 @@ Meta's documentation says the first. Nothing has confirmed it for this app.
 3. Decide where the site is hosted, add that origin to
    `functions/_shared/origins.ts`, and set Site URL to match.
 4. Custom SMTP, then the password reset button.
+5. An Anthropic API key, so Phase Two can be verified rather than assumed.
 
 ---
 
@@ -258,3 +393,14 @@ Carried from `DECISIONS.md`:
 - Attachment media: stored or fetched on view.
 - Where the site is hosted, and on what domain.
 - How a conversation near the end of its reply window is marked in the list.
+
+Phase Two:
+
+- What Meta requires us to disclose about automated replies. Unchecked, and the
+  one question that could block the feature outright.
+- How an AI-sent message is shown in the thread, given that `accent` is reserved
+  for the seller's own words.
+- Whether the seller's past replies are needed to carry the dialect, or whether
+  plain instructions do it.
+- Whether escalation should cover a customer who is clearly upset.
+- Whether Haiku 4.5 holds Jordanian dialect. The cost model assumes it does.

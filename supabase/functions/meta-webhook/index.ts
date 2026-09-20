@@ -13,6 +13,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 import { verifyMetaSignature } from "./signature.ts";
 import { parseWebhookPayload } from "./parse.ts";
 import {
+  autoReply,
   createSupabaseStore,
   processMessage,
   refreshCustomerProfile,
@@ -22,6 +23,15 @@ const APP_SECRET = Deno.env.get("META_APP_SECRET") ?? "";
 const VERIFY_TOKEN = Deno.env.get("META_VERIFY_TOKEN") ?? "";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+
+// Absent until the key is configured, which is the same as the AI being off.
+// Deliberately not a startup failure: the inbox must keep receiving messages
+// whether or not anyone has set this up.
+const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY") ?? "";
+
+// Only needed while the key is organisation-level rather than scoped to one
+// workspace. Empty is fine for a scoped key.
+const ANTHROPIC_WORKSPACE_ID = Deno.env.get("ANTHROPIC_WORKSPACE_ID") ?? "";
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { persistSession: false },
@@ -148,6 +158,26 @@ async function processStoredEvent(eventId: number, payload: unknown): Promise<vo
         }
       } catch (cause) {
         console.error(`Event ${eventId}: profile lookup failed`, cause);
+      }
+
+      // Answering the customer, when the seller has switched that on. Waits
+      // half a minute first so a burst of fragments gets one reply rather than
+      // three — see DEBOUNCE_MS.
+      //
+      // Held to the same rule as the profile lookup: it must never fail the
+      // event. The message is already stored, and a reply we could not write
+      // is not a reason to lose it. Worst case the conversation simply stays
+      // in the seller's waiting group, which is where it would have been
+      // without any of this.
+      try {
+        const replied = await autoReply(store, ANTHROPIC_API_KEY, message, outcome, {
+          workspaceId: ANTHROPIC_WORKSPACE_ID,
+        });
+        if (replied !== "off" && replied !== "not-applicable") {
+          console.log(`Event ${eventId}: ai ${replied} for ${outcome.conversationId}`);
+        }
+      } catch (cause) {
+        console.error(`Event ${eventId}: auto reply failed`, cause);
       }
     }
 

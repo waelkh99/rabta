@@ -119,12 +119,35 @@ fix `.gitignore` before committing anything.
 ## 6. Check it all works
 
 - [ ] `cd supabase && npm test`
-- [ ] 126 tests pass, in roughly six seconds
+- [ ] 208 tests pass, in roughly ten seconds
 
-That is the real confirmation. It exercises signature verification, payload
-parsing, message processing, the schema, the conversation trigger and row level
-security, including booting Postgres in-process. If it passes, the machine is
-set up correctly.
+That is the real confirmation. It typechecks every Edge Function with
+`deno check`, then exercises signature verification, payload parsing, message
+processing, the assistant's guards, the schema, the conversation trigger and
+row level security, including booting Postgres in-process. If it passes, the
+machine is set up correctly.
+
+- [ ] `flutter test` — 78 tests
+- [ ] `flutter analyze` — no issues
+
+### Looking at the built site in a browser
+
+`flutter build web` then serve `build/web` on **port 5353**, which is the origin
+the Edge Functions allow (`functions/_shared/origins.ts`).
+
+**Serve it with caching off, and clear the browser cache between builds.** This
+has already cost an afternoon once. A static server that sends
+`Cache-Control: max-age=3600` — `http-server`'s default — makes the browser hold
+`main.dart.js` for an hour, so a rebuild changes nothing on screen and the code
+looks broken when it is fine. `flutter clean`, a fresh browser profile and
+unregistering the service worker all fail to shift it, because the file is in
+the ordinary HTTP cache under an unchanged URL.
+
+    npx http-server build/web -p 5353 -c-1
+
+`-c-1` disables caching. If something still will not update, clear the browser's
+cache rather than doubting the build — check the served bytes first with
+`curl -s http://localhost:5353/main.dart.js | wc -c` against the file on disk.
 
 ## 7. Optional: confirm the deployed endpoint is alive
 

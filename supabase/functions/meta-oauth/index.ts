@@ -289,7 +289,9 @@ Messenger conversations can reach Rabta.`,
   const report: string[] = [];
 
   for (const page of pages) {
-    await connect(workspaceId, "messenger", page.id, page.name, page.access_token);
+    // Meta can return a Page without a name. Null is what the column means by
+    // "no name", and undefined would silently drop the field from the write.
+    await connect(workspaceId, "messenger", page.id, page.name ?? null, page.access_token);
     report.push(`Messenger: ${page.name} (${page.id})`);
 
     const subscribe = await fetch(
