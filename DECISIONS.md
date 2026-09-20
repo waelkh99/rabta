@@ -1849,6 +1849,9 @@ drops `shop.assistant_caution`, and a web build still running the old
 `data.dart` selects that column — the shop screen would break. Nothing in the
 assistant needs it. It goes after the client is rebuilt.
 
+*Superseded the next day: there is no deployed web build, so nothing was ever
+at risk and the hold was unnecessary. Applied 21 September — see below.*
+
 **The CLI has no `functions logs`, so the evidence comes from the rows.** Two
 scripts were added, and both immediately earned it:
 
@@ -2084,6 +2087,14 @@ test replies sit in our own `messages` table and would keep feeding
 
 They have to be deleted from the database directly. Six rows, all outbound,
 all origin 'seller', all between 15 and 18 September.
+
+**Deleted 21 September**, on the product owner's go-ahead, by explicit id
+rather than by filter so the delete could not reach further than intended.
+Checked first that none of them was the newest message in its conversation, so
+`last_message_at` and the unread counts were untouched. The shop now has no
+voice examples at all, and writes from its instructions alone until real seller
+replies accumulate — which is worth watching: every measurement recorded above
+was taken with examples present.
 
 ---
 

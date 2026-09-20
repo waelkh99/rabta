@@ -506,10 +506,13 @@ appeared to behave once. Where something was verified, it says how.
       how long it lasted. A question nobody ever answered is answered late
       rather than never — measured on the exact live case, and confirmed not to
       be raised twice once it has been dealt with
-- [ ] **Delete the six synthetic test rows from `messages`.** Deleting them in
-      Messenger is not enough and was checked rather than assumed: Meta sends a
-      deletion event and `parse.ts` skips it, so nothing removes a row already
-      stored. They are outbound, origin 'seller', 15-18 September
+- [x] **The six synthetic test rows are deleted from `messages`**, 21
+      September. Deleting them in Messenger would not have done it, and that
+      was checked rather than assumed: Meta sends a deletion event and
+      `parse.ts` skips it, so nothing removes a row already stored. Confirmed
+      afterwards that none of them was the newest message in its conversation,
+      so the inbox summary and unread counts were untouched. The shop now has
+      no voice examples at all until real seller replies accumulate
 - [ ] ~~Clear the synthetic test messages out of the seller's own thread.~~
       `aiPrompt` takes the shop's voice examples from outbound messages with
       origin 'seller', and five test replies from 18 September qualify —

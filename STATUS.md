@@ -255,7 +255,7 @@ goes unanswered.
 
 **Live now, and answering real customers.** The migrations are applied
 (`products`, `shop`, `delivery_zones`, `messages.origin`, the `conversations`
-AI columns) and `meta-webhook` is deployed at **version 15**. Both
+AI columns) and `meta-webhook` is deployed at **version 16**. Both
 `ANTHROPIC_API_KEY` and `ANTHROPIC_WORKSPACE_ID` are set on the functions, so
 the assistant is on and has answered genuine messages.
 
@@ -275,10 +275,12 @@ the customer in the right Arabic gender, and may use their first name. Every
 step of that is in `DECISIONS.md` with what was measured against the live
 model, including what it got wrong on the way.
 
-**One migration is deliberately unpushed.** `20260920000001_assistant.sql`
-drops `shop.assistant_caution`; a web build still running the old `data.dart`
-selects that column and would break. It goes after the client is rebuilt.
-Nothing in the assistant needs it.
+**Every migration is applied**, including `20260920000001_assistant.sql`, which
+drops `shop.assistant_caution` — a setting the function had ignored since
+version 13. It was held back for a day in case a deployed web build still
+selected that column; there is no deployed web build, which this document has
+said all along under Hosting. The client was rebuilt and its bundle confirmed
+free of any reference to the dropped column.
 
 Verified against the live project rather than inferred: an anonymous read of
 `products` returns `[]` and an anonymous insert naming a real workspace is
@@ -304,12 +306,19 @@ sending anything to Meta. `npm run live` runs nine scripted Jordanian
 conversations against the real model and prices each reply; it costs money,
 which is why it is not part of `npm test`.
 
-**Two things want a human, not code.** The shop's voice examples are taken
-from its own outbound messages, and all six it is currently learning from are
-synthetic test data left in the seller's thread — they should be deleted. And
-a customer question from 19 September, "شفت عندكم فستان", is still unanswered
-in that thread; the triage added on the 20th answers the newest message and
-stops, so it will stay that way until somebody decides otherwise.
+**The shop currently has no voice examples at all.** The six it had been
+learning from were synthetic test replies left in the seller's own thread —
+"test 33", an iPhone priced in dollars, a row of question marks — and they were
+deleted from `messages` on 21 September. Deleting them in Messenger would not
+have done it: Meta sends a deletion event and `parse.ts` skips it, so nothing
+removes a row already stored. Until real seller replies accumulate, the
+assistant writes from its instructions alone.
+
+**One customer question is still unanswered on purpose.** "شفت عندكم فستان",
+asked on 19 September, was never replied to. Since version 16 that is handled
+rather than lost: the next time that customer writes, the assistant answers
+whatever they say and adds one short line picking the old question up, then
+never raises it again. The live thread is the test case for it.
 
 **The test workspace now has the assistant switched on**, with one product in
 it, plus a shop with delivery zones and an address. Nothing happens while there is no API key — a
