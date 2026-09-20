@@ -496,11 +496,21 @@ appeared to behave once. Where something was verified, it says how.
       the end of the array — they assert by content instead. Adding a volatile
       block had broken them three times in one day
 - [x] Deployed: version 15
-- [ ] `supabase db push` for `20260920000001_assistant.sql`. Held back
-      deliberately: it drops `shop.assistant_caution`, and a web build still
-      running the old `data.dart` selects that column. Push it after the client
-      is rebuilt, or the shop screen breaks. Nothing in the assistant needs it
-- [ ] **Clear the synthetic test messages out of the seller's own thread.**
+- [x] `supabase db push` applied 21 September. The hold was unnecessary: there
+      is no hosted client to break — `STATUS.md` says there is no origin to
+      serve the site from. One row lost `assistant_caution = 'reserved'`, a
+      setting the function had ignored since version 13
+- [x] Web client rebuilt, and the bundle confirmed to contain no reference to
+      the dropped column
+- [x] A gap in a conversation is read from what the customer wrote, not from
+      how long it lasted. A question nobody ever answered is answered late
+      rather than never — measured on the exact live case, and confirmed not to
+      be raised twice once it has been dealt with
+- [ ] **Delete the six synthetic test rows from `messages`.** Deleting them in
+      Messenger is not enough and was checked rather than assumed: Meta sends a
+      deletion event and `parse.ts` skips it, so nothing removes a row already
+      stored. They are outbound, origin 'seller', 15-18 September
+- [ ] ~~Clear the synthetic test messages out of the seller's own thread.~~
       `aiPrompt` takes the shop's voice examples from outbound messages with
       origin 'seller', and five test replies from 18 September qualify —
       including "نعم، الشحن مجاني داخل المدينة." and one about an iPhone 15 Pro

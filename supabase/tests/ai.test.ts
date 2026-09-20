@@ -571,6 +571,47 @@ test("the reply is matched to the KIND of message, before anything else", () => 
   assert.match(text, /Let the customer talk/);
 });
 
+test("a gap in the conversation is read from what they wrote, not its length", () => {
+  // The product owner's call: "if the customer's reply was regarding an
+  // earlier conversation pick it up, if he starts like its a new chat, then
+  // its a new chat."
+  const body = buildRequest(requestInput);
+  const text = (body.system as Record<string, unknown>[]).map((b) => b.text).join(" ");
+
+  assert.match(text, /PICKING UP WHERE YOU LEFT OFF/);
+  assert.match(text, /They are CARRYING ON if they refer back/);
+  assert.match(text, /They are STARTING FRESH if they open with a greeting/);
+  assert.match(text, /Not from how long \s*the gap was/);
+});
+
+test("a question nobody ever answered is answered late rather than never", () => {
+  // Seen live: "شفت عندكم فستان" sat unanswered from one day to the next, and
+  // the triage added the same day would have left it that way for good. In a
+  // feature whose goal is that no inquiry goes unanswered, that was wrong.
+  const body = buildRequest(requestInput);
+  const text = (body.system as Record<string, unknown>[]).map((b) => b.text).join(" ");
+
+  assert.match(text, /does not expire/);
+  assert.match(text, /being late \s*is far better than never/);
+  // Measured: given a fresh question and a stale one it led with the stale
+  // one. What they just wrote is what they are waiting on.
+  assert.match(text, /The newest message is answered FIRST and in full/);
+  assert.match(text, /Never open with the old thing/);
+  // And it must not become a reason to keep bringing it up.
+  assert.match(text, /Once you have answered it, it is answered/);
+});
+
+test("the pleasantry rule defers to the unanswered question, rather than fighting it", () => {
+  // The two rules meet head-on: one says answer the ritual and stop, the other
+  // says never leave a question unanswered. The pleasantry rule names the
+  // exception itself so the model is not left to reconcile them.
+  const body = buildRequest(requestInput);
+  const text = (body.system as Record<string, unknown>[]).map((b) => b.text).join(" ");
+
+  assert.match(text, /unless they asked you something earlier that nobody ever answered/);
+  assert.match(text, /give the ritual reply first, \s*then ONE short line/);
+});
+
 test("a pleasantry is answered with the pleasantry back and nothing else", () => {
   const body = buildRequest(requestInput);
   const text = (body.system as Record<string, unknown>[]).map((b) => b.text).join(" ");

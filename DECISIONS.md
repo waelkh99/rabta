@@ -2009,6 +2009,84 @@ change stops meaning anything.
 
 ---
 
+### 2026-09-21 — A gap in a conversation is read, not timed
+
+Decided by the product owner, closing the question left open the day before:
+"the agent should answer, based on context, if the customer's reply was
+regarding an earlier conversation pick it up, if he starts like its a new chat,
+then its a new chat."
+
+So the assistant works it out from **what they wrote**, never from how long the
+gap was. They are carrying on if they refer back to something, answer a
+question it asked them, say "هو" or "it" about a thing already under
+discussion, or ask something that only makes sense given what came before. They
+are starting fresh if they open with a greeting, ask about something unrelated,
+or simply write as though the conversation were new.
+
+**A question nobody ever answered does not expire.** This is the half that
+matters for the stated goal — no customer inquiry goes unanswered — and it is
+what the triage added on 20 September had accidentally ruled out. If they asked
+something before the gap and never got a reply, it gets answered now, late.
+That holds even after a bare pleasantry: the ritual reply first, then one short
+line answering what they asked before.
+
+The pleasantry rule names this exception itself rather than leaving the model
+to reconcile two instructions that meet head-on.
+
+Measured against the real shop, on the exact live case:
+
+    ← مرحبا
+    → مرحبا، كيف أساعدك؟
+    ← شفت عندكم فستان          (never answered)
+    ← يغطيك العافية            (a day later)
+    → الله يعافيك 🙂 تفضل، عن أي فستان بتسأل؟
+
+And, once it has been answered, it stays answered — the same thread with the
+dress question already dealt with gets back "الله يعافيك 🙂" and nothing more.
+
+One thing did not hold: told the newest message is answered first, it still led
+with the older question when both arrived in a burst with no shop reply
+between. That case is a burst rather than a gap, answering both is right either
+way, and the ordering instruction is left in for the case it was written for.
+
+---
+
+### 2026-09-21 — The client was never hosted, so the migration was never blocked
+
+`20260920000001_assistant.sql` had been held back for a day on the reasoning
+that it drops `shop.assistant_caution` and a deployed web build would still be
+selecting that column. Checking rather than assuming: `STATUS.md` says plainly
+that there is no origin to serve the site from. The client runs locally, from
+this repo, which already has the new `data.dart`. There was nothing to break.
+
+Pushed. One row lost `assistant_caution = 'reserved'`, a setting the function
+had ignored since version 13, and `assistant_enabled` was untouched. The web
+client was rebuilt and the bundle confirmed to contain no reference to the
+dropped column.
+
+The lesson is the ordinary one: the risk was real in shape and imaginary in
+fact, and one grep through `STATUS.md` settled it a day earlier than it was
+settled.
+
+---
+
+### 2026-09-21 — Deleting a message on Facebook does not delete ours
+
+Asked by the product owner, about the synthetic test replies teaching the
+assistant its voice: "I will delete the test messages off facebook not sure if
+that's enough."
+
+It is not. Meta does send a deletion event, and `parse.ts` **skips** it — a
+message flagged `is_deleted` is never processed. That is right for an incoming
+delivery and it means nothing removes a row that is already stored. The six
+test replies sit in our own `messages` table and would keep feeding
+`aiPrompt`'s voice examples however thoroughly they were deleted in Messenger.
+
+They have to be deleted from the database directly. Six rows, all outbound,
+all origin 'seller', all between 15 and 18 September.
+
+---
+
 ### 2026-09-19 — `conversations_owner_update` is fine. ~~It is missing `with check`.~~
 
 **This entry was wrong when first written, and is corrected here rather than
