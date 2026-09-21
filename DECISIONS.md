@@ -768,11 +768,29 @@ inbox already does most of this: grouping is driven by `last_message_at` versus
 no new mechanism at all. The browser notification closes a gap already listed
 as unbuilt in `STATUS.md`.
 
+> **Wrong, and it shipped as a defect. Corrected 21 September 2026.** An
+> escalated conversation did *not* stay in the waiting group. The assistant
+> usually speaks when it hands one back, and that line is an outbound message,
+> so `last_message_at` moved past `last_inbound_at` and the conversation filed
+> itself under "Answered" — the group the seller has finished reading. The
+> sentence above is left standing because the reasoning reads as obviously
+> sound and was obviously sound until the assistant was given a voice on the
+> hand-over path, which happened in a later decision that never came back here.
+> `awaitingReply` now counts an escalation as waiting whatever the timestamps
+> say.
+
 **The AI starts reserved and is loosened by the seller.** `enabled` defaults to
 false. A `caution` setting of `reserved` answers only what is literally in the
 catalog; `normal` also handles greetings and delivery questions. It is a prompt
 string selected by a setting, **not a learning system** — do not build one
 without a decision that says so.
+
+> **Reversed 20 September 2026 and the column dropped.** See "assistant_caution
+> is deleted" further down: the two modes were limits on what the assistant
+> could say, and the rewrite replaced limiting it with teaching it. `enabled`
+> survives and still defaults to false. What a seller sets instead is the
+> pricing stance, which is a choice about the shop rather than a leash on the
+> model.
 
 **Consequences:**
 
@@ -2131,6 +2149,93 @@ looked obviously right, was recorded as a finding, and was wrong. What caught
 it was writing the test first, breaking the thing on purpose, and noticing that
 the test passed anyway. A test that cannot fail proves nothing — see the
 Testing section of `CLAUDE.md`.
+
+---
+
+## What the assistant does when a customer pushes on price
+
+Settled 22 September 2026, reshaped the same day after review.
+
+### The rule is not the setting
+
+Underneath both modes is the thing that does not change: **the assistant states
+only what it knows.** The price comes from the catalog. A discount will come
+from the sales section when that exists. Neither mode invents one, and neither
+mode is a licence to negotiate — the setting decides what happens *after* the
+assistant has said what it knows, not what it is allowed to say.
+
+### Two named modes, not a boolean
+
+It shipped first as `prices_final boolean` and was replaced within hours. The
+product owner named two modes, and one of them — notify — is still being worked
+out against how the case actually goes in a real shop. A boolean called
+`prices_final` could not carry that: the code would have gone on saying "final"
+while the product said something else, and a third mode later would have meant
+migrating anyway.
+
+- **strict** — the listed price is the price. The assistant says so warmly and
+  without apology, and then offers the cheapest thing in the catalog that still
+  suits. It does not hand the conversation over for this.
+- **notify** — the assistant answers the price, argues nothing, and brings the
+  conversation to the seller. The default, and what the assistant already did.
+
+An enum rather than text, so a typo is rejected at insert time. **Anything
+unrecognised reads as notify**, in both the function and the client. That
+direction is load-bearing rather than tidy: falling back to strict would have a
+build that predates a mode added later start telling customers a price is final
+on a shop that never said so. Reversing it fails three client tests.
+
+### Strict does not end on a no
+
+The first shape of it said the price was fixed and stopped. That is how a
+customer who was ready to buy leaves. The facts now tell the assistant to offer
+the cheapest thing that still suits, and it does: measured against the real
+model with a second, cheaper product in the catalog —
+
+> "عندنا السعر ثابت للأسف، ما بقدر نزّله. بس إذا بدك شي أرخص، عندي الفستان
+> الأزرق بـ 15 دينار."
+
+### The guard was not weakened, it was made true
+
+This is the part worth keeping in mind for the sales section, which will face
+exactly the same problem.
+
+`claimsAreGrounded` refuses a reply claiming a price is fixed — "السعر عنا
+ثابت", "fixed price", "non-negotiable" are all watched patterns — because until
+this setting existed no shop had ever said so, and an invented price policy is
+precisely what that check is for. It would have been easy, and wrong, to add an
+exemption for it.
+
+Instead `renderFacts` writes the claim into the `facts` string, **in the exact
+wording the guard watches for**, and the guard then finds it and lets the reply
+through. The claim stops being unchecked and starts being true. This is the
+same mechanism that stops a delivery fee the model was given being refused on
+the way out as invented: one string, used twice — what the model is told, and
+what the check searches.
+
+Two consequences, both deliberate:
+
+- The facts carry both an English and an Arabic phrasing, because the assistant
+  answers in the customer's language and the guard searches this string in
+  whichever language the reply came back in. Dropping the Arabic fails two
+  tests.
+- **Rewording that section is a behaviour change, not copy editing.** Lose the
+  watched phrase and the guard starts refusing a reply the seller explicitly
+  authorised, with nothing on screen to say why.
+
+### One prompt, not two
+
+The instructions defer to the shop's facts rather than branching on the mode.
+The facts already vary per shop; the instructions do not, so the cached prefix
+stays byte-identical for every seller and there is no second prompt to drift out
+of step. A test asserts the two are the same bytes.
+
+### When sales and discounts arrives
+
+It inherits all of this. It becomes a third source feeding the same `facts`
+string, and the `خصم` and `discount` patterns in `claimsAreGrounded` become
+legitimate the same way this one did — by the shop having written the thing
+down, not by the guard being told to look away.
 
 ---
 

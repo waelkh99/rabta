@@ -110,8 +110,11 @@ a browser in both languages, at desktop and phone width.
   when someone is waiting. Until then the invite screen hands over a link
   rather than emailing it, and says so. **Close this before the first paying
   customer.**
-- **Sending a password reset.** The screen a reset link lands on is built and
-  the routing handles `type=recovery`; the button that sends the email is not,
+- **Sending a password reset** — a *forgotten* password, which is a different
+  thing from changing one. A seller who is signed in can change theirs on the
+  shop screen since 22 September, and that needs no email. A seller who cannot
+  get in needs a link sent to them: the screen it lands on is built and the
+  routing handles `type=recovery`, but the button that sends the email is not,
   and is useless until SMTP exists.
 - **A sweep that retries events which failed processing.**
 - **Token expiry on the receiving side.** A send that fails with Meta's code
@@ -164,10 +167,12 @@ without setting anything up again.
 - `connected_accounts` for the Facebook Page `1427711713749572` ("Rabta App")
   and the Instagram account `17841401424316998` (`djangus_w`), both connected
   through `meta-oauth` and both active
-- one product (`فستان أحمر`), a `shop` row with the assistant **enabled** and
-  set to `reserved`, and two delivery zones (عمّان 2.500, العقبة with no fee),
-  added while testing those screens. Inert until an API key exists; live the
-  moment one does
+- one product (`فستان أحمر`, 25.500), a `shop` row with the assistant
+  **enabled**, `price_stance` at its default `notify`, a delivery note and an
+  address, and two delivery zones (عمّان 2.500, العقبة with no fee). The
+  `assistant_caution` setting this used to mention was dropped from the schema
+  on 21 September. **Not inert:** `ANTHROPIC_API_KEY` is set on the functions,
+  so this workspace answers messages sent to the test Page
 - one conversation with the customer `28847995138118550` ("Wael K. Saleh"), its
   messages, and the raw events behind them
 
@@ -423,14 +428,24 @@ automated experiences have not been checked against current policy.
 3. Decide where the site is hosted, add that origin to
    `functions/_shared/origins.ts`, and set Site URL to match. This also
    unblocks Web Push, which needs a real HTTPS origin.
-4. Custom SMTP, then the password reset button.
-5. ~~Deploy `meta-webhook` again.~~ **Done 22 September.** The handshake
-   returns the challenge on the right token and 403 on a wrong one, and a
-   genuinely signed delivery timestamped outside the reply window was escalated
-   with `ai_escalation_code = 'window_closed'` — the column that only exists
-   since the migration, written by the deployed function. Chosen because that
-   guard does not speak to the customer and never reaches the model, so nothing
-   was sent and nothing was spent; the throwaway conversation was deleted.
+4. Custom SMTP, then the button that emails a forgotten-password link. Changing
+   a password while signed in already works and needs none of this.
+
+Nothing above is code, and nothing in Phase Two is waiting on code. The
+product-side work that is genuinely next, in the order it makes sense:
+
+5. **The sales and discounts section.** Promised in `CLAUDE.md` and the last
+   thing the assistant says it does not know by default. The mechanism is
+   settled — see "What the assistant does when a customer pushes on price" in
+   `DECISIONS.md` — so this is the same shape of work as the pricing stance:
+   a table, a section on the shop screen, a block in `renderFacts`, and the
+   `خصم` patterns in `claimsAreGrounded` becoming legitimate the same way.
+6. **Expanding what a product can say.** A name, a price, a description and an
+   in-stock boolean is thin, and `CLAUDE.md` says so. Whatever it grows into,
+   the assistant reads it.
+7. **Decide what `notify` should mean.** It currently does what the assistant
+   already did — answers, marks, hands over. Left open deliberately until
+   there is a real case to watch.
 
 ---
 
