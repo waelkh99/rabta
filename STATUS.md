@@ -1,6 +1,6 @@
 # Where we are
 
-Updated 19 September 2026.
+Updated 22 September 2026.
 
 What is built, what is live, and what comes next. `CLAUDE.md` holds the product
 direction, `DECISIONS.md` the settled decisions and why, `CHECKLIST.md` the
@@ -15,14 +15,16 @@ Instagram has never been verified against a real delivery. There is nowhere to
 host the site yet. Those are the critical path. **Phase Two — an AI that
 answers basic inquiries from the seller's catalog — was requested on
 19 September and is live on the test account: a real customer message has been
-answered and delivered. The screens that show the seller what it did are not
-built yet.**
+answered and delivered. As of 22 September the seller can also see what it did:
+the inbox marks what the assistant answered and what it handed back, the
+details pane carries the assistant's own reason in its own words, and the tab
+title and a system notification say when something needs them.**
 
 ---
 
 ## Live right now
 
-Supabase project `xejtffbpfguwvybrwqqj`. Six migrations applied, four Edge
+Supabase project `xejtffbpfguwvybrwqqj`. Eight migrations applied, four Edge
 Functions deployed.
 
 | Function | What it does | Auth |
@@ -44,9 +46,9 @@ against both the **Page** and **Instagram** objects with the same verify token.
 `META_APP_SECRET` and `META_VERIFY_TOKEN` are set on the functions. Public
 sign-up is off: `/auth/v1/settings` reports `disable_signup: true`.
 
-**234 backend tests** (`cd supabase && npm test`, which typechecks every Edge
+**328 backend tests** (`cd supabase && npm test`, which typechecks every Edge
 Function with `deno check` first; about ten seconds, no Docker and no network)
-and **87 client tests** (`flutter test`). Each new piece of
+and **125 client tests** (`flutter test`). Each new piece of
 logic is shown to fail when deliberately broken rather than assumed to be
 covered.
 
@@ -121,7 +123,13 @@ a browser in both languages, at desktop and phone width.
 - **The font is fetched, not bundled.** Almarai renders through `google_fonts`,
   which pulls from Google's CDN at runtime, so every cold load makes a
   third-party request and shows a fallback face until it lands.
-- **Marking a conversation read**, and in-page notification and title badge.
+- **Notifications reach an open tab only.** A background tab is covered; a
+  closed browser is not, and on an iPhone a Safari tab cannot show one at all
+  until the seller adds Rabta to their home screen. `DECISIONS.md`, "Telling
+  the seller something happened", has the whole picture.
+- **Marking a conversation read.** The title badge and the system
+  notification were built on 22 September; opening a conversation still does
+  not clear its unread dot.
 - **Instagram, verified against a real delivery.** See below.
 
 ---
@@ -294,8 +302,32 @@ catch-all field — both reached from a side menu that replaced three unlabelled
 header icons; the catalog paste import; and the teal treatment that tells an
 assistant message from the seller's own.
 
-**Not built:** marking an AI-answered conversation in the list, the browser
-notification and title badge, and the draft-on-open for escalated threads.
+**Built on 21 and 22 September, and seen in a browser rather than inferred.**
+Under a rule added to `CLAUDE.md` on 21 September, nothing that affects the
+interface is ticked on unit tests alone: it is driven with Playwright in both
+languages and at desktop and phone width, and looked at.
+
+- **An escalated conversation stays in the waiting group, with a reason.** This
+  closed a live defect rather than adding a feature. The assistant usually
+  speaks when it hands a conversation back, and that line is an outbound
+  message — so the conversation's last message was no longer the customer's and
+  it filed itself under "Answered". A customer the assistant had explicitly
+  said it could not help sat in the group the seller had finished reading.
+- **Nothing cleared `ai_state`.** The column comment had claimed since
+  19 September that it was cleared when the seller opened the conversation. No
+  code anywhere did that. It is now cleared in the `touch_conversation`
+  trigger, on the seller's own outbound message — so a reply typed in Messenger
+  clears it too, which a client-side write would not have.
+- **The reason is the assistant's own sentence** where the assistant is the one
+  who handed over, written in the language of the conversation and shown as
+  written. Every other escalation carries a short code the interface localises.
+  The row says what happened; the details pane says why.
+- **The tab title counts** — `(3) Rabta` — and a **system notification** fires
+  when a customer writes or the assistant hands a conversation back, with a
+  switch in the menu that goes both ways.
+
+**Still not built:** draft-on-open for escalated threads, and marking a
+conversation read.
 
 **How to see what it did.** The Supabase CLI has no `functions logs`, and the
 rows are better evidence anyway. From `supabase/`: `npm run assistant` for what
@@ -333,10 +365,14 @@ decisions with their reasoning, and `CHECKLIST.md` sections 8–12 track it.
 The decisions most easily lost, repeated here because they cost money or
 correctness:
 
-- **`claude-haiku-4-5`**, about $7 per seller per month at ~1,900 replies.
+- **`claude-sonnet-5`**, with `thinking` sent as `disabled` explicitly.
+  Measured at about $0.0013 a reply on a real small shop. Haiku 4.5 was
+  replaced on 20 September: its sticker price is half, its bill is not, because
+  a small shop's prompt sits between Sonnet's 1,024-token cache minimum and
+  Haiku's 4,096 and so cached nothing at all on Haiku.
 - **The cache marker is always set, with the 1-hour TTL** — not the 5-minute
-  default. Below Haiku 4.5's 4096-token minimum it is a free no-op, so there is
-  no length check. Without caching at all, a seller with a large catalog costs
+  default. Below the model's minimum cacheable prefix it is a free no-op, so
+  there is no length check. Without caching at all, a seller with a large catalog costs
   $21/month and the subscription price stops working. Watch
   `cache_read_input_tokens`: zero across repeated calls means the prefix is
   being invalidated and the bill will look like that $21.
@@ -385,9 +421,14 @@ automated experiences have not been checked against current policy.
 2. Capture a real Instagram delivery and check `entry.id` against the value
    stored for the account.
 3. Decide where the site is hosted, add that origin to
-   `functions/_shared/origins.ts`, and set Site URL to match.
+   `functions/_shared/origins.ts`, and set Site URL to match. This also
+   unblocks Web Push, which needs a real HTTPS origin.
 4. Custom SMTP, then the password reset button.
-5. An Anthropic API key, so Phase Two can be verified rather than assumed.
+5. Deploy `meta-webhook` again. The repo is ahead of what is running: the
+   escalation code and the assistant-written reason are in the migration, which
+   **is** applied, but the function that writes them is not deployed. Nothing
+   breaks in the meantime — an escalation from the running version leaves the
+   code null and the interface reads that as a plain hand-over.
 
 ---
 
@@ -407,9 +448,18 @@ Phase Two:
 
 - What Meta requires us to disclose about automated replies. Unchecked, and the
   one question that could block the feature outright.
-- How an AI-sent message is shown in the thread, given that `accent` is reserved
-  for the seller's own words.
-- Whether the seller's past replies are needed to carry the dialect, or whether
-  plain instructions do it.
-- Whether escalation should cover a customer who is clearly upset.
-- Whether Haiku 4.5 holds Jordanian dialect. The cost model assumes it does.
+- ~~How an AI-sent message is shown in the thread.~~ **Settled.** Teal, never
+  `accent`, and it says "automatic reply" in words as well — colour is not the
+  only signal.
+- Whether a fact can leak out of a seller's own past reply. One did: a delivery
+  time was lifted from an exemplar and sent as a promise. It carries no digits,
+  so the grounding check cannot see it.
+- ~~Whether escalation should cover a customer who is clearly upset.~~
+  **Settled 20 September: yes**, and it costs nothing now that handing over no
+  longer means silence.
+- Whether the details pane should appear below 1180px. The assistant's reason
+  lives there, so on a small laptop, a tablet or a phone it is currently not
+  reachable at all.
+- Whether a pricing setting should let the seller choose between the assistant
+  handing price negotiation back and it holding the listed price as final.
+  Asked for on 21 September and deliberately parked.

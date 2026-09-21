@@ -116,7 +116,7 @@ class FakeStore implements Store {
   /** Mirrors the conditional update: the first caller wins, the rest do not. */
   claimed = new Set<string>();
   claims = 0;
-  finished: { state: string; reason: string | null }[] = [];
+  finished: { state: string; reason: string | null; code: string | null }[] = [];
   aiReplies: { mid: string; text: string }[] = [];
 
   aiContext(_conversationId: string): Promise<AiContext | null> {
@@ -162,8 +162,9 @@ class FakeStore implements Store {
     _conversationId: string,
     state: "answered" | "escalated",
     reason: string | null,
+    code: string | null,
   ): Promise<void> {
-    this.finished.push({ state, reason });
+    this.finished.push({ state, reason, code });
     return Promise.resolve();
   }
 }
@@ -582,7 +583,7 @@ test("a customer asking a catalog question gets an answer", async () => {
 
   assert.equal(result, "answered");
   assert.deepEqual(store.aiReplies, [{ mid: "mid_from_meta", text: "25.500 دينار" }]);
-  assert.deepEqual(store.finished, [{ state: "answered", reason: null }]);
+  assert.deepEqual(store.finished, [{ state: "answered", reason: null, code: null }]);
 
   // Stored under Meta's id, which is what stops the echo of our own reply
   // arriving through the webhook and appearing twice.
@@ -737,7 +738,9 @@ test("a guard that fires hands over instead of asking the model", async () => {
 
   assert.equal(result, "escalated");
   assert.equal(calls.length, 0, "a guard must be cheaper than a model call");
-  assert.deepEqual(store.finished, [{ state: "escalated", reason: "seller_present" }]);
+  assert.deepEqual(store.finished, [
+    { state: "escalated", reason: "seller_present", code: "seller_present" },
+  ]);
   assert.equal(store.aiReplies.length, 0, "the seller is here; no line is needed");
 });
 
@@ -757,7 +760,9 @@ test("running out of replies tells the customer instead of going quiet", async (
   assert.equal(calls.length, 1, "Meta was asked to send, the model was not asked anything");
   assert.equal(store.aiReplies.length, 1);
   assert.equal(store.aiReplies[0].text, HANDOVER_LINE.arabic);
-  assert.deepEqual(store.finished, [{ state: "escalated", reason: "ai_streak" }]);
+  assert.deepEqual(store.finished, [
+    { state: "escalated", reason: "ai_streak", code: "ai_streak" },
+  ]);
 });
 
 test("the hand-over line is said once, not on every message after it", async () => {
@@ -808,7 +813,9 @@ test("nothing is said when the send would fail anyway", async () => {
   assert.equal(result, "escalated");
   assert.equal(calls.length, 0);
   assert.equal(store.aiReplies.length, 0);
-  assert.deepEqual(store.finished, [{ state: "escalated", reason: "window_closed" }]);
+  assert.deepEqual(store.finished, [
+    { state: "escalated", reason: "window_closed", code: "window_closed" },
+  ]);
 });
 
 test("the model handing over still answers the customer", async () => {
@@ -836,7 +843,9 @@ test("the model handing over still answers the customer", async () => {
   const result = await autoReply(store, "key", message, outcome, immediately(fetcher));
 
   assert.equal(result, "escalated");
-  assert.deepEqual(store.finished, [{ state: "escalated", reason: "wants a discount" }]);
+  assert.deepEqual(store.finished, [
+    { state: "escalated", reason: "wants a discount", code: "assistant" },
+  ]);
   assert.equal(store.aiReplies.length, 1, "the customer hears back even so");
   assert.match(store.aiReplies[0].text, /25\.5/);
 });
@@ -850,7 +859,12 @@ test("an answer the model could not produce still says something", async () => {
   const result = await autoReply(store, "key", message, outcome, immediately(fetcher));
 
   assert.equal(result, "escalated");
-  assert.deepEqual(store.finished, [{ state: "escalated", reason: "no usable answer" }]);
+
+  // The code is what the seller's row reads; the reason is the detail behind
+  // it, which here is whatever nonsense came back, kept for `npm run assistant`.
+  assert.equal(store.finished.length, 1);
+  assert.equal(store.finished[0].state, "escalated");
+  assert.equal(store.finished[0].code, "unusable");
   assert.equal(store.aiReplies[0].text, HANDOVER_LINE.arabic);
 });
 
@@ -865,6 +879,7 @@ test("an invented price never reaches the customer", async () => {
 
   assert.equal(result, "escalated");
   assert.match(store.finished[0].reason ?? "", /never gave it/);
+  assert.equal(store.finished[0].code, "ungrounded");
 
   // The invented number is what must not reach them. Something does — the
   // fixed hand-over line, which carries no numbers at all.
@@ -905,6 +920,7 @@ test("a promise the shop never made never reaches the customer", async () => {
 
   assert.equal(result, "escalated");
   assert.match(store.finished[0].reason ?? "", /promise the shop never made/);
+  assert.equal(store.finished[0].code, "ungrounded");
 
   // And they are still told something, rather than left waiting.
   assert.equal(store.aiReplies.length, 1);
@@ -955,6 +971,7 @@ test("a reply too long for Instagram escalates rather than being rejected", asyn
 
   assert.equal(result, "escalated");
   assert.match(store.finished[0].reason ?? "", /too_long/);
+  assert.equal(store.finished[0].code, "ungrounded");
 
   // Meta would have rejected the long one and the customer would have received
   // nothing. The hand-over line fits.
@@ -975,6 +992,7 @@ test("Meta refusing the send leaves the conversation with the seller", async () 
   assert.equal(result, "escalated");
   assert.equal(store.aiReplies.length, 0, "nothing is stored that was not sent");
   assert.match(store.finished[0].reason ?? "", /send window_closed/);
+  assert.equal(store.finished[0].code, "not_sent");
 });
 
 test("an account with no token escalates rather than throwing", async () => {
@@ -986,6 +1004,7 @@ test("an account with no token escalates rather than throwing", async () => {
 
   assert.equal(result, "escalated");
   assert.match(store.finished[0].reason ?? "", /token/);
+  assert.equal(store.finished[0].code, "not_sent");
 });
 
 test("the model being unreachable marks nothing, so the next message retries", async () => {

@@ -18,6 +18,11 @@ dependencies:
   # can bring it back. Already in the tree through supabase_flutter; named here
   # because we import it.
   url_launcher: ^6.3.1
+  # The browser's own APIs, for the tab title and the notification service
+  # worker. Already in the tree through Flutter; named here because we import
+  # it directly and an unnamed transitive dependency is one version bump from
+  # disappearing.
+  web: ^1.1.1
 
 dev_dependencies:
   flutter_test:

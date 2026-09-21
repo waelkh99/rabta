@@ -1,5 +1,5 @@
 import { strict as assert } from "node:assert";
-import { after, before, describe, test } from "node:test";
+import { after, afterEach, before, beforeEach, describe, test } from "node:test";
 
 import {
   addMessage,
@@ -817,5 +817,148 @@ describe("the AI claim", () => {
 
     const [row] = await db.sql("select origin from messages where mid = 'claim_seller_1'");
     assert.equal(row.origin, "seller", "existing insert paths must keep producing seller rows");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The assistant's mark, and what takes it off
+// ---------------------------------------------------------------------------
+
+describe("clearing what the assistant left behind", () => {
+  let db: TestDb;
+  let seller: Awaited<ReturnType<typeof createSeller>>;
+  let conversation: string;
+  let account: string;
+
+  // Fresh per test: each one is about a different way the mark is or is not
+  // cleared, and a shared conversation would carry the last test's state in.
+  beforeEach(async () => {
+    db = await freshDb();
+    seller = await createSeller(db, "clear@example.test");
+    account = await connectAccount(db, seller.workspaceId, "messenger", "clear_acct");
+    conversation = await startConversation(db, seller.workspaceId, account, "cust_clear");
+
+    await addMessage(db, conversation, seller.workspaceId, {
+      mid: "clear_in_1",
+      direction: "inbound",
+      text: "امتى بيوصل الطلب؟",
+      sentAt: at(0),
+    });
+
+    await db.sql(
+      `update conversations
+          set ai_state = 'escalated',
+              ai_escalation_reason = 'بتسأل عن وقت التوصيل وما في وقت مكتوب',
+              ai_escalation_code = 'assistant'
+        where id = $1`,
+      [conversation],
+    );
+  });
+
+  afterEach(async () => {
+    await db.close();
+  });
+
+  const mark = async () => {
+    const [row] = await db.sql(
+      `select ai_state, ai_escalation_reason, ai_escalation_code
+         from conversations where id = $1`,
+      [conversation],
+    );
+    return row;
+  };
+
+  test("the assistant's own reply does not clear the mark it just earned", async () => {
+    // The hand-over line is an outbound message too. Clearing on any outbound
+    // message would erase the escalation in the same breath as recording it,
+    // and the conversation would drop out of the waiting group.
+    await db.sql(
+      `insert into messages (conversation_id, workspace_id, mid, direction, text, sent_at, origin)
+       values ($1, $2, 'clear_ai_1', 'outbound', 'رح نرجعلك بجواب بأقرب وقت.', $3, 'ai')`,
+      [conversation, seller.workspaceId, at(1)],
+    );
+
+    const row = await mark();
+    assert.equal(row.ai_state, "escalated");
+    assert.equal(row.ai_escalation_code, "assistant");
+  });
+
+  test("the seller's own reply clears it, all three columns together", async () => {
+    await addMessage(db, conversation, seller.workspaceId, {
+      mid: "clear_seller_1",
+      direction: "outbound",
+      text: "بيوصل خلال يومين",
+      sentAt: at(2),
+    });
+
+    const row = await mark();
+    assert.equal(row.ai_state, null, "the conversation is no longer waiting on the seller");
+    assert.equal(row.ai_escalation_reason, null, "a stale reason is worse than none");
+    assert.equal(row.ai_escalation_code, null);
+  });
+
+  test("a reply the seller sent from Meta's own app clears it too", async () => {
+    // Which is why this lives in the trigger and not in the client. The echo of
+    // a reply typed in Messenger arrives on exactly this path, and a seller who
+    // answers from their phone must not come back to a conversation still
+    // flagged as needing them.
+    await addMessage(db, conversation, seller.workspaceId, {
+      mid: "m_mid.echo.from.messenger",
+      direction: "outbound",
+      text: "بيوصل خلال يومين",
+      sentAt: at(2),
+    });
+
+    assert.equal((await mark()).ai_state, null);
+  });
+
+  test("the customer writing again does not clear it", async () => {
+    // Still unanswered, and now more so.
+    await addMessage(db, conversation, seller.workspaceId, {
+      mid: "clear_in_2",
+      direction: "inbound",
+      text: "ألو؟",
+      sentAt: at(3),
+    });
+
+    const row = await mark();
+    assert.equal(row.ai_state, "escalated");
+    assert.equal(row.ai_escalation_reason, "بتسأل عن وقت التوصيل وما في وقت مكتوب");
+  });
+
+  test("a seller's reply that arrives out of order still clears it", async () => {
+    // Deliberately unguarded by the sent_at comparison the preview columns use.
+    // A reply whose clock disagrees is still a seller who has dealt with this
+    // conversation; refusing to clear would leave it waiting forever.
+    await addMessage(db, conversation, seller.workspaceId, {
+      mid: "clear_seller_late",
+      direction: "outbound",
+      text: "بيوصل خلال يومين",
+      sentAt: at(-1),
+    });
+
+    const row = await mark();
+    assert.equal(row.ai_state, null);
+    assert.equal(
+      row.ai_escalation_reason,
+      null,
+      "the escalation is cleared even where the preview is not overwritten",
+    );
+  });
+
+  test("an answered conversation is marked too, and the same reply clears it", async () => {
+    await db.sql(
+      "update conversations set ai_state = 'answered', ai_escalation_reason = null, ai_escalation_code = null where id = $1",
+      [conversation],
+    );
+
+    await addMessage(db, conversation, seller.workspaceId, {
+      mid: "clear_seller_2",
+      direction: "outbound",
+      text: "أهلين",
+      sentAt: at(2),
+    });
+
+    assert.equal((await mark()).ai_state, null);
   });
 });

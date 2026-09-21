@@ -74,6 +74,11 @@ class DetailsPanel extends StatelessWidget {
           ),
           const SizedBox(height: 24),
 
+          // What the assistant did here, and why. The inbox row says only that
+          // it happened; this is where the sentence it wrote is readable in
+          // full instead of ellipsised into a row that had no width for it.
+          _AssistantCard(conversation: c),
+
           _Fact(
             label: l.detailPlatform,
             value: platformName(context, c.platform),
@@ -88,6 +93,79 @@ class DetailsPanel extends StatelessWidget {
             value: firstMessage == null ? '—' : waitedFor(context, firstMessage),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Why the assistant stepped back, or that it answered.
+///
+/// Nothing at all when it has not touched this conversation, and nothing once
+/// the seller has replied — which is the moment it stops being true, and is
+/// cleared on the row by the database rather than by this pane.
+///
+/// Teal throughout, the colour an assistant message already carries in the
+/// thread beside it, so the two read as the same voice.
+class _AssistantCard extends StatelessWidget {
+  const _AssistantCard({required this.conversation});
+
+  final Conversation conversation;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.rabta;
+    final l = context.l;
+    final c = conversation;
+
+    if (!c.escalated && !c.answeredByAssistant) return const SizedBox.shrink();
+
+    final reason = assistantReason(l, c);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: colors.assistant.withValues(alpha: 0.07),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  c.escalated ? Icons.flag_outlined : Icons.auto_awesome_outlined,
+                  size: 13,
+                  color: colors.assistant,
+                ),
+                const SizedBox(width: 7),
+                Expanded(
+                  child: Text(
+                    c.escalated ? l.broughtToYou : l.answeredByAssistant,
+                    style: Style.meta.copyWith(
+                      color: colors.assistant,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if (reason != null) ...[
+              const SizedBox(height: 10),
+              // The assistant writes its own reason in the language of the
+              // conversation, which is not always the language of the
+              // interface around it. It cannot inherit this pane's direction.
+              Directionality(
+                textDirection: directionOf(reason),
+                child: Text(
+                  reason,
+                  style: Style.preview.copyWith(color: colors.ink, height: 1.5),
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

@@ -21,6 +21,9 @@ Conversation _conversation({
   required String id,
   required Duration inboundAgo,
   Duration? repliedAgo,
+  String? aiState,
+  String? aiEscalationCode,
+  String? aiEscalationReason,
 }) {
   final inboundAt = _now.subtract(inboundAgo);
 
@@ -37,6 +40,9 @@ Conversation _conversation({
     lastInboundAt: inboundAt,
     windowExpiresAt: inboundAt.add(const Duration(hours: 24)),
     unreadCount: repliedAgo == null ? 1 : 0,
+    aiState: aiState,
+    aiEscalationCode: aiEscalationCode,
+    aiEscalationReason: aiEscalationReason,
   );
 }
 
@@ -503,6 +509,298 @@ void _arabic() {
 }
 
 void _numerals() {
+  group('what the assistant left behind', () {
+    late L ar;
+    late L en;
+
+    setUp(() async {
+      ar = await L.delegate.load(const Locale('ar'));
+      en = await L.delegate.load(const Locale('en'));
+    });
+
+    // The failure this whole group exists for: the assistant usually speaks
+    // when it hands a conversation back, and that line is an outbound message.
+    // Left to the message timestamps alone, a customer the assistant said it
+    // could not help lands under "Answered" — the group the seller has finished
+    // reading — while a customer it never spoke to stays visible.
+    test('an escalated conversation is waiting, though the assistant spoke last',
+        () {
+      final escalated = _conversation(
+        id: 'escalated',
+        inboundAgo: const Duration(hours: 3),
+        repliedAgo: const Duration(hours: 2),
+        aiState: 'escalated',
+        aiEscalationCode: 'assistant',
+      );
+
+      expect(escalated.awaitingReply, isTrue);
+    });
+
+    test('a conversation the assistant answered is not waiting', () {
+      // Answering is the case where nobody is waiting on a person. Putting
+      // these in the waiting group too would fill it with work that does not
+      // exist, and the group would stop meaning anything.
+      final answered = _conversation(
+        id: 'answered',
+        inboundAgo: const Duration(hours: 3),
+        repliedAgo: const Duration(hours: 2),
+        aiState: 'answered',
+      );
+
+      expect(answered.awaitingReply, isFalse);
+    });
+
+    test('an escalated conversation sorts by how long the customer has waited',
+        () {
+      // It joins the waiting group at its true age, not at the top or the
+      // bottom of it. The oldest customer is still the one to answer first.
+      final order = inboxOrder([
+        _conversation(id: 'recent', inboundAgo: const Duration(hours: 1)),
+        _conversation(
+          id: 'escalated',
+          inboundAgo: const Duration(hours: 6),
+          repliedAgo: const Duration(hours: 5),
+          aiState: 'escalated',
+          aiEscalationCode: 'assistant',
+        ),
+        _conversation(id: 'oldest', inboundAgo: const Duration(hours: 9)),
+      ]);
+
+      expect(order.map((c) => c.id), ['oldest', 'escalated', 'recent']);
+    });
+
+    test('the seller replying takes the mark off, without a reload', () {
+      final escalated = _conversation(
+        id: 'escalated',
+        inboundAgo: const Duration(hours: 3),
+        repliedAgo: const Duration(hours: 2),
+        aiState: 'escalated',
+        aiEscalationCode: 'assistant',
+        aiEscalationReason: 'بتسأل عن وقت التوصيل',
+      );
+
+      final after = escalated.afterReply(Message(
+        id: 'm1',
+        mid: 'mid1',
+        text: 'بيوصل خلال يومين',
+        attachments: const [],
+        inbound: false,
+        sentAt: _now,
+      ));
+
+      expect(after.aiState, isNull);
+      expect(after.aiEscalationReason, isNull);
+      expect(after.aiEscalationCode, isNull);
+      expect(after.awaitingReply, isFalse,
+          reason: 'it must leave the waiting group the instant the reply goes');
+    });
+
+    test('the assistant own words are shown, not our description of them', () {
+      // The only reason on this list that knows what the customer actually
+      // asked. Everything else is our code describing itself.
+      const written = 'بتسأل امتى بيوصل الطلب وما في وقت توصيل مكتوب';
+
+      final note = assistantReason(
+        ar,
+        _conversation(
+          id: 'c',
+          inboundAgo: const Duration(hours: 1),
+          aiState: 'escalated',
+          aiEscalationCode: 'assistant',
+          aiEscalationReason: written,
+        ),
+      );
+
+      expect(note, written);
+    });
+
+    test('a hand-over the assistant wrote no reason for still says something',
+        () {
+      // In the pane, where there is room for it.
+      // The model is allowed to return no reason, and a blank line under the
+      // preview would read as a rendering fault rather than as a hand-over.
+      for (final language in [ar, en]) {
+        expect(
+          assistantReason(
+            language,
+            _conversation(
+              id: 'c',
+              inboundAgo: const Duration(hours: 1),
+              aiState: 'escalated',
+              aiEscalationCode: 'assistant',
+            ),
+          ),
+          language.broughtToYou,
+        );
+      }
+    });
+
+    test('every escalation code has its own sentence, in both languages', () {
+      // Same rule as the send refusals above: two codes sharing a sentence tell
+      // the seller the same thing about different problems. window_closed and
+      // no_window are the deliberate exception — both mean nothing could be
+      // sent, and the difference between them is ours, not theirs.
+      const codes = [
+        'window_closed',
+        'ai_streak',
+        'seller_present',
+        'ceiling',
+        'ungrounded',
+        'not_sent',
+      ];
+
+      for (final language in [ar, en]) {
+        final said = <String, String>{};
+
+        for (final code in codes) {
+          final note = assistantReason(
+            language,
+            _conversation(
+              id: code,
+              inboundAgo: const Duration(hours: 1),
+              aiState: 'escalated',
+              aiEscalationCode: code,
+            ),
+          );
+
+          expect(note, isNotNull, reason: '$code says nothing');
+          expect(note, isNotEmpty, reason: '$code is empty');
+          expect(said.containsKey(note), isFalse,
+              reason: '$code says the same as ${said[note]}');
+          said[note!] = code;
+        }
+      }
+
+      for (final code in codes) {
+        final arabic = assistantReason(
+          ar,
+          _conversation(
+            id: code,
+            inboundAgo: const Duration(hours: 1),
+            aiState: 'escalated',
+            aiEscalationCode: code,
+          ),
+        );
+
+        expect(arabic, matches(RegExp(r'[؀-ۿ]')),
+            reason: '$code is not translated');
+      }
+    });
+
+    test('a closed window reads the same whether it closed or never opened', () {
+      Conversation of(String code) => _conversation(
+            id: code,
+            inboundAgo: const Duration(hours: 1),
+            aiState: 'escalated',
+            aiEscalationCode: code,
+          );
+
+      expect(assistantReason(en, of('no_window')),
+          assistantReason(en, of('window_closed')));
+    });
+
+    test('a code the interface has never met reads as a hand-over', () {
+      // Codes are added on the server first. A seller meeting a new one must
+      // see a conversation that needs them, not a blank line and not a token.
+      for (final language in [ar, en]) {
+        expect(
+          assistantReason(
+            language,
+            _conversation(
+              id: 'c',
+              inboundAgo: const Duration(hours: 1),
+              aiState: 'escalated',
+              aiEscalationCode: 'something_added_later',
+            ),
+          ),
+          language.broughtToYou,
+        );
+      }
+    });
+
+    test('a conversation the assistant never touched says nothing at all', () {
+      final untouched = _conversation(id: 'c', inboundAgo: const Duration(hours: 1));
+
+      expect(assistantReason(en, untouched), isNull);
+      expect(assistantMark(en, untouched), isNull,
+          reason: 'a row it never saw must carry no mark either');
+    });
+
+    test('an answered conversation carries a mark and no reason', () {
+      // A leftover reason from an earlier escalation must not be read out under
+      // a conversation that has since been answered. The pane asks for the
+      // reason and gets nothing; the row asks for the mark and gets the word.
+      final answered = _conversation(
+        id: 'c',
+        inboundAgo: const Duration(hours: 1),
+        aiState: 'answered',
+        aiEscalationReason: 'stale',
+        aiEscalationCode: 'assistant',
+      );
+
+      expect(assistantReason(en, answered), isNull);
+      expect(assistantMark(en, answered), en.answeredByAssistant);
+    });
+
+    test('the row says what happened and never why', () {
+      // The split this group exists to hold: the mark is one of two fixed
+      // words, whatever the assistant wrote. A reason reaching the row again
+      // is the regression — it was prose competing with the customer's own
+      // words in a column with no room for it.
+      const written = 'بتسأل امتى بيوصل الطلب وما في وقت توصيل مكتوب';
+
+      final escalated = _conversation(
+        id: 'c',
+        inboundAgo: const Duration(hours: 1),
+        aiState: 'escalated',
+        aiEscalationCode: 'assistant',
+        aiEscalationReason: written,
+      );
+
+      expect(assistantMark(ar, escalated), ar.broughtToYou);
+      expect(assistantMark(ar, escalated), isNot(written));
+
+      // Every code collapses to the same word on the row, including the ones
+      // that have a sentence of their own in the pane.
+      for (final code in ['window_closed', 'ungrounded', 'ceiling', 'whatever']) {
+        expect(
+          assistantMark(
+            en,
+            _conversation(
+              id: code,
+              inboundAgo: const Duration(hours: 1),
+              aiState: 'escalated',
+              aiEscalationCode: code,
+            ),
+          ),
+          en.broughtToYou,
+        );
+      }
+    });
+
+    test('the mark is in the seller language, in both languages', () {
+      final escalated = _conversation(
+        id: 'c',
+        inboundAgo: const Duration(hours: 1),
+        aiState: 'escalated',
+        aiEscalationCode: 'assistant',
+      );
+      final answered = _conversation(
+        id: 'd',
+        inboundAgo: const Duration(hours: 1),
+        aiState: 'answered',
+      );
+
+      for (final c in [escalated, answered]) {
+        expect(assistantMark(ar, c), isNot(assistantMark(en, c)));
+        expect(assistantMark(ar, c), matches(RegExp(r'[؀-ۿ]')));
+      }
+
+      expect(assistantMark(en, escalated), isNot(assistantMark(en, answered)),
+          reason: 'handed over and answered are opposite outcomes');
+    });
+  });
+
   test('no Arabic string uses Eastern numerals', () {
     // Western numerals throughout, including in the Arabic interface — settled
     // in DECISIONS.md. Checking the file rather than a handful of getters is

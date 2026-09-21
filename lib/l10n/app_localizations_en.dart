@@ -265,6 +265,49 @@ class LEn extends L {
   String get sentAutomatically => 'Automatic reply';
 
   @override
+  String get answeredByAssistant => 'The assistant answered';
+
+  @override
+  String get broughtToYou => 'The assistant brought this to you';
+
+  @override
+  String get escalatedWindowClosed =>
+      'The reply window closed before it could answer';
+
+  @override
+  String get escalatedAiStreak => 'It has answered several times running here';
+
+  @override
+  String get escalatedSellerPresent =>
+      'You were replying yourself, so it stayed out of it';
+
+  @override
+  String get escalatedCeiling =>
+      'The assistant has reached its limit for this month';
+
+  @override
+  String get escalatedUngrounded =>
+      'It nearly said something you have not written down';
+
+  @override
+  String get escalatedNotSent => 'Its reply could not be sent';
+
+  @override
+  String get alertWrote => 'wrote to you';
+
+  @override
+  String get alertHandedOver => 'The assistant brought this to you';
+
+  @override
+  String get alerts => 'Alerts';
+
+  @override
+  String get alertsDenied => 'Alerts are blocked in your browser';
+
+  @override
+  String get alertsUnsupported => 'Alerts are not available here';
+
+  @override
   String get invite => 'Invite';
 
   @override

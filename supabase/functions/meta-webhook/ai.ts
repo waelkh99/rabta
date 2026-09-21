@@ -189,6 +189,26 @@ export type GuardReason =
   | "ceiling"; // the monthly backstop
 
 /**
+ * Which kind of escalation this was, in a form the interface can localise.
+ *
+ * Every guard reason is one of these, plus the four that happen after the
+ * model has been asked. Stored beside `ai_escalation_reason`, which carries
+ * the prose; this carries the class, because the seller reads Arabic or
+ * English and the prose is written in neither reliably.
+ *
+ * `assistant` is the one the seller sees most: the model itself decided a
+ * human was needed, and its own sentence is what goes in the reason. The rest
+ * are our code stepping in before or after it, and the interface supplies
+ * their wording.
+ */
+export type EscalationCode =
+  | GuardReason
+  | "ungrounded" // it wrote something the shop never said, and we held it back
+  | "unusable" // the model came back with nothing we could send
+  | "not_sent" // Meta refused the send; the customer received nothing
+  | "assistant"; // the model handed over, and wrote why
+
+/**
  * Whether the customer should be told, rather than left waiting on silence.
  *
  * Only two guards say anything. `window_closed` and `no_window` cannot — Meta
@@ -663,7 +683,7 @@ const DECISION_SCHEMA = {
     reason: {
       type: "string",
       description:
-        "A few words, in English, on why this needs a human. Only when handOver is true.",
+        "One short sentence saying what you could not handle here, so whoever picks it up knows what they are taking on before they open it. Write it in the same language you are writing to the customer in. Say the thing itself — \"she is asking when the order arrives and no delivery time is written down\" — not that you were unsure. Only when handOver is true.",
     },
   },
   required: ["text", "handOver"],
@@ -949,10 +969,15 @@ export function readDecision(body: unknown): Decision | null {
     ? decision.reason.trim()
     : null;
 
+  // Null rather than a stand-in sentence. Since the reason is shown to the
+  // seller it has to be in their language, and an English placeholder written
+  // here would be the one line of the interface that is not translated. The
+  // escalation code says a hand-over happened; the interface supplies the
+  // general wording when the model supplied none.
   return {
     text: decision.text.trim(),
     handOver,
-    reason: handOver ? (reason ?? "the assistant was not confident") : null,
+    reason: handOver ? reason : null,
   };
 }
 

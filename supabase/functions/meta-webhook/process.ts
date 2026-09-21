@@ -16,6 +16,7 @@ import {
   attachmentTurn,
   claimsAreGrounded,
   type DeliveryZone,
+  type EscalationCode,
   guard,
   HANDOVER_LINE,
   isSpoken,
@@ -100,6 +101,7 @@ export interface Store {
     conversationId: string,
     state: "answered" | "escalated",
     reason: string | null,
+    code: EscalationCode | null,
   ): Promise<void>;
 }
 
@@ -362,7 +364,11 @@ export async function autoReply(
    * fixed text — see HANDOVER_LINE — because most of these paths are reached
    * precisely when the model cannot be relied on to write one.
    */
-  const handOver = async (reason: string, speak: boolean): Promise<AutoReplyOutcome> => {
+  const handOver = async (
+    code: EscalationCode,
+    reason: string,
+    speak: boolean,
+  ): Promise<AutoReplyOutcome> => {
     // The message being answered decides the language, which is the same
     // signal the prompt itself uses.
     if (speak) {
@@ -370,11 +376,13 @@ export async function autoReply(
       await say(arabic ? HANDOVER_LINE.arabic : HANDOVER_LINE.english);
     }
 
-    await store.finishAiRun(outcome.conversationId, "escalated", reason);
+    await store.finishAiRun(outcome.conversationId, "escalated", reason, code);
     return "escalated";
   };
 
-  if (blocked) return handOver(blocked, isSpoken(blocked, context));
+  // A guard reason is already an escalation code, and is its own detail: there
+  // is no prose to add to "the reply window had closed".
+  if (blocked) return handOver(blocked, blocked, isSpoken(blocked, context));
 
   const prompt = await store.aiPrompt(context.workspaceId, outcome.conversationId);
 
@@ -418,7 +426,7 @@ export async function autoReply(
     // and nothing else would say why. Seen once in a live run and not
     // reproduced on the same input.
     console.log(`ai unusable ${outcome.conversationId}: ${answer.detail}`);
-    return handOver("no usable answer", true);
+    return handOver("unusable", answer.detail, true);
   }
 
   // Emoji are trimmed rather than escalated: at most one safe one, at the end.
@@ -428,7 +436,7 @@ export async function autoReply(
   const decision = { ...answer.decision, text: reply };
 
   const refusal = reasonNotToSend(decision.text, facts, prompt.turns, message.platform);
-  if (refusal) return handOver(refusal, true);
+  if (refusal) return handOver("ungrounded", refusal, true);
 
   const delivery = await say(decision.text);
 
@@ -436,19 +444,27 @@ export async function autoReply(
     // Nothing reached the customer, so the hand-over line would not reach them
     // either — the same send is what failed.
     if (delivery.retry) return "failed";
-    await store.finishAiRun(outcome.conversationId, "escalated", delivery.reason);
+    await store.finishAiRun(outcome.conversationId, "escalated", delivery.reason, "not_sent");
     return "escalated";
   }
 
   // Answered AND handed over, which the old shape could not express: a customer
   // who asks two things, one of them answerable, gets the answer and the seller
   // gets the rest.
+  // The model's own words, shown to the seller as written. Everything else on
+  // this path is our code describing itself; this is the assistant describing
+  // what it could not do, which is the only one worth reading.
   if (decision.handOver) {
-    await store.finishAiRun(outcome.conversationId, "escalated", decision.reason);
+    await store.finishAiRun(
+      outcome.conversationId,
+      "escalated",
+      decision.reason,
+      "assistant",
+    );
     return "escalated";
   }
 
-  await store.finishAiRun(outcome.conversationId, "answered", null);
+  await store.finishAiRun(outcome.conversationId, "answered", null, null);
 
   return "answered";
 }
@@ -844,10 +860,14 @@ export function createSupabaseStore(client: SupabaseLike): Store {
       if (error) throw new Error(`ai reply insert failed: ${error.message}`);
     },
 
-    async finishAiRun(conversationId, state, reason) {
+    async finishAiRun(conversationId, state, reason, code) {
       const { error } = await client
         .from("conversations")
-        .update({ ai_state: state, ai_escalation_reason: reason })
+        .update({
+          ai_state: state,
+          ai_escalation_reason: reason,
+          ai_escalation_code: code,
+        })
         .eq("id", conversationId);
 
       if (error) throw new Error(`ai finish failed: ${error.message}`);

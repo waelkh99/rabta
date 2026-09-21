@@ -529,6 +529,84 @@ abstract class L {
   /// **'رد تلقائي'**
   String get sentAutomatically;
 
+  /// On a row in the inbox whose last reply was the assistant's. Not a warning — the seller may want to read what it said, and this is how they know there is something to read.
+  ///
+  /// In ar, this message translates to:
+  /// **'أجاب المساعد'**
+  String get answeredByAssistant;
+
+  /// The general hand-over line on an inbox row, used when the assistant wrote no reason of its own or the reason is a kind the interface has not met before. Never reads as an error: handing a conversation over is a good outcome.
+  ///
+  /// In ar, this message translates to:
+  /// **'حوّلها المساعد إليك'**
+  String get broughtToYou;
+
+  /// No description provided for @escalatedWindowClosed.
+  ///
+  /// In ar, this message translates to:
+  /// **'أُغلقت نافذة الرد قبل أن يجيب'**
+  String get escalatedWindowClosed;
+
+  /// No description provided for @escalatedAiStreak.
+  ///
+  /// In ar, this message translates to:
+  /// **'أجاب مرات متتالية هنا، والدور عليك'**
+  String get escalatedAiStreak;
+
+  /// No description provided for @escalatedSellerPresent.
+  ///
+  /// In ar, this message translates to:
+  /// **'كنت ترد بنفسك، فلم يتدخّل'**
+  String get escalatedSellerPresent;
+
+  /// No description provided for @escalatedCeiling.
+  ///
+  /// In ar, this message translates to:
+  /// **'بلغ المساعد حدّه لهذا الشهر'**
+  String get escalatedCeiling;
+
+  /// No description provided for @escalatedUngrounded.
+  ///
+  /// In ar, this message translates to:
+  /// **'كاد يقول ما لم تكتبه، فتوقّف'**
+  String get escalatedUngrounded;
+
+  /// The reply never reached the customer at all, which is the one of these the seller must act on fastest.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعذّر إرسال رده'**
+  String get escalatedNotSent;
+
+  /// The body of a system notification. The customer's own words are deliberately not quoted: a notification shows on a locked screen and over a shared desk, and what a customer writes to a shop is theirs.
+  ///
+  /// In ar, this message translates to:
+  /// **'راسلك'**
+  String get alertWrote;
+
+  /// No description provided for @alertHandedOver.
+  ///
+  /// In ar, this message translates to:
+  /// **'حوّلها المساعد إليك'**
+  String get alertHandedOver;
+
+  /// A menu row with a switch. The switch carries on and off, so the label is a noun rather than an instruction.
+  ///
+  /// In ar, this message translates to:
+  /// **'التنبيهات'**
+  String get alerts;
+
+  /// Refused once, and no browser asks a second time. Said plainly instead of leaving a switch that would do nothing.
+  ///
+  /// In ar, this message translates to:
+  /// **'التنبيهات محظورة في المتصفّح'**
+  String get alertsDenied;
+
+  /// Safari on iPhone has no notification API for a site open in a tab — the seller has to add Rabta to the home screen first. Not the same as refused, and it must not read as an error.
+  ///
+  /// In ar, this message translates to:
+  /// **'التنبيهات غير متاحة هنا'**
+  String get alertsUnsupported;
+
   /// No description provided for @invite.
   ///
   /// In ar, this message translates to:

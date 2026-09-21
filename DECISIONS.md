@@ -2134,6 +2134,142 @@ Testing section of `CLAUDE.md`.
 
 ---
 
+## Telling the seller something happened
+
+Settled 21 September 2026, after asking what a browser notification is actually
+worth on a phone. The short answer is that it is worth nothing on an iPhone
+unless the seller installs Rabta, and that fact shapes the rest.
+
+### A notification on mobile means Add to Home Screen, or it means nothing
+
+**An iPhone is the constraint.** A site open in a Safari tab has no
+Notification API at all — not denied, absent, and `PushManager` is missing with
+it. Since iOS 16.4 a site **added to the Home Screen** can receive push, and
+iOS 26 opens home-screen sites as web apps by default, which removes a step.
+There is no third option inside the browser. `web/manifest.json` already
+declares `display: standalone` with icons, so the install path exists; what
+does not exist yet is anyone walking a seller through it.
+
+This is the second invisible per-device setup step in the product. The first is
+**Connected tools → Allow access to messages**, which a seller must turn on
+inside the Instagram app and which is off by default and invisible from the
+Meta dashboard. Both are the same shape of problem: the product looks broken
+and nothing on screen says why.
+
+**Android** needs no install — an ordinary tab can show notifications — but
+`new Notification(...)` **throws** there: "Illegal constructor. Use
+ServiceWorkerRegistration.showNotification() instead." So a service worker is
+required on Android whatever else is true.
+
+### Everything goes through the service worker, including on desktop
+
+`new Notification(...)` would have worked on a desktop browser. It is not used
+anywhere. One path for every platform is what stops the desktop case quietly
+working while the phone case is the one nobody ran — which, given the above, is
+the failure this product is most likely to ship.
+
+`web/alerts_sw.js` exists only so `showNotification` has a registration to be
+called on. It caches nothing and intercepts no requests, so it cannot collide
+with the worker Flutter generates for release builds. It is registered lazily,
+when the seller turns alerts on, rather than on load: a background thread every
+visitor pays for so that some of them can have notifications is the wrong
+trade.
+
+The registration is awaited through `navigator.serviceWorker.ready`, not
+through `register()`. A registration exists before its worker is active, and
+`showNotification` on an inactive one does nothing and reports no error — the
+exact failure that reads as "notifications are broken" and leaves nothing to
+look at.
+
+### Three tiers, and only two of them are built
+
+1. **The count in the tab title.** No permission, no worker, always on. It
+   answers "is anything waiting" from a glance at a background tab. `(3) Rabta`
+   — the count leads, because in a narrow tab that is all there is room for,
+   and zero reads as the plain name rather than `(0)`.
+2. **A system notification while Rabta is open**, including in a background
+   tab. Needs permission and the worker. **Built.**
+3. **Real Web Push, for when Rabta is closed.** VAPID keys, a subscriptions
+   table, an Edge Function that pushes on escalation, and hosting. **Not
+   built, and blocked**: push needs a real HTTPS origin and there is still
+   nowhere to host the site. This is the only tier that actually answers
+   "a customer asks a price at 11pm", so it is not a tier that can be dropped —
+   it is one that is waiting on the critical path.
+
+### What is announced is decided by diffing the list, not by listening
+
+The realtime subscription is already used as a signal and never as a source of
+data: every change causes the list to be read back through the ordinary query,
+so row level security applies exactly as on a reload. Announcements follow the
+same rule. `alertsFor` compares the previous list with the new one, because the
+list is the only thing that is ever true and a notification that disagrees with
+what is on screen is worse than none.
+
+Consequences that are deliberate:
+
+- **The first list of a session announces nothing.** Opening Rabta to nine
+  waiting customers must not fire nine notifications about customers already on
+  screen. That is the single most likely way for this feature to be turned off
+  once and never on again.
+- **A new message is detected on `last_inbound_at`, never on the unread
+  count.** An assistant reply sets unread to zero, so a customer who writes, is
+  answered, and writes again looks unchanged by that measure. Proven: mutating
+  the check to use the unread count fails two tests.
+- **A hand-over wins over a new message** when both happen at once, which they
+  often do — the customer wrote, the assistant tried, and it gave up. One
+  notification, and the informative one.
+- **An escalation is announced once.** Nothing clears `ai_state` but the
+  seller's own reply, so without this every unrelated refresh would announce it
+  again.
+- **The conversation the seller is reading is never announced.**
+
+### A notification never quotes the customer
+
+It shows on a locked screen and over a shared desk. What a customer writes to a
+shop is theirs. The seller is told who, and which of the two things happened,
+and opens Rabta to read the rest.
+
+### Off is ours, because the browser will not give the permission back
+
+A granted permission cannot be revoked from code. `Notification.permission`
+stays `"granted"` until somebody changes it in browser settings, and there is
+no API for it. So the switch in the menu is our own preference laid over the
+browser's, kept in `localStorage`, and a notification is shown only when both
+agree.
+
+It is stored per browser per device rather than on the account, deliberately.
+Notifications are a property of where you are sitting: the same seller may want
+them on the machine at the counter and not on the one at home, and a preference
+that followed them between the two would be wrong in one place every time.
+Storage that throws — a private window, blocked site data — falls back to on,
+so alerts keep working and only the memory of the choice is lost.
+
+"Never asked" and "switched off" are one state in the interface. From the
+seller's side both mean "not getting notifications, and I can change that", and
+turning it on does whatever is needed — prompting only if the browser has never
+been asked. Turning it off and on again does not prompt a second time, which is
+just as well: there is no second prompt to give.
+
+**A bug this found.** Registration used to happen only inside the permission
+prompt, so a seller who turned alerts on and then reloaded the page kept a menu
+row saying they were on while `notify` found no worker and silently did
+nothing. It survived the first browser pass because permission was granted and
+alerts enabled in the same page session. `prepareAlerts()` now registers on
+startup whenever alerts are already on, and the reload path is part of what is
+driven in the browser.
+
+### Permission is asked from the menu, and only once
+
+Every browser requires a user gesture, and a prompt fired on page load is
+refused by some of them before the seller sees it. So there is a row in the
+menu. It states what is true rather than always offering a switch: refused once
+means no browser will ask again, and a button that silently does nothing is
+worse than a sentence. A Safari tab on an iPhone reads as "not available here",
+which is deliberately not the same wording as "blocked" — the seller has done
+nothing wrong and installing fixes it.
+
+---
+
 ## Platform constraints
 
 These are not choices. They are limits Meta imposes, recorded here so they are

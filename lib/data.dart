@@ -19,6 +19,9 @@ class Conversation {
     required this.lastInboundAt,
     required this.windowExpiresAt,
     required this.unreadCount,
+    this.aiState,
+    this.aiEscalationReason,
+    this.aiEscalationCode,
   });
 
   final String id;
@@ -37,6 +40,28 @@ class Conversation {
   final DateTime? windowExpiresAt;
   final int unreadCount;
 
+  /// What the assistant last did here: `answered`, `escalated`, or null when it
+  /// has not touched this conversation — or when the seller has since replied,
+  /// which is what clears all three of these.
+  final String? aiState;
+
+  /// Why it stepped back, in words. Written by the assistant itself when
+  /// [aiEscalationCode] is `assistant`, and shown to the seller as written.
+  /// Null on every other kind of escalation, where the interface supplies the
+  /// wording in the seller's own language instead.
+  final String? aiEscalationReason;
+
+  /// Which kind of escalation it was. A short token, not a sentence — see the
+  /// column comment in `20260921000001_ai_visible.sql`. An unfamiliar value is
+  /// read as a general hand-over rather than as an error.
+  final String? aiEscalationCode;
+
+  bool get answeredByAssistant => aiState == 'answered';
+
+  /// The assistant looked at this and could not finish it, so a customer is
+  /// still waiting on a person.
+  bool get escalated => aiState == 'escalated';
+
   /// A conversation is waiting on the seller exactly when the newest message in
   /// it is the customer's — that is, when `last_message_at` has not moved past
   /// `last_inbound_at`. Both columns are maintained by the database trigger, so
@@ -45,10 +70,17 @@ class Conversation {
   /// The comparison is `isAfter`, not `isBefore`. A seller's reply advances
   /// `last_message_at` beyond `last_inbound_at`, and getting this backwards
   /// leaves every answered conversation sitting in the waiting group.
+  /// An escalation counts as waiting whatever the messages say. This is not a
+  /// refinement — it is the whole point. When the assistant hands a
+  /// conversation back it usually tells the customer so, and that line is an
+  /// outbound message, which moves `last_message_at` past `last_inbound_at`
+  /// and files the conversation under "Answered". A customer the assistant
+  /// explicitly could not help would then sit in the group the seller has
+  /// stopped reading.
   bool get awaitingReply =>
       lastInboundAt != null &&
-      lastMessageAt != null &&
-      !lastMessageAt!.isAfter(lastInboundAt!);
+      (escalated ||
+          (lastMessageAt != null && !lastMessageAt!.isAfter(lastInboundAt!)));
 
   /// This conversation as it stands once the seller's reply has gone.
   ///
@@ -71,6 +103,13 @@ class Conversation {
         lastInboundAt: lastInboundAt,
         windowExpiresAt: windowExpiresAt,
         unreadCount: 0,
+        // The seller replying is what takes the assistant's mark off, and the
+        // database trigger does exactly this on the row. Repeated here so the
+        // conversation leaves the waiting group the instant the reply is
+        // accepted, rather than on the next reload.
+        aiState: null,
+        aiEscalationReason: null,
+        aiEscalationCode: null,
       );
 
   static DateTime? _time(dynamic value) =>
@@ -87,6 +126,9 @@ class Conversation {
         lastInboundAt: _time(row['last_inbound_at']),
         windowExpiresAt: _time(row['window_expires_at']),
         unreadCount: (row['unread_count'] as int?) ?? 0,
+        aiState: row['ai_state'] as String?,
+        aiEscalationReason: row['ai_escalation_reason'] as String?,
+        aiEscalationCode: row['ai_escalation_code'] as String?,
       );
 }
 
@@ -597,7 +639,8 @@ class Inbox {
         .select(
           'id, customer_name, customer_avatar_url, last_message_preview, '
           'last_message_type, last_message_at, last_inbound_at, '
-          'window_expires_at, unread_count, connected_accounts!inner(platform)',
+          'window_expires_at, unread_count, ai_state, ai_escalation_reason, '
+          'ai_escalation_code, connected_accounts!inner(platform)',
         )
         .order('last_message_at', ascending: false);
 

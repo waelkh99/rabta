@@ -22,6 +22,7 @@ import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'accounts_page.dart';
+import 'alerts.dart';
 import 'data.dart';
 import 'details_panel.dart';
 import 'invite_page.dart';
@@ -88,6 +89,23 @@ class _InboxPageState extends State<InboxPage> {
     super.initState();
     _listen();
     _loadAccounts();
+
+    // Registration used to happen only inside the permission prompt, so a
+    // seller who had turned alerts on and then reloaded the page kept a menu
+    // row saying they were on while nothing was ever shown — `notify` found no
+    // worker and returned. Nothing on screen said so, which is the worst shape
+    // for a bug like this to take.
+    prepareAlerts();
+
+    // The first list comes through this future rather than through _refresh,
+    // so without this the count does not reach the title until something
+    // changes — which on a quiet morning is not for hours. Nothing is
+    // announced from it: `alertsFor` is given no previous list and returns
+    // nothing, which is what stops a seller opening Rabta to nine waiting
+    // customers and being notified about all nine.
+    _conversations.then((first) {
+      if (mounted) _announce(first);
+    }).catchError((_) {});
   }
 
   Future<void> _loadAccounts() async {
@@ -141,8 +159,36 @@ class _InboxPageState extends State<InboxPage> {
     if (token != null) Supabase.instance.client.realtime.setAuth(token);
   }
 
+  /// The list as it was at the previous refresh, which is what a change is
+  /// measured against. Null until the first one has arrived — see `alertsFor`,
+  /// which announces nothing on a first list.
+  List<Conversation>? _announced;
+
+  /// Updates the tab title, and tells the seller about anything new.
+  ///
+  /// Called on every refresh rather than only on the realtime path, because a
+  /// refresh is also what happens when the seller comes back from the shop
+  /// screen — and a customer who wrote while they were in there is exactly the
+  /// case this exists for.
+  void _announce(List<Conversation> fresh) {
+    showWaitingCount('Rabta', _inbox.waitingCount(fresh));
+
+    final alerts = alertsFor(_announced, fresh, openId: _open?.id);
+    _announced = fresh;
+
+    if (!alertsAreOn()) return;
+
+    for (final alert in alerts) {
+      final said = alertText(context.l, alert);
+      announce(alert, said.title, said.body);
+    }
+  }
+
   @override
   void dispose() {
+    // Otherwise a seller who signs out is left looking at a tab still counting
+    // customers they can no longer see.
+    showWaitingCount('Rabta', 0);
     _authChanges?.cancel();
     final channel = _channel;
     if (channel != null) Supabase.instance.client.removeChannel(channel);
@@ -161,6 +207,8 @@ class _InboxPageState extends State<InboxPage> {
     }
 
     if (!mounted) return;
+
+    _announce(fresh);
 
     setState(() {
       _live = fresh;
@@ -224,11 +272,18 @@ class _InboxPageState extends State<InboxPage> {
 
     final updated = open.afterReply(reply);
 
+    final next = inboxOrder([
+      for (final c in current) c.id == updated.id ? updated : c,
+    ]);
+
+    // The same list the seller is now looking at. Without this the count in
+    // the title still includes the customer they have just answered, until the
+    // next refresh happens to come along.
+    _announce(next);
+
     setState(() {
       _open = updated;
-      _live = inboxOrder([
-        for (final c in current) c.id == updated.id ? updated : c,
-      ]);
+      _live = next;
     });
   }
 
@@ -640,15 +695,43 @@ class _ConversationRowState extends State<_ConversationRow> {
           child: Container(
             // Selection is a shift in ground, not a card. No border, no
             // elevation anywhere in this list.
+            //
+            // The shift alone was not enough. Hover uses the same colour at
+            // half strength, so the open conversation differed from whichever
+            // row the pointer happened to be over by one step of a very pale
+            // violet, and on a screen that is not the one this was designed on
+            // it read as nothing at all. The bar below is the part hover cannot
+            // imitate.
             color: widget.selected
                 ? colors.raised
                 : _hovered
                     ? colors.raised.withValues(alpha: 0.5)
                     : colors.surface,
-            padding: const EdgeInsetsDirectional.fromSTEB(16, 13, 20, 13),
+            padding: EdgeInsetsDirectional.only(
+              // The bar is drawn inside the row's own start padding rather than
+              // over it, so nothing shifts sideways when a row is opened.
+              start: widget.selected ? 13 : 16,
+              top: 13,
+              end: 20,
+              bottom: 13,
+            ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Full height and hard against the start edge, which is what
+                // separates it from the wait rail 13px along: that one is a
+                // short gauge, mostly pale, and it says something else.
+                if (widget.selected) ...[
+                  Container(
+                    width: 3,
+                    constraints: const BoxConstraints(minHeight: 46),
+                    decoration: BoxDecoration(
+                      color: colors.accent,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                ],
                 // The rail only appears where a window is running down. On an
                 // answered row nothing is counting, and an empty track is noise.
                 SizedBox(
@@ -710,6 +793,7 @@ class _ConversationRowState extends State<_ConversationRow> {
                           ],
                         ],
                       ),
+                      _AssistantMark(conversation: c),
                     ],
                   ),
                 ),
@@ -717,6 +801,69 @@ class _ConversationRowState extends State<_ConversationRow> {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// That the assistant touched this conversation, on the row, so the seller does
+/// not have to open one to find out.
+///
+/// The row says what happened and the details pane says why. It carried the why
+/// too at first, and on a row that already holds a name, a time and the
+/// customer's own words it was a third line of prose that ran out of width at
+/// the point it began to mean something.
+///
+/// Without any mark at all an escalated conversation is indistinguishable from
+/// one the seller has simply not got to, and the whole point of the assistant is
+/// that those are now different things. So the mark stays on the row; only the
+/// sentence moved.
+///
+/// Teal, the same colour as an assistant message in the thread. As there, the
+/// colour is not the only signal — it says in words what happened, which is what
+/// a seller who cannot separate teal from violet reads instead.
+class _AssistantMark extends StatelessWidget {
+  const _AssistantMark({required this.conversation});
+
+  final Conversation conversation;
+
+  @override
+  Widget build(BuildContext context) {
+    final note = assistantMark(context.l, conversation);
+    if (note == null) return const SizedBox.shrink();
+
+    final colors = context.rabta;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            // Handing back and having answered are opposite outcomes and must
+            // not share a glyph: one needs the seller and one does not.
+            //
+            // A flag rather than anything cleverer because this is drawn at
+            // 12px. The first choice here was assistant_direction_outlined,
+            // which at this size resolves to a dark circular blob that reads
+            // as an error badge — seen in the browser, invisible to every test
+            // written about this widget.
+            conversation.escalated
+                ? Icons.flag_outlined
+                : Icons.auto_awesome_outlined,
+            size: 12,
+            color: colors.assistant,
+          ),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(
+              note,
+              style: Style.meta.copyWith(color: colors.assistant),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
       ),
     );
   }

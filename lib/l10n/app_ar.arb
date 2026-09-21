@@ -102,6 +102,47 @@
     "description": "On a message the assistant sent instead of the seller. The bubble is already a different colour; this is the wording a seller who cannot tell the two colours apart relies on, so it has to say plainly who wrote it."
   },
 
+  "answeredByAssistant": "أجاب المساعد",
+  "@answeredByAssistant": {
+    "description": "On a row in the inbox whose last reply was the assistant's. Not a warning — the seller may want to read what it said, and this is how they know there is something to read."
+  },
+
+  "broughtToYou": "حوّلها المساعد إليك",
+  "@broughtToYou": {
+    "description": "The general hand-over line on an inbox row, used when the assistant wrote no reason of its own or the reason is a kind the interface has not met before. Never reads as an error: handing a conversation over is a good outcome."
+  },
+
+  "escalatedWindowClosed": "أُغلقت نافذة الرد قبل أن يجيب",
+  "escalatedAiStreak": "أجاب مرات متتالية هنا، والدور عليك",
+  "escalatedSellerPresent": "كنت ترد بنفسك، فلم يتدخّل",
+  "escalatedCeiling": "بلغ المساعد حدّه لهذا الشهر",
+  "escalatedUngrounded": "كاد يقول ما لم تكتبه، فتوقّف",
+  "escalatedNotSent": "تعذّر إرسال رده",
+
+  "alertWrote": "راسلك",
+  "@alertWrote": {
+    "description": "The body of a system notification. The customer's own words are deliberately not quoted: a notification shows on a locked screen and over a shared desk, and what a customer writes to a shop is theirs."
+  },
+  "alertHandedOver": "حوّلها المساعد إليك",
+  "alerts": "التنبيهات",
+  "@alerts": {
+    "description": "A menu row with a switch. The switch carries on and off, so the label is a noun rather than an instruction."
+  },
+  "@alertsOff": {
+    "description": "In the menu, when the seller has not been asked yet. Tapping it is the gesture the browser requires before it will show a permission prompt."
+  },
+  "alertsDenied": "التنبيهات محظورة في المتصفّح",
+  "@alertsDenied": {
+    "description": "Refused once, and no browser asks a second time. Said plainly instead of leaving a switch that would do nothing."
+  },
+  "alertsUnsupported": "التنبيهات غير متاحة هنا",
+  "@alertsUnsupported": {
+    "description": "Safari on iPhone has no notification API for a site open in a tab — the seller has to add Rabta to the home screen first. Not the same as refused, and it must not read as an error."
+  },
+  "@escalatedNotSent": {
+    "description": "The reply never reached the customer at all, which is the one of these the seller must act on fastest."
+  },
+
   "invite": "دعوة",
   "inviteTitle": "دعوة بائع",
   "inviteBody": "يُنشئ هذا حساباً جديداً على ربطة. يختار صاحبه كلمة المرور بنفسه من الرابط، فلا نعرفها ولا تمر في محادثة.",

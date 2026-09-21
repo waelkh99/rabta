@@ -7,6 +7,7 @@
 
 import 'package:flutter/widgets.dart';
 
+import 'data.dart';
 import 'l10n/app_localizations.dart';
 import 'theme.dart';
 
@@ -63,6 +64,64 @@ String sendRefusal(L l, String reason) => switch (reason) {
       'not_found' => l.sendFailedNotFound,
       _ => l.sendFailedRejected,
     };
+
+/// The short version, for a row in the inbox: what the assistant did, and
+/// nothing about why.
+///
+/// The why lives in the details pane, where there is room to read it. On a row
+/// it was a third line of prose competing with the customer's own words, and it
+/// was ellipsised at exactly the point it started saying anything.
+///
+/// Null when the assistant has not touched this conversation, or when the
+/// seller has since replied — replying is what clears all of it.
+String? assistantMark(L l, Conversation c) {
+  if (c.answeredByAssistant) return l.answeredByAssistant;
+  if (c.escalated) return l.broughtToYou;
+  return null;
+}
+
+/// Why the assistant stepped back, in full, for the details pane.
+///
+/// Null when it has not touched this conversation, or when the seller has since
+/// replied — replying is what clears all of it, on the row and in the database.
+///
+/// The escalation reason has two sources and they are not interchangeable. When
+/// the assistant itself decided a person was needed it writes the reason, in the
+/// language of the conversation, and that sentence is shown as written: it is
+/// the only one that knows what the customer actually asked. Every other
+/// escalation is our own code stepping in, and those are named here so the
+/// seller reads them in their own language rather than in ours.
+///
+/// A code the interface has not met reads as a plain hand-over. New ones will
+/// be added on the server before they are added here, and a seller meeting one
+/// should see a conversation that needs them — not a blank line, and not a
+/// token.
+///
+/// Takes `L` rather than a context for the same reason `sendRefusal` does:
+/// every case can then be checked in both languages without a widget tree.
+String? assistantReason(L l, Conversation c) {
+  if (!c.escalated) return null;
+
+  // The assistant's own words come first, whatever the code says. It is the
+  // only reason on this list that mentions the customer's actual question.
+  final written = c.aiEscalationReason?.trim();
+  if (c.aiEscalationCode == 'assistant' && written != null && written.isNotEmpty) {
+    return written;
+  }
+
+  return switch (c.aiEscalationCode) {
+    // Two codes, one meaning to a seller: nothing could be sent, because Meta
+    // would not have carried it. The distinction between "closed" and "never
+    // opened" is ours and tells them nothing they can act on.
+    'window_closed' || 'no_window' => l.escalatedWindowClosed,
+    'ai_streak' => l.escalatedAiStreak,
+    'seller_present' => l.escalatedSellerPresent,
+    'ceiling' => l.escalatedCeiling,
+    'ungrounded' => l.escalatedUngrounded,
+    'not_sent' => l.escalatedNotSent,
+    _ => l.broughtToYou,
+  };
+}
 
 String platformName(BuildContext context, String platform) =>
     platform == 'instagram'

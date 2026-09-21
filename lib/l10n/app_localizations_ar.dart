@@ -269,6 +269,45 @@ class LAr extends L {
   String get sentAutomatically => 'رد تلقائي';
 
   @override
+  String get answeredByAssistant => 'أجاب المساعد';
+
+  @override
+  String get broughtToYou => 'حوّلها المساعد إليك';
+
+  @override
+  String get escalatedWindowClosed => 'أُغلقت نافذة الرد قبل أن يجيب';
+
+  @override
+  String get escalatedAiStreak => 'أجاب مرات متتالية هنا، والدور عليك';
+
+  @override
+  String get escalatedSellerPresent => 'كنت ترد بنفسك، فلم يتدخّل';
+
+  @override
+  String get escalatedCeiling => 'بلغ المساعد حدّه لهذا الشهر';
+
+  @override
+  String get escalatedUngrounded => 'كاد يقول ما لم تكتبه، فتوقّف';
+
+  @override
+  String get escalatedNotSent => 'تعذّر إرسال رده';
+
+  @override
+  String get alertWrote => 'راسلك';
+
+  @override
+  String get alertHandedOver => 'حوّلها المساعد إليك';
+
+  @override
+  String get alerts => 'التنبيهات';
+
+  @override
+  String get alertsDenied => 'التنبيهات محظورة في المتصفّح';
+
+  @override
+  String get alertsUnsupported => 'التنبيهات غير متاحة هنا';
+
+  @override
   String get invite => 'دعوة';
 
   @override

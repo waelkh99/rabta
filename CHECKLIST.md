@@ -9,7 +9,7 @@ code exists. Where something was verified, it says how.
 
 **The Phase Two checklist is at the end of this file.** Nothing in it is built.
 
-Updated 19 September 2026.
+Updated 22 September 2026.
 
 ---
 
@@ -255,8 +255,11 @@ That is the only goal for Phase One.
 # Phase Two checklist
 
 The AI that answers customer inquiries the seller has not got to yet. Requested
-19 September 2026, planned, and **not started**. See `CLAUDE.md` for the product
-shape and `DECISIONS.md` for the settled decisions and their reasoning.
+19 September 2026. The reply path is live and answering real customers, and as
+of 22 September the seller can see what it did. What is left is not code: an
+Instagram delivery nobody has captured, and a host to serve the site from. See
+`CLAUDE.md` for the product shape and `DECISIONS.md` for the settled decisions
+and their reasoning.
 
 The same rule applies here and is worth restating because this phase is easier
 to fake: **a box is ticked only when the thing has been run and seen to work.**
@@ -366,7 +369,7 @@ appeared to behave once. Where something was verified, it says how.
       correctly did nothing without a key
 - [x] The cross-directory import of `send.ts` actually bundles — the deploy
       uploaded `send-message/send.ts` as part of `meta-webhook`
-- [ ] `ANTHROPIC_API_KEY` configured, so the AI actually runs
+- [x] `ANTHROPIC_API_KEY` configured, so the AI actually runs
 
 ## 10b. It sells, instead of answering when asked exactly the right thing
 
@@ -513,19 +516,26 @@ appeared to behave once. Where something was verified, it says how.
       afterwards that none of them was the newest message in its conversation,
       so the inbox summary and unread counts were untouched. The shop now has
       no voice examples at all until real seller replies accumulate
-- [ ] ~~Clear the synthetic test messages out of the seller's own thread.~~
-      `aiPrompt` takes the shop's voice examples from outbound messages with
-      origin 'seller', and five test replies from 18 September qualify —
+- [x] ~~Clear the synthetic test messages out of the seller's own thread.~~
+      **Done 21 September**, and recorded in full further up this section. Five
+      test replies from 18 September were qualifying as voice examples —
       including "نعم، الشحن مجاني داخل المدينة." and one about an iPhone 15 Pro
-      priced in dollars. They are teaching the assistant its tone
-- [ ] Decide what to do with a question the customer asked before the last
-      shop reply and never got an answer to. "شفت عندكم فستان" sat unanswered
-      from 19 September, and the pleasantry on 20 September was answered with
-      it. The triage now returns the ritual and stops, which is right for the
-      pleasantry and leaves the older question unanswered forever
-- [ ] Run against a real customer on a real account. Everything above is a
-      scripted conversation; the send path itself is still unproven end to end
-      (Meta's window has never opened for a real reply — see 10)
+      priced in dollars — and were teaching the assistant its tone. This entry
+      is the one that raised it; the ticked entry above is the one that closed
+      it, including the part that had to be checked rather than assumed:
+      deleting them in Messenger would not have worked, because `parse.ts`
+      skips Meta's deletion event
+- [x] Decide what to do with a question the customer asked before the last
+      shop reply and never got an answer to. **Settled and shipped in version
+      16.** "شفت عندكم فستان" sat unanswered from 19 September. The assistant
+      now answers whatever the customer has just said and adds one short line
+      picking the old question up, then never raises it again — measured on
+      that exact live thread, and confirmed not to be raised twice
+- [x] Run against a real customer on a real account. **Done 19 September, and
+      it is what section 12 is made of.** "مرحبا" arrived from Facebook at
+      11:01:29 and the assistant's reply was accepted by Meta at 11:02:09 with
+      a Meta-issued message id. Six turns followed before it handed over on
+      "طيب امتى بيوصل؟", because no delivery time is written down anywhere
 
 ## 11. The seller sees what happened
 
@@ -537,12 +547,112 @@ appeared to behave once. Where something was verified, it says how.
       also says so in words, in both languages
 - [x] Seen working in a real browser against the live database, in Arabic and
       English, at desktop and phone width
-- [ ] An AI-answered conversation is visibly marked in the list, and stays
-      reviewable
-- [ ] Escalated conversations stay in the waiting group with a reason
-- [ ] Browser notification and title badge
-- [ ] Arabic and English for every new string, Western numerals only
-- [ ] Draft on open, for escalated threads
+- [x] An AI-answered conversation is visibly marked in the list, and stays
+      reviewable — a third line under the preview, in the same teal as an
+      assistant message, saying so in words. It stays until the seller writes
+      their own reply, which is the moment it stops being true
+- [x] The row says what happened; the details pane says why. Asked for on
+      review, 21 September: the reason was a third line of prose on a row that
+      already held a name, a time and the customer's own words, and it ran out
+      of width at the point it began to mean something. The row now carries one
+      of two fixed words and the assistant's own sentence is read in full in
+      the pane. A test fails if a reason reaches the row again
+- [x] The open conversation is unmistakable in the list. It was a shift in
+      ground only, and hover used the same colour at half strength — so the
+      open row differed from whichever row the pointer was over by one step of
+      a very pale violet. A full-height bar on the start edge now carries it,
+      which is the part hover cannot imitate. Seen in both languages; it
+      mirrors to the right edge in Arabic
+- [x] Escalated conversations stay in the waiting group with a reason. **This
+      was a live defect, not a missing feature**: the assistant usually speaks
+      when it hands a conversation back, and that line is an outbound message,
+      so `last_message_at` moved past `last_inbound_at` and the conversation
+      filed itself under "Answered". A customer the assistant had explicitly
+      said it could not help sat in the group the seller had finished reading.
+      `awaitingReply` now counts an escalation as waiting whatever the
+      timestamps say, and two tests fail when that is reverted
+- [x] The reason is the assistant's own sentence where the assistant is the one
+      who handed over — written in the language of the conversation and shown
+      as written, because it is the only reason that knows what the customer
+      actually asked. Every other escalation carries a short code
+      (`ai_escalation_code`) that the interface localises, and an unfamiliar
+      code reads as a plain hand-over rather than as a token or a blank line
+- [x] Nothing clears `ai_state` was the other half of it. The column comment had
+      claimed since 19 September that it was cleared when the seller opened the
+      conversation; no code anywhere did that. It is now cleared in
+      `touch_conversation`, on the seller's own outbound message — so a reply
+      typed in Messenger clears it too, which a client-side write would not
+      have. Six tests, and both mutations of the trigger caught: clearing on
+      any outbound message fails one, clearing on none fails four
+- [x] Arabic and English for every new string, Western numerals only — eight
+      new strings, each shown to differ between the two languages and to
+      contain Arabic script, and the existing Eastern-numeral sweep covers them
+- [x] Browser notification and title badge — the count leads the tab title
+      (`(3) Rabta`), and a system notification fires through a service worker
+      when a customer writes or the assistant hands a conversation back. Driven
+      against the live project with Playwright: two real events produced
+      exactly two notifications with the right wording, the title moved 7 → 8,
+      and a third event with the interface in Arabic produced one notification
+      reading "راسلك" and no repeat of the earlier two. 21 client tests on the
+      rules, three mutations caught — announcing on the first list, comparing
+      the unread count instead of `last_inbound_at`, and re-announcing an
+      escalation on every refresh
+- [x] Never through `new Notification()`, which throws on Chrome for Android.
+      One path for every platform, so the desktop case cannot quietly work
+      while the phone case is the one nobody ran
+- [x] The seller can turn them off again, and off means off. A granted
+      permission cannot be revoked from code, so the switch is our own
+      preference in `localStorage` laid over the browser's, per device rather
+      than per account. Driven in the browser: with alerts off and permission
+      still granted, a real customer message produced **zero** notifications
+- [x] Alerts survive a reload. They did not at first — registration happened
+      only inside the permission prompt, so a seller who came back the next day
+      saw a row saying alerts were on and never got one. The first browser pass
+      missed it because permission was granted and alerts enabled in the same
+      session. Now proven by reloading and firing a real message, which arrived
+      with no prompt and no re-enabling
+- [x] A notification never quotes the customer. It shows on a locked screen and
+      over a shared desk; the seller is told who and which kind, and opens
+      Rabta for the rest
+- [ ] **Web Push, for when Rabta is closed — blocked on hosting.** What is built
+      covers an open tab, including a background one. The 11pm case needs VAPID
+      keys, a subscriptions table, an Edge Function and a real HTTPS origin, and
+      on an iPhone the seller must add Rabta to the home screen first. See
+      `DECISIONS.md`, "Telling the seller something happened"
+- [ ] ~~Draft on open, for escalated threads.~~ **Dropped from section 11 on
+      22 September, not built.** It was going to put a suggested reply in the
+      composer for a conversation the assistant handed back. Two things make it
+      the wrong next thing: the assistant hands over precisely when it could
+      not write something worth sending, so a draft from it is a draft written
+      by the part that gave up; and the seller now opens an escalated thread
+      already knowing why, which is what the pane was for. Worth revisiting as
+      its own decision rather than as the leftover box in a finished section
+
+**Seen in a browser, not only tested**, under the rule added to `CLAUDE.md` on
+21 September. Driven with Playwright against the live database in both
+languages and at desktop and phone width: an escalation written by the
+assistant in Arabic, an escalation carrying a code in English, an answered
+conversation, and one the assistant never touched, all on screen at once with
+the two group headings. Then the round trip — a seller reply inserted on the
+live project moved that conversation out of the waiting group, took its note
+off, and dropped the header count from three waiting to two.
+
+**Known and not closed:** the details pane only renders at 1180px and wider
+(`_threePaneFrom`), so below that — a small laptop, a tablet, a phone — the
+assistant's reason is not reachable at all. The mark on the row still says a
+conversation was handed over; the sentence explaining it is desktop-only. Raised
+on 21 September, not yet decided.
+
+That pass found a defect no test could have: the escalated line's first icon,
+`assistant_direction_outlined`, resolves at 12px to a dark circular blob that
+reads as an error badge — beside the clean sparkle on an answered row, and
+against a product rule that says handing over is a good outcome. Replaced with
+`flag_outlined`, which survives the size. Left unmirrored in Arabic on purpose:
+Material mirrors icons that imply direction, not symbols.
+
+The live trigger was proven on the project rather than only in the PGlite
+harness: an AI reply left `ai_state`, `ai_escalation_code` and
+`ai_escalation_reason` untouched, and a seller reply nulled all three.
 
 ## 12. Proven against reality — **blocked**
 
@@ -596,3 +706,16 @@ These are not optional, and none of them may be inferred from the code.
 A seller can go to bed with unanswered customers and wake up to find the easy
 ones answered in their own voice, the hard ones waiting with a reason, and
 nothing sent that they would be embarrassed by.
+
+**As of 22 September that sentence is true on the test account**, with one
+qualification worth stating plainly: the seller has to have Rabta open to be
+told about any of it. The inbox marks what the assistant answered and what it
+handed back, an escalated conversation waits in the right group with the
+assistant's own explanation, and the tab title and a system notification carry
+it to a background tab. What does not exist is the notification that reaches a
+seller whose browser is closed — Web Push — and that is blocked on hosting
+rather than on effort.
+
+Sections 8 through 11 are closed. What remains in section 12 is reality
+refusing to cooperate yet: the Meta app is unpublished, so no Instagram message
+has ever reached the webhook, and there is nowhere to serve the site from.

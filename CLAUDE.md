@@ -234,6 +234,40 @@ broken code is worse than no test, because it produces false confidence.
 Report results honestly. If something fails, say so and show the output. If
 something could not be tested, say exactly that and why.
 
+### Anything the seller sees is not done until Playwright has seen it
+
+**A standing rule, asked for by the product owner on 21 September 2026.**
+
+No change that affects the interface may be called done, ticked in
+`CHECKLIST.md`, or reported as working on the strength of unit tests. It has to
+be driven in a real browser with Playwright and looked at.
+
+This is not a formality and it is not the same rule as the one above. A widget
+can pass every test written about it and still be wrong on screen: a line that
+overflows its row, a third line that breaks the alignment of the two above it,
+text that reads left to right inside an Arabic layout, a colour that is legible
+in the theme it was written in and invisible in the other, a control that is off
+the edge at phone width. None of those fail a test. All of them are the seller's
+whole experience of the feature.
+
+So for any change to a screen, a widget, a string that appears in one, or the
+data that decides what a screen renders:
+
+1. Run the application and drive it with Playwright — not a description of what
+   it would look like, and not a unit test standing in for the view.
+2. Look at it in **both languages**. Arabic is the source language and the one
+   the layout is most easily wrong in.
+3. Look at it at **desktop and phone width**.
+4. Only then tick the box, and say in the tick that it was seen rather than
+   tested.
+
+Unit tests still do their job: they cover the logic, and they are still shown to
+fail when the code is wrong. They are the floor, not the finish line.
+
+Where the interface cannot be reached — no credentials, no data to render, a
+migration not yet applied — that is a blocker to raise, not a reason to tick the
+box. Say plainly that it is built but unseen.
+
 ---
 
 ## User Experience

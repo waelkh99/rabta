@@ -1357,10 +1357,24 @@ test("a hand-over carries its reason AND still carries a reply", () => {
   });
 });
 
-test("a hand-over with no reason still says something to the seller", () => {
+test("a hand-over with no reason carries none, rather than an English stand-in", () => {
+  // The reason is shown to the seller now, so a placeholder written here would
+  // be the one line of the interface that is never translated. Null instead,
+  // and the interface supplies the general wording in the seller's language.
   const decision = readDecision(answer({ text: "رح يرد عليك صاحب المحل", handOver: true }));
   assert.equal(decision?.handOver, true);
-  assert.equal(decision?.reason, "the assistant was not confident");
+  assert.equal(decision?.reason, null);
+});
+
+test("the reason is asked for in the customer's language, not in English", () => {
+  // It sits beside the conversation's own preview in the inbox. A reason
+  // written in English under an Arabic preview reads as a system message.
+  const schema = JSON.stringify(
+    (buildRequest(requestInput).output_config as Record<string, Record<string, unknown>>).format,
+  );
+
+  assert.match(schema, /same language you are writing to the customer in/);
+  assert.doesNotMatch(schema, /a few words, in English/i);
 });
 
 test("a reply that is not handing over carries no reason", () => {
