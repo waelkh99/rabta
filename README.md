@@ -150,6 +150,13 @@ Run the client with `flutter run -d chrome --dart-define-from-file=env.json
 browser to an origin on its allowlist, and an allowlist cannot hold a port that
 changes every run.
 
+**Anything the seller sees has to be driven in that browser before it counts**,
+in both languages and at desktop and phone width — the rule is in `CLAUDE.md`
+under Testing. It is not ceremony. It has caught an icon that resolved at 12px
+to a blob reading as an error badge, a selected row that differed from a
+hovered one by one step of a very pale violet, and notifications that worked
+until the page was reloaded. None of those failed a test.
+
 `supabase/.env` and `supabase/.env.local` hold the Meta app secret and a
 Supabase key that bypasses row level security. Both are protected by
 `.gitignore` alone — worth a glance at `git status` before any commit that

@@ -7,9 +7,13 @@ customer message, and what the application has to handle along the way.
 settled. This file describes the seller's first ten minutes, because that is
 where a product like this is usually lost.
 
-Nothing here is built yet. It is written down because it defines work that is
-currently in nobody's plan — three failure states the connect screen has to
+Most of this is still not built. It is written down because it defines work
+that is otherwise in nobody's plan — failure states the connect screen has to
 handle, none of which are visible from the happy path.
+
+Two things described here **are** built, as of 22 September 2026: the empty
+inbox explains itself rather than looking broken, and accounts are created by
+invitation rather than by signing up.
 
 ---
 
@@ -63,8 +67,10 @@ before.
 
 1. Open the link. There is nothing to download and nothing to install — Rabta
    is a website, decided 17 September 2026.
-2. Create an account. The workspace is created automatically on signup — the
-   seller is never asked to name one.
+2. Open the invitation and choose a password. There is no public sign-up —
+   an admin invites the seller, and they set their own password from the link,
+   so it is never ours and never travels through a chat. The workspace is
+   created for them; they are never asked to name one.
 3. Press **Connect**, which goes to Meta's approval page.
 4. The seller approves. Meta redirects to an Edge Function which exchanges the
    code for a token, stores it, and subscribes the account to the webhook.
@@ -155,11 +161,26 @@ account" when they already have one will make them think the product is broken.
 retroactive; history starts at the moment of connection. See `DECISIONS.md`.
 
 A seller who connects successfully and sees an empty screen will conclude it
-did not work. The first-run state has to say so before they have a chance to
-wonder — that conversations will appear here as customers write, and that
-earlier messages stay in Meta's apps.
+did not work. **Built**: the empty inbox says so before they have a chance to
+wonder — that conversations appear as customers write, and that earlier
+messages stay in Meta's apps. One screen, and it prevents the most likely early
+support question.
 
-This costs one screen and prevents the most likely early support question.
+### Alerts, on a phone, are a second invisible step
+
+**iPhone only, and it has the same shape as Connected tools above.** A site open
+in a Safari tab cannot show a notification at all — the API is absent, not
+refused. The seller has to use **Share → Add to Home Screen** first, after which
+Rabta can notify them like any installed app. Android needs nothing.
+
+The menu row reads "not available here" rather than "blocked" in that state,
+which is true and not the seller's fault, but it does not yet tell them what to
+do about it. That instruction is not built.
+
+Worth planning alongside the Connected tools walkthrough rather than twice:
+both are per-device, both are invisible from our side, and in both the product
+looks broken while nothing on screen explains why. See `DECISIONS.md`, "Telling
+the seller something happened".
 
 ---
 
@@ -205,3 +226,6 @@ sellers actually being targeted?**
   open in `DECISIONS.md`, and it changes this screen from a button into a list.
 - What happens when a token expires or is revoked from Meta's side. The seller
   must find out from Rabta rather than from messages quietly stopping.
+- How a seller is walked through Add to Home Screen, and whether it is worth
+  prompting for at all before notifications can reach a closed browser — which
+  needs Web Push, which needs hosting.
