@@ -89,11 +89,17 @@ export interface Shop {
   hours: string | null;
   about: string | null;
 
-  /// The seller has said the listed price is the price. Off by default, and
-  /// off means the original behaviour: quote it, argue nothing, hand a haggler
-  /// to the seller.
-  pricesFinal: boolean;
+  /// What to do when a customer pushes on price. `notify` is the default and
+  /// the original behaviour: answer it, argue nothing, hand the conversation
+  /// over. `strict` says the price is the price and offers something cheaper
+  /// instead of bargaining.
+  ///
+  /// Neither invents a discount. What the assistant may say about money comes
+  /// from the catalog, and will come from the sales section when that exists.
+  priceStance: PriceStance;
 }
+
+export type PriceStance = "strict" | "notify";
 
 export interface DeliveryZone {
   name: string;
@@ -128,16 +134,23 @@ export function renderFacts(
 
   // Worded to contain the exact phrases `claimsAreGrounded` watches for —
   // "fixed price", "non-negotiable", and "السعر عنا ثابت" — because that check
-  // searches this very string. A shop that has said its prices are final makes
-  // the claim true, and the guard then lets the assistant say it in either
-  // language. Reword this and the guard starts refusing a reply the seller
-  // explicitly authorised, with nothing to say why.
-  if (shop?.pricesFinal) {
+  // searches this very string. A shop on the strict stance makes the claim
+  // true, and the guard then lets the assistant say it in either language.
+  // Reword this and the guard starts refusing a reply the seller explicitly
+  // authorised, with nothing to say why.
+  //
+  // Only the strict stance writes anything here. On notify there is no policy
+  // to state, and a section saying "we might negotiate" would be the assistant
+  // speculating about money on the shop's behalf.
+  if (shop?.priceStance === "strict") {
     sections.push(
       "Prices:\nThis is a fixed price shop. The catalog price is the price: " +
-        "it is non-negotiable, and in Arabic السعر عنا ثابت. A customer who " +
-        "asks for a better price is told this warmly and directly, and is not " +
-        "passed to the seller for that alone.",
+        "it is non-negotiable, and in Arabic السعر عنا ثابت. Tell a customer " +
+        "who asks for a better price so, warmly and without apology, and do " +
+        "not pass it to the seller for that alone. Then offer them the " +
+        "cheapest thing in the catalog that still suits what they came for, " +
+        "if there is one — a price they cannot meet is a reason to show them " +
+        "something else, not a reason to end the conversation.",
     );
   }
 
@@ -645,7 +658,9 @@ undoes the answer you gave one sentence earlier.
 - If the facts DO say the price is fixed, do not set handOver for this. You \
 have given them the whole answer and there is nothing left for anyone to add — \
 passing it on would only make the customer wait for a second version of what \
-you already told them.
+you already told them. Say it kindly, then show them the cheapest thing you \
+have that still fits what they were after. "No" and nothing else is how a \
+customer who was ready to buy leaves.
 - NEVER mention a shop owner, a manager, a colleague or anyone else. Not "صاحب \
 المحل", not "صاحبة المحل", not "حدا من المحل", not "the owner", not "someone \
 from the shop". You are the shop. Measured: it wrote "صاحب المحل" in one reply \

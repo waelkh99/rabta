@@ -14,25 +14,37 @@ import 'package:rabta/l10n/app_localizations.dart';
 
 void main() {
   group('the pricing stance', () {
-    test('a shop that has never been asked does not haggle-proof itself', () {
-      // The default is the behaviour the assistant has always had: quote the
-      // price, argue nothing, hand a haggler to the seller. A shop upgrading
+    test('a shop that has never been asked hands price haggling over', () {
+      // The default is what the assistant has always done. A shop upgrading
       // into this feature must not silently start telling customers its prices
       // are final.
-      expect(const Shop().pricesFinal, isFalse);
-      expect(Shop.fromRow({}).pricesFinal, isFalse);
+      expect(const Shop().priceStance, PriceStance.notify);
+      expect(Shop.fromRow({}).priceStance, PriceStance.notify);
     });
 
-    test('a missing column reads as off rather than throwing', () {
+    test('a missing column reads as notify rather than throwing', () {
       // The client is built and served separately from the database. A build
       // that predates the migration must degrade to the old behaviour, not
       // fail to render the screen.
-      expect(Shop.fromRow({'currency': 'د.ا'}).pricesFinal, isFalse);
+      expect(Shop.fromRow({'currency': 'د.ا'}).priceStance, PriceStance.notify);
     });
 
-    test('the column is read as written', () {
-      expect(Shop.fromRow({'prices_final': true}).pricesFinal, isTrue);
-      expect(Shop.fromRow({'prices_final': false}).pricesFinal, isFalse);
+    test('a stance added after this build reads as notify, never as strict', () {
+      // The safe direction, and it has to be the safe one: falling back to
+      // strict would have a build tell customers a price is final on a shop
+      // that never said so.
+      expect(PriceStance.of('something_added_later'), PriceStance.notify);
+      expect(PriceStance.of(null), PriceStance.notify);
+      expect(PriceStance.of(''), PriceStance.notify);
+      expect(PriceStance.of('STRICT'), PriceStance.notify,
+          reason: 'the column is lower case; anything else is not our value');
+    });
+
+    test('the stance is read and written under the name the column uses', () {
+      expect(Shop.fromRow({'price_stance': 'strict'}).priceStance, PriceStance.strict);
+      expect(Shop.fromRow({'price_stance': 'notify'}).priceStance, PriceStance.notify);
+      expect(PriceStance.strict.stored, 'strict');
+      expect(PriceStance.notify.stored, 'notify');
     });
 
     test('changing it leaves everything else alone', () {
@@ -48,9 +60,9 @@ void main() {
         assistantEnabled: true,
       );
 
-      final strict = shop.copyWith(pricesFinal: true);
+      final strict = shop.copyWith(priceStance: PriceStance.strict);
 
-      expect(strict.pricesFinal, isTrue);
+      expect(strict.priceStance, PriceStance.strict);
       expect(strict.currency, shop.currency);
       expect(strict.deliveryNote, shop.deliveryNote);
       expect(strict.locations, shop.locations);
@@ -94,6 +106,8 @@ void main() {
         'passwordNew': (ar.passwordNew, en.passwordNew),
         'passwordRepeat': (ar.passwordRepeat, en.passwordRepeat),
         'passwordChange': (ar.passwordChange, en.passwordChange),
+        'passwordCurrent': (ar.passwordCurrent, en.passwordCurrent),
+        'passwordWrong': (ar.passwordWrong, en.passwordWrong),
         'passwordChanged': (ar.passwordChanged, en.passwordChanged),
         'passwordMismatch': (ar.passwordMismatch, en.passwordMismatch),
         'passwordFailed': (ar.passwordFailed, en.passwordFailed),
@@ -117,6 +131,16 @@ void main() {
       // invited must not be refused when they come to change it.
       expect(en.passwordTooShort, contains('8'));
       expect(ar.passwordTooShort, contains('8'));
+    });
+
+    test('a wrong current password is its own message', () {
+      // Distinct from "those two do not match" and from a failure to save.
+      // The seller has to know which of the three fields to look at.
+      for (final l in [ar, en]) {
+        expect(l.passwordWrong, isNot(l.passwordMismatch));
+        expect(l.passwordWrong, isNot(l.passwordFailed));
+        expect(l.passwordWrong, isNot(l.passwordTooShort));
+      }
     });
 
     test('alerts say the choice belongs to this device', () {

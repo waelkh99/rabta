@@ -180,9 +180,10 @@ class _ShopPageState extends State<ShopPage> {
                       ),
                       const SizedBox(height: 10),
                       _Pricing(
-                        pricesFinal: shop.pricesFinal,
+                        stance: shop.priceStance,
                         enabled: !busy,
-                        onChanged: (on) => _save({"prices_final": on}),
+                        onChanged: (stance) =>
+                            _save({"price_stance": stance.stored}),
                       ),
                       const SizedBox(height: 32),
 
@@ -308,7 +309,7 @@ class _ShopPageState extends State<ShopPage> {
                         style: Style.preview.copyWith(color: colors.muted, height: 1.6),
                       ),
                       const SizedBox(height: 10),
-                      const _ChangePassword(),
+                      const _PasswordRow(),
                     ],
                   ),
                 ),
@@ -332,14 +333,14 @@ class _ShopPageState extends State<ShopPage> {
 /// reach the seller at all.
 class _Pricing extends StatelessWidget {
   const _Pricing({
-    required this.pricesFinal,
+    required this.stance,
     required this.enabled,
     required this.onChanged,
   });
 
-  final bool pricesFinal;
+  final PriceStance stance;
   final bool enabled;
-  final ValueChanged<bool> onChanged;
+  final ValueChanged<PriceStance> onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -349,19 +350,19 @@ class _Pricing extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _Choice(
-          label: l.shopPricingHandOver,
-          body: l.shopPricingHandOverBody,
-          selected: !pricesFinal,
+          label: l.shopPricingFinal,
+          body: l.shopPricingFinalBody,
+          selected: stance == PriceStance.strict,
           enabled: enabled,
-          onTap: () => onChanged(false),
+          onTap: () => onChanged(PriceStance.strict),
         ),
         const SizedBox(height: 8),
         _Choice(
-          label: l.shopPricingFinal,
-          body: l.shopPricingFinalBody,
-          selected: pricesFinal,
+          label: l.shopPricingHandOver,
+          body: l.shopPricingHandOverBody,
+          selected: stance == PriceStance.notify,
           enabled: enabled,
-          onTap: () => onChanged(true),
+          onTap: () => onChanged(PriceStance.notify),
         ),
       ],
     );
@@ -431,37 +432,89 @@ class _Choice extends StatelessWidget {
   }
 }
 
-/// Changing the password of the account already signed in.
+/// The password, as a row that opens a dialog rather than a form left open.
 ///
-/// Until now the only way to set one was an invitation or a recovery link, so a
-/// seller who wanted to change theirs had to be sent a new email — which needs
-/// SMTP, which does not exist. This needs neither: they are already signed in,
-/// and Supabase takes the new password on the session they are holding.
-class _ChangePassword extends StatefulWidget {
-  const _ChangePassword();
+/// It was two fields sitting on the page. That reads as something to fill in
+/// rather than something to decide to do, and it leaves a password box open
+/// over a shoulder for as long as the screen is. Editing happens in a dialog
+/// everywhere else in this application — a product, a delivery zone — and this
+/// is the same shape of action.
+class _PasswordRow extends StatelessWidget {
+  const _PasswordRow();
 
   @override
-  State<_ChangePassword> createState() => _ChangePasswordState();
+  Widget build(BuildContext context) {
+    final colors = context.rabta;
+    final l = context.l;
+
+    return Container(
+      padding: const EdgeInsetsDirectional.fromSTEB(14, 10, 10, 10),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colors.line),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.lock_outline, size: 18, color: colors.muted),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              // Dots rather than the word "password" again: the row is under a
+              // heading that already says it, and this says there is one.
+              '••••••••',
+              style: Style.name.copyWith(color: colors.muted, letterSpacing: 2),
+            ),
+          ),
+          TextButton(
+            onPressed: () => showDialog<void>(
+              context: context,
+              builder: (_) => const _PasswordDialog(),
+            ),
+            child: Text(
+              l.passwordChange,
+              style: Style.name.copyWith(color: colors.accent),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-class _ChangePasswordState extends State<_ChangePassword> {
+/// Current password, new, repeat.
+///
+/// The current one is asked for and checked. Supabase does not require it — the
+/// session alone is enough — but this product's own reasoning says sellers work
+/// on machines they share or did not configure, and a signed-in tab left open
+/// should not hand somebody the account. It is verified by signing in with it,
+/// which is the only way to ask Supabase "is this the password" without a
+/// server function of our own.
+class _PasswordDialog extends StatefulWidget {
+  const _PasswordDialog();
+
+  @override
+  State<_PasswordDialog> createState() => _PasswordDialogState();
+}
+
+class _PasswordDialogState extends State<_PasswordDialog> {
+  final _current = TextEditingController();
   final _password = TextEditingController();
   final _repeat = TextEditingController();
 
   bool _busy = false;
   String? _problem;
-  bool _done = false;
 
   @override
   void dispose() {
+    _current.dispose();
     _password.dispose();
     _repeat.dispose();
     super.dispose();
   }
 
-  Future<void> _change() async {
-    final password = _password.text;
+  Future<void> _save() async {
     final l = context.l;
+    final password = _password.text;
 
     // The same two rules the invitation screen applies, so a password that is
     // acceptable there cannot be refused here.
@@ -477,23 +530,33 @@ class _ChangePasswordState extends State<_ChangePassword> {
     setState(() {
       _busy = true;
       _problem = null;
-      _done = false;
     });
 
+    final auth = Supabase.instance.client.auth;
+    final email = auth.currentUser?.email;
+
     try {
-      await Supabase.instance.client.auth.updateUser(
-        UserAttributes(password: password),
-      );
+      // Checked before anything is changed. A wrong current password must not
+      // leave the account altered.
+      if (email != null) {
+        await auth.signInWithPassword(email: email, password: _current.text);
+      }
+    } catch (_) {
       if (!mounted) return;
-      // Cleared on success. Leaving a password sitting in a form on a screen
-      // the seller may walk away from is worse than making them type it again
-      // if they want to change it twice.
-      _password.clear();
-      _repeat.clear();
       setState(() {
         _busy = false;
-        _done = true;
+        _problem = l.passwordWrong;
       });
+      return;
+    }
+
+    try {
+      await auth.updateUser(UserAttributes(password: password));
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l.passwordChanged)),
+      );
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -508,32 +571,50 @@ class _ChangePasswordState extends State<_ChangePassword> {
     final colors = context.rabta;
     final l = context.l;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _Password(controller: _password, label: l.passwordNew, enabled: !_busy),
-        const SizedBox(height: 10),
-        _Password(controller: _repeat, label: l.passwordRepeat, enabled: !_busy),
-        if (_problem != null) ...[
-          const SizedBox(height: 10),
-          Text(
-            _problem!,
-            style: Style.preview.copyWith(color: colors.urgent, height: 1.5),
-          ),
-        ],
-        if (_done) ...[
-          const SizedBox(height: 10),
-          Text(
-            l.passwordChanged,
-            style: Style.preview.copyWith(color: colors.assistant, height: 1.5),
-          ),
-        ],
-        const SizedBox(height: 14),
-        Align(
-          alignment: AlignmentDirectional.centerStart,
-          child: FilledButton(
-            onPressed: _busy ? null : _change,
-            child: Text(_busy ? l.passwordChanging : l.passwordChange),
+    return AlertDialog(
+      backgroundColor: colors.surface,
+      title: Text(
+        l.passwordChange,
+        style: Style.heading.copyWith(color: colors.ink),
+      ),
+      content: SizedBox(
+        width: 380,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _Password(
+              controller: _current,
+              label: l.passwordCurrent,
+              enabled: !_busy,
+              autofocus: true,
+              current: true,
+            ),
+            const SizedBox(height: 12),
+            _Password(controller: _password, label: l.passwordNew, enabled: !_busy),
+            const SizedBox(height: 12),
+            _Password(controller: _repeat, label: l.passwordRepeat, enabled: !_busy),
+            const SizedBox(height: 10),
+            Text(
+              _problem ?? l.passwordBody,
+              style: Style.preview.copyWith(
+                color: _problem == null ? colors.muted : colors.urgent,
+                height: 1.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _busy ? null : () => Navigator.pop(context),
+          child: Text(l.cancel, style: Style.name.copyWith(color: colors.muted)),
+        ),
+        TextButton(
+          onPressed: _busy ? null : _save,
+          child: Text(
+            _busy ? l.passwordChanging : l.passwordChange,
+            style: Style.name.copyWith(color: _busy ? colors.muted : colors.accent),
           ),
         ),
       ],
@@ -546,11 +627,18 @@ class _Password extends StatelessWidget {
     required this.controller,
     required this.label,
     required this.enabled,
+    this.autofocus = false,
+    this.current = false,
   });
 
   final TextEditingController controller;
   final String label;
   final bool enabled;
+  final bool autofocus;
+
+  /// The one the seller already has, so a password manager offers to fill it
+  /// rather than offering to save it.
+  final bool current;
 
   @override
   Widget build(BuildContext context) {
@@ -559,15 +647,16 @@ class _Password extends StatelessWidget {
     return TextField(
       controller: controller,
       enabled: enabled,
+      autofocus: autofocus,
       obscureText: true,
-      // Named so a password manager offers to store the new one rather than
-      // treating this as a sign-in form.
-      autofillHints: const [AutofillHints.newPassword],
+      autofillHints: [
+        current ? AutofillHints.password : AutofillHints.newPassword,
+      ],
       style: Style.name.copyWith(color: colors.ink),
       decoration: InputDecoration(
         labelText: label,
         // Latin either way: a password is not translated, and an Arabic
-        // interface must not flip the field a password is typed into.
+        // interface must not flip the field one is typed into.
         hintTextDirection: TextDirection.ltr,
       ),
     );

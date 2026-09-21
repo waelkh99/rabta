@@ -749,7 +749,7 @@ export function createSupabaseStore(client: SupabaseLike): Store {
       // conversation.
       const shopRow = await client
         .from("shop")
-        .select("currency, delivery_note, locations, hours, about, prices_final")
+        .select("currency, delivery_note, locations, hours, about, price_stance")
         .eq("workspace_id", workspaceId)
         .maybeSingle();
 
@@ -811,7 +811,10 @@ export function createSupabaseStore(client: SupabaseLike): Store {
               locations: (shopRow.data.locations ?? null) as string | null,
               hours: (shopRow.data.hours ?? null) as string | null,
               about: (shopRow.data.about ?? null) as string | null,
-              pricesFinal: shopRow.data.prices_final === true,
+              // Anything unrecognised reads as notify. A stance this build has
+              // never heard of must not silently become a licence to tell
+              // customers the price is final.
+              priceStance: shopRow.data.price_stance === "strict" ? "strict" : "notify",
             }
           : null,
         zones: (zones.data ?? []).map((row: Record<string, unknown>) => ({

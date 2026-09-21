@@ -310,21 +310,21 @@ class LEn extends L {
 
   @override
   String get shopPricingBody =>
-      'What the assistant does when a customer asks for a better price.';
+      'What the assistant does when a customer asks for a better price. It only ever states what you have written down — the price from your list, and any sale once that exists.';
 
   @override
-  String get shopPricingHandOver => 'Bring it to me';
+  String get shopPricingHandOver => 'Tell me about it';
 
   @override
   String get shopPricingHandOverBody =>
-      'It states the price, never bargains, and leaves the rest to you.';
+      'It gives the price, does not bargain, and brings the conversation to you to decide.';
 
   @override
   String get shopPricingFinal => 'Say the price is final';
 
   @override
   String get shopPricingFinalBody =>
-      'It states the price, says plainly that it is not negotiable, and carries on without bringing it to you.';
+      'It says kindly that the price is not negotiable, then offers something cheaper from your list rather than ending the conversation. It does not bring it to you.';
 
   @override
   String get settingsYou => 'You and this browser';
@@ -339,17 +339,22 @@ class LEn extends L {
   String get password => 'Password';
 
   @override
-  String get passwordBody =>
-      'Change it whenever you like. At least 8 characters.';
+  String get passwordBody => 'At least 8 characters.';
 
   @override
   String get passwordNew => 'New password';
+
+  @override
+  String get passwordCurrent => 'Current password';
 
   @override
   String get passwordRepeat => 'Type it again';
 
   @override
   String get passwordMismatch => 'Those two do not match.';
+
+  @override
+  String get passwordWrong => 'That is not your current password.';
 
   @override
   String get passwordChange => 'Change password';

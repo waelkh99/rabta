@@ -24,7 +24,7 @@ title and a system notification say when something needs them.**
 
 ## Live right now
 
-Supabase project `xejtffbpfguwvybrwqqj`. Nine migrations applied, four Edge
+Supabase project `xejtffbpfguwvybrwqqj`. Ten migrations applied, four Edge
 Functions deployed.
 
 | Function | What it does | Auth |
@@ -46,9 +46,9 @@ against both the **Page** and **Instagram** objects with the same verify token.
 `META_APP_SECRET` and `META_VERIFY_TOKEN` are set on the functions. Public
 sign-up is off: `/auth/v1/settings` reports `disable_signup: true`.
 
-**336 backend tests** (`cd supabase && npm test`, which typechecks every Edge
+**338 backend tests** (`cd supabase && npm test`, which typechecks every Edge
 Function with `deno check` first; about ten seconds, no Docker and no network)
-and **133 client tests** (`flutter test`). Each new piece of
+and **135 client tests** (`flutter test`). Each new piece of
 logic is shown to fail when deliberately broken rather than assumed to be
 covered.
 
@@ -465,6 +465,12 @@ Phase Two:
   breakpoint, so the thread is never squeezed to buy room for one card.
 - ~~Whether a pricing setting should let the seller choose between the
   assistant handing price negotiation back and it holding the listed price as
-  final.~~ **Built 22 September**, and measured both ways against the real
-  model. Sales and discounts, the other half `CLAUDE.md` promised, is still
-  open.
+  final.~~ **Built 22 September** as two named modes, strict and notify, and
+  measured both ways against the real model. Sales and discounts, the other
+  half `CLAUDE.md` promised, is still open — and when it lands the assistant
+  reads it the same way, so the stance keeps deciding only what happens after
+  it has said what it knows.
+- What "notify" should mean in practice. It currently marks the conversation
+  and hands it to the seller, which is what the assistant already did. Whether
+  that is the right shape is a question about how the case actually goes in a
+  real shop, and is deliberately left until there is one to watch.

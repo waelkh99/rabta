@@ -35,7 +35,7 @@ const get = async (path) => {
 };
 
 const products = await get("products?select=name,price,description,in_stock&order=name");
-const shop = await get("shop?select=currency,delivery_note,locations,hours,about,prices_final");
+const shop = await get("shop?select=currency,delivery_note,locations,hours,about,price_stance");
 const zones = await get("delivery_zones?select=name,fee&order=name");
 
 console.log("PRODUCTS");

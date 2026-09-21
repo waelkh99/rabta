@@ -211,6 +211,33 @@ class Product {
       );
 }
 
+/// What the assistant does when a customer pushes on price.
+///
+/// Neither mode invents a discount. What the assistant may say about money
+/// comes from the catalog, and will come from the sales section once that
+/// exists — the stance only decides what happens after it has said what it
+/// knows.
+enum PriceStance {
+  /// The listed price is the price. The assistant says so warmly, then offers
+  /// the cheapest thing that still suits, because a price somebody cannot meet
+  /// is a reason to show them something else rather than to stop.
+  strict,
+
+  /// The assistant answers the price, argues nothing, and hands the
+  /// conversation to the seller. The default, and the original behaviour.
+  notify;
+
+  /// Anything unfamiliar reads as `notify`.
+  ///
+  /// The safe direction, and deliberately not an error: a build that predates a
+  /// stance added later must not fall back to telling customers a price is
+  /// final on a shop that never said so.
+  static PriceStance of(String? value) =>
+      value == 'strict' ? PriceStance.strict : PriceStance.notify;
+
+  String get stored => name;
+}
+
 /// The shop itself: everything a customer asks about that is not a product.
 ///
 /// A catalog answers "how much is the red dress". Half of what a customer
@@ -224,7 +251,7 @@ class Shop {
     this.hours,
     this.about,
     this.assistantEnabled = false,
-    this.pricesFinal = false,
+    this.priceStance = PriceStance.notify,
   });
 
   /// Written as the seller writes it and repeated back the same way. Not a
@@ -246,16 +273,12 @@ class Shop {
 
   final bool assistantEnabled;
 
-  /// The seller has said the listed price is the price.
+  /// What the assistant does when a customer pushes on price.
   ///
-  /// Off by default, and off is what the assistant has always done: quote the
-  /// price, argue nothing, and hand a customer who pushes to the seller. On, it
-  /// says so plainly and keeps the conversation.
-  ///
-  /// The setting only reaches the customer through `renderFacts` on the server
-  /// — which is also what makes the claim legitimate, because the guard that
+  /// It only reaches the customer through `renderFacts` on the server — which
+  /// is also what makes the strict claim legitimate, because the guard that
   /// refuses invented price policies searches that same text.
-  final bool pricesFinal;
+  final PriceStance priceStance;
 
   Shop copyWith({
     String? currency,
@@ -264,7 +287,7 @@ class Shop {
     String? hours,
     String? about,
     bool? assistantEnabled,
-    bool? pricesFinal,
+    PriceStance? priceStance,
   }) =>
       Shop(
         currency: currency ?? this.currency,
@@ -273,7 +296,7 @@ class Shop {
         hours: hours ?? this.hours,
         about: about ?? this.about,
         assistantEnabled: assistantEnabled ?? this.assistantEnabled,
-        pricesFinal: pricesFinal ?? this.pricesFinal,
+        priceStance: priceStance ?? this.priceStance,
       );
 
   factory Shop.fromRow(Map<String, dynamic> row) => Shop(
@@ -285,7 +308,7 @@ class Shop {
         hours: row['hours'] as String?,
         about: row['about'] as String?,
         assistantEnabled: row['assistant_enabled'] as bool? ?? false,
-        pricesFinal: row['prices_final'] as bool? ?? false,
+        priceStance: PriceStance.of(row['price_stance'] as String?),
       );
 }
 
@@ -775,7 +798,7 @@ class Inbox {
         .from('shop')
         .select(
           'currency, delivery_note, locations, hours, about, '
-          'assistant_enabled, prices_final',
+          'assistant_enabled, price_stance',
         )
         .maybeSingle();
 

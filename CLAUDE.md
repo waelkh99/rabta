@@ -141,14 +141,22 @@ So whenever a new source of seller-written information is added:
 4. Re-run `npm run replay` against a real shop, not only the scripted harness.
 
 **Done, and the worked example of this rule:** the pricing stance, added
-22 September 2026. A seller can now say that the listed price is final. All
-four steps above were needed, and step 3 was the interesting one — the guard
-already refused any reply claiming a price was fixed, because until then no
-shop had ever said so. It did not need weakening: `renderFacts` writes the
-claim, in the exact wording the guard watches for, and the claim becomes true.
-Step 4 found the proof, against the real model and the real shop — with the
-setting off the assistant hands price haggling over and says why ("ولا يوجد نص
-يقول إن السعر ثابت"), and with it on it answers and carries on.
+22 September 2026. Two modes — **strict**, where the listed price is final, and
+**notify**, where the assistant answers and brings the conversation to the
+seller. All four steps above were needed, and step 3 was the interesting one:
+the guard already refused any reply claiming a price was fixed, because until
+then no shop had ever said so. It did not need weakening. `renderFacts` writes
+the claim, in the exact wording the guard watches for, and the claim becomes
+true. Step 4 found the proof, against the real model and the real shop — on
+notify the assistant hands price haggling over and says why ("ولا يوجد نص يقول
+إن السعر ثابت"), and on strict it says the price is fixed and offers something
+cheaper instead of stopping.
+
+**The sales and discounts section inherits this.** Neither mode invents a
+discount today; what the assistant may say about money comes from the catalog.
+When the sales section exists it becomes a third source feeding the same
+`renderFacts` string, and the `خصم` patterns in `claimsAreGrounded` become
+legitimate the same way this one did — by the shop having written it down.
 
 **Known and waiting:** the products section needs expanding. It holds a name,
 a price, a description and an in-stock boolean, and that is thin — sellers have

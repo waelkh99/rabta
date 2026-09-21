@@ -310,21 +310,21 @@ class LAr extends L {
 
   @override
   String get shopPricingBody =>
-      'ماذا يفعل المساعد عندما يطلب الزبون سعراً أفضل.';
+      'ماذا يفعل المساعد عندما يطلب الزبون سعراً أفضل. لا يقول إلا ما كتبته: السعر من قائمتك، وأي تخفيض عندما يتوفّر.';
 
   @override
-  String get shopPricingHandOver => 'يحوّل المحادثة إليك';
+  String get shopPricingHandOver => 'أعلمني';
 
   @override
   String get shopPricingHandOverBody =>
-      'يقول السعر كما هو، ولا يساوم، ثم يترك الباقي لك.';
+      'يقول السعر، ولا يساوم، ويحوّل المحادثة إليك لتقرّر.';
 
   @override
   String get shopPricingFinal => 'يقول إن السعر ثابت';
 
   @override
   String get shopPricingFinalBody =>
-      'يقول السعر ويوضّح أنه غير قابل للتفاوض، ويكمل المحادثة من دون تحويلها.';
+      'يقول بلطف إن السعر غير قابل للتفاوض، ثم يقترح قطعة أرخص من قائمتك بدل أن ينهي المحادثة. ولا يحوّلها إليك.';
 
   @override
   String get settingsYou => 'أنت وهذا المتصفّح';
@@ -339,16 +339,22 @@ class LAr extends L {
   String get password => 'كلمة المرور';
 
   @override
-  String get passwordBody => 'غيّرها متى شئت. تحتاج إلى 8 أحرف على الأقل.';
+  String get passwordBody => '8 أحرف على الأقل.';
 
   @override
   String get passwordNew => 'كلمة المرور الجديدة';
+
+  @override
+  String get passwordCurrent => 'كلمة المرور الحالية';
 
   @override
   String get passwordRepeat => 'أعد كتابتها';
 
   @override
   String get passwordMismatch => 'الكلمتان غير متطابقتين.';
+
+  @override
+  String get passwordWrong => 'كلمة المرور الحالية غير صحيحة.';
 
   @override
   String get passwordChange => 'تغيير كلمة المرور';

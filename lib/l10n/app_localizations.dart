@@ -610,19 +610,19 @@ abstract class L {
   /// No description provided for @shopPricingBody.
   ///
   /// In ar, this message translates to:
-  /// **'ماذا يفعل المساعد عندما يطلب الزبون سعراً أفضل.'**
+  /// **'ماذا يفعل المساعد عندما يطلب الزبون سعراً أفضل. لا يقول إلا ما كتبته: السعر من قائمتك، وأي تخفيض عندما يتوفّر.'**
   String get shopPricingBody;
 
   /// No description provided for @shopPricingHandOver.
   ///
   /// In ar, this message translates to:
-  /// **'يحوّل المحادثة إليك'**
+  /// **'أعلمني'**
   String get shopPricingHandOver;
 
   /// No description provided for @shopPricingHandOverBody.
   ///
   /// In ar, this message translates to:
-  /// **'يقول السعر كما هو، ولا يساوم، ثم يترك الباقي لك.'**
+  /// **'يقول السعر، ولا يساوم، ويحوّل المحادثة إليك لتقرّر.'**
   String get shopPricingHandOverBody;
 
   /// No description provided for @shopPricingFinal.
@@ -634,7 +634,7 @@ abstract class L {
   /// The consequence worth stating: choosing this stops these conversations reaching the seller at all.
   ///
   /// In ar, this message translates to:
-  /// **'يقول السعر ويوضّح أنه غير قابل للتفاوض، ويكمل المحادثة من دون تحويلها.'**
+  /// **'يقول بلطف إن السعر غير قابل للتفاوض، ثم يقترح قطعة أرخص من قائمتك بدل أن ينهي المحادثة. ولا يحوّلها إليك.'**
   String get shopPricingFinalBody;
 
   /// The divider between what the assistant tells customers and what belongs to the seller and this browser.
@@ -664,7 +664,7 @@ abstract class L {
   /// No description provided for @passwordBody.
   ///
   /// In ar, this message translates to:
-  /// **'غيّرها متى شئت. تحتاج إلى 8 أحرف على الأقل.'**
+  /// **'8 أحرف على الأقل.'**
   String get passwordBody;
 
   /// No description provided for @passwordNew.
@@ -672,6 +672,12 @@ abstract class L {
   /// In ar, this message translates to:
   /// **'كلمة المرور الجديدة'**
   String get passwordNew;
+
+  /// No description provided for @passwordCurrent.
+  ///
+  /// In ar, this message translates to:
+  /// **'كلمة المرور الحالية'**
+  String get passwordCurrent;
 
   /// No description provided for @passwordRepeat.
   ///
@@ -684,6 +690,12 @@ abstract class L {
   /// In ar, this message translates to:
   /// **'الكلمتان غير متطابقتين.'**
   String get passwordMismatch;
+
+  /// No description provided for @passwordWrong.
+  ///
+  /// In ar, this message translates to:
+  /// **'كلمة المرور الحالية غير صحيحة.'**
+  String get passwordWrong;
 
   /// No description provided for @passwordChange.
   ///

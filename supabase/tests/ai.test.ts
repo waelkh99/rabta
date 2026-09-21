@@ -334,7 +334,7 @@ const SHOP = {
   locations: "عمّان، شارع الرينبو",
   hours: "السبت إلى الخميس ١٠ص-٨م، الجمعة مغلق",
   about: "الدفع عند الاستلام متاح",
-  pricesFinal: false,
+  priceStance: "notify" as const,
 };
 
 const ZONES = [
@@ -442,7 +442,7 @@ test("an empty section is left out rather than labelled and blank", () => {
       locations: null,
       hours: null,
       about: null,
-      pricesFinal: false,
+      priceStance: "notify" as const,
     },
     zones: [],
     products: [DRESS],
@@ -1632,26 +1632,49 @@ test("an answer the model garbled is unusable, and the seller gets the conversat
 // without knowing the setting exists, because the claim is written into the
 // same `facts` string it searches.
 
-const finalShop = { ...SHOP, pricesFinal: true };
+const strictShop = { ...SHOP, priceStance: "strict" as const };
 
-const factsWhere = (pricesFinal: boolean) =>
+const factsWhere = (priceStance: "strict" | "notify") =>
   renderFacts({
-    shop: { ...SHOP, pricesFinal },
+    shop: { ...SHOP, priceStance },
     zones: [],
     products: [{ name: "فستان أحمر", price: 25.5, description: null, inStock: true }],
   });
 
 test("a shop that has not said so has no price policy in its facts", () => {
-  const facts = factsWhere(false);
+  const facts = factsWhere("notify");
 
   assert.doesNotMatch(facts, /fixed price/i);
   assert.doesNotMatch(facts, /ثابت/);
 });
 
+test("an unfamiliar stance is read as notify, never as strict", () => {
+  // The safe direction. A value this build has not heard of must not become a
+  // licence to tell customers the price is final on a shop that never said so.
+  const facts = renderFacts({
+    shop: { ...SHOP, priceStance: "something_added_later" as unknown as "notify" },
+    zones: [],
+    products: [],
+  });
+
+  assert.doesNotMatch(facts, /fixed price/i);
+});
+
+test("the strict stance is told to offer something cheaper, not just to refuse", () => {
+  // The part the product owner asked for: saying no and stopping is how a
+  // customer who was ready to buy leaves. The facts have to carry it, because
+  // this is the one path where the assistant does not hand over and so nobody
+  // else gets a chance to save the sale.
+  const facts = factsWhere("strict");
+
+  assert.match(facts, /cheapest/i);
+  assert.doesNotMatch(factsWhere("notify"), /cheapest/i);
+});
+
 test("a fixed price shop says so in the facts, in both languages", () => {
   // Both, because the assistant answers in the customer's language and the
   // guard searches this string in whichever language the reply came back in.
-  const facts = factsWhere(true);
+  const facts = factsWhere("strict");
 
   assert.match(facts, /fixed price/i);
   assert.match(facts, /non-negotiable/i);
@@ -1660,7 +1683,7 @@ test("a fixed price shop says so in the facts, in both languages", () => {
 
 test("the guard still refuses an invented price policy", () => {
   // Unchanged, and the reason this feature is not simply a prompt edit.
-  const facts = factsWhere(false);
+  const facts = factsWhere("notify");
 
   assert.equal(claimsAreGrounded("السعر عنا ثابت", facts, []), "السعر عنا ثابت");
   assert.equal(claimsAreGrounded("It is a fixed price.", facts, []), "fixed price");
@@ -1668,7 +1691,7 @@ test("the guard still refuses an invented price policy", () => {
 });
 
 test("the guard lets the claim through once the seller has made it", () => {
-  const facts = factsWhere(true);
+  const facts = factsWhere("strict");
 
   assert.equal(claimsAreGrounded("السعر عنا ثابت، بس متوفر بكل المقاسات.", facts, []), null);
   assert.equal(claimsAreGrounded("It is a fixed price, but it comes in all sizes.", facts, []), null);
@@ -1678,7 +1701,7 @@ test("the guard lets the claim through once the seller has made it", () => {
 test("a fixed price shop still cannot invent a discount or a guarantee", () => {
   // The exemption is about one claim, not an amnesty on the rest. Getting this
   // wrong would turn a pricing preference into a hole in the whole check.
-  const facts = factsWhere(true);
+  const facts = factsWhere("strict");
 
   assert.equal(claimsAreGrounded("في خصم 10% اليوم", facts, []), "خصم");
   assert.equal(claimsAreGrounded("It is guaranteed for a year.", facts, []), "guarantee");
@@ -1687,9 +1710,9 @@ test("a fixed price shop still cannot invent a discount or a guarantee", () => {
 
 test("ruling a sale out still passes, either way round", () => {
   // The negation strip predates this setting and must survive it.
-  for (const pricesFinal of [true, false]) {
+  for (const stance of ["strict", "notify"] as const) {
     assert.equal(
-      claimsAreGrounded("حالياً ما في خصم على هالقطعة", factsWhere(pricesFinal), []),
+      claimsAreGrounded("حالياً ما في خصم على هالقطعة", factsWhere(stance), []),
       null,
     );
   }
@@ -1712,7 +1735,7 @@ test("the fixed price instructions are the same bytes for every shop", () => {
   const plain = buildRequest(requestInput).system as Record<string, unknown>[];
   const strict = buildRequest({
     ...requestInput,
-    facts: renderFacts({ shop: finalShop, zones: [], products: [] }),
+    facts: renderFacts({ shop: strictShop, zones: [], products: [] }),
   }).system as Record<string, unknown>[];
 
   assert.equal(plain[0].text, strict[0].text);

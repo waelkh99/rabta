@@ -131,11 +131,11 @@
   },
 
   "shopPricing": "السعر",
-  "shopPricingBody": "ماذا يفعل المساعد عندما يطلب الزبون سعراً أفضل.",
-  "shopPricingHandOver": "يحوّل المحادثة إليك",
-  "shopPricingHandOverBody": "يقول السعر كما هو، ولا يساوم، ثم يترك الباقي لك.",
+  "shopPricingBody": "ماذا يفعل المساعد عندما يطلب الزبون سعراً أفضل. لا يقول إلا ما كتبته: السعر من قائمتك، وأي تخفيض عندما يتوفّر.",
+  "shopPricingHandOver": "أعلمني",
+  "shopPricingHandOverBody": "يقول السعر، ولا يساوم، ويحوّل المحادثة إليك لتقرّر.",
   "shopPricingFinal": "يقول إن السعر ثابت",
-  "shopPricingFinalBody": "يقول السعر ويوضّح أنه غير قابل للتفاوض، ويكمل المحادثة من دون تحويلها.",
+  "shopPricingFinalBody": "يقول بلطف إن السعر غير قابل للتفاوض، ثم يقترح قطعة أرخص من قائمتك بدل أن ينهي المحادثة. ولا يحوّلها إليك.",
   "@shopPricingFinalBody": {
     "description": "The consequence worth stating: choosing this stops these conversations reaching the seller at all."
   },
@@ -148,10 +148,12 @@
   "settingsLanguageBody": "يُحفظ في هذا المتصفّح.",
 
   "password": "كلمة المرور",
-  "passwordBody": "غيّرها متى شئت. تحتاج إلى 8 أحرف على الأقل.",
+  "passwordBody": "8 أحرف على الأقل.",
   "passwordNew": "كلمة المرور الجديدة",
+  "passwordCurrent": "كلمة المرور الحالية",
   "passwordRepeat": "أعد كتابتها",
   "passwordMismatch": "الكلمتان غير متطابقتين.",
+  "passwordWrong": "كلمة المرور الحالية غير صحيحة.",
   "passwordChange": "تغيير كلمة المرور",
   "passwordChanging": "جارٍ الحفظ",
   "passwordChanged": "تم تغيير كلمة المرور.",

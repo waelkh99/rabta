@@ -305,10 +305,25 @@ Added 22 September 2026. No new screen: "Your shop" was already a settings page,
 and a second one would have given the seller six menu destinations and two
 places to guess between.
 
-- [x] **The pricing stance.** Two choices, not a switch: bring price
-      negotiation to me, or say the price is final. Default is the behaviour
-      the assistant already had, so nothing changes for a shop that never opens
-      it
+- [x] **The pricing stance.** Two named modes rather than a boolean, reshaped
+      on review the same day: **strict** says the price is final and then offers
+      the cheapest thing that still suits, and **notify** answers the price,
+      argues nothing, and brings the conversation to the seller. `notify` is the
+      default and is what the assistant already did, so nothing changes for a
+      shop that never opens it
+- [x] Strict does not end on a no. "عندنا السعر ثابت للأسف، ما بقدر نزّله. بس
+      إذا بدك شي أرخص، عندي الفستان الأزرق بـ 15 دينار." — measured against the
+      real model with a second, cheaper product in the catalog, then removed
+      again. A price somebody cannot meet is a reason to show them something
+      else, not a reason to stop
+- [x] An unfamiliar stance reads as notify, never as strict. The safe
+      direction, and it has to be: a build that predates a mode added later
+      must not fall back to telling customers a price is final on a shop that
+      never said so. Confirmed to fail three tests when reversed
+- [x] Neither mode invents a discount. What the assistant may say about money
+      comes from the catalog, and will come from the sales section when that
+      exists — the stance only decides what happens after it has said what it
+      knows
 - [x] The guard was not weakened to allow it. `claimsAreGrounded` still refuses
       a reply claiming a price is fixed; `renderFacts` writes the claim into
       the same string the guard searches, in the exact wording it watches for,
@@ -330,13 +345,24 @@ places to guess between.
       comment saying this was waiting for a settings screen. Stored per browser,
       and ranked below `?lang=`: a link somebody has just been sent is a more
       recent statement of intent than a choice from a previous visit
-- [x] **Changing the password.** There was no way to: `updateUser` existed only
+- [x] **Changing the password**, in a dialog rather than a form left open on
+      the page. There was no way to change one at all: `updateUser` existed only
       on the invitation and recovery screens, so a seller who wanted a new
       password needed an email, which needs SMTP, which does not exist. This
-      needs none of it. Driven in the browser: too short refused, mismatch
-      refused, a real change accepted and then changed back — proven by signing
-      in against the live project, where the restored password returns 200 and
-      the temporary one 400
+      needs none of it
+- [x] The current password is asked for and checked before anything changes.
+      Supabase does not require it — the session alone is enough — but this
+      product's own reasoning says sellers work on machines they share or did
+      not configure, and a signed-in tab left open should not hand somebody the
+      account. Verified by signing in with it, which is the only way to ask
+      Supabase "is this the password" without a function of our own
+- [x] Driven in the browser, against the live project. A wrong current password
+      shows its own message, keeps the dialog open, and leaves the account
+      untouched — the old password still returned 200 and the new one 400. Then
+      the correct one accepted, snackbar shown, dialog closed, and the change
+      proven by the new password returning 200 and the old one 400. Changed
+      back afterwards, so the credential written down in `STATUS.md` is still
+      the real one
 - [x] Alerts moved out of the drawer and onto this screen, where the seller's
       own settings now live. The menu is destinations and sign out again
 - [x] A divider separates what the assistant reads from what belongs to the
