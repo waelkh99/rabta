@@ -302,6 +302,68 @@ class LEn extends L {
   String get alerts => 'Alerts';
 
   @override
+  String get alertsBody =>
+      'Your browser tells you when a customer writes, or when the assistant brings you a conversation. This device only.';
+
+  @override
+  String get shopPricing => 'Price';
+
+  @override
+  String get shopPricingBody =>
+      'What the assistant does when a customer asks for a better price.';
+
+  @override
+  String get shopPricingHandOver => 'Bring it to me';
+
+  @override
+  String get shopPricingHandOverBody =>
+      'It states the price, never bargains, and leaves the rest to you.';
+
+  @override
+  String get shopPricingFinal => 'Say the price is final';
+
+  @override
+  String get shopPricingFinalBody =>
+      'It states the price, says plainly that it is not negotiable, and carries on without bringing it to you.';
+
+  @override
+  String get settingsYou => 'You and this browser';
+
+  @override
+  String get settingsLanguage => 'Interface language';
+
+  @override
+  String get settingsLanguageBody => 'Saved in this browser.';
+
+  @override
+  String get password => 'Password';
+
+  @override
+  String get passwordBody =>
+      'Change it whenever you like. At least 8 characters.';
+
+  @override
+  String get passwordNew => 'New password';
+
+  @override
+  String get passwordRepeat => 'Type it again';
+
+  @override
+  String get passwordMismatch => 'Those two do not match.';
+
+  @override
+  String get passwordChange => 'Change password';
+
+  @override
+  String get passwordChanging => 'Saving';
+
+  @override
+  String get passwordChanged => 'Password changed.';
+
+  @override
+  String get passwordFailed => 'Could not change the password. Try again.';
+
+  @override
   String get alertsDenied => 'Alerts are blocked in your browser';
 
   @override

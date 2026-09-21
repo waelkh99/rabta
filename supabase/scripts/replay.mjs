@@ -29,7 +29,7 @@ const headers = { apikey: key, Authorization: `Bearer ${key}` };
 const get = async (p) => (await fetch(`${url}/rest/v1/${p}`, { headers })).json();
 
 const products = await get("products?select=name,price,description,in_stock&order=name");
-const [shopRow] = await get("shop?select=currency,delivery_note,locations,hours,about");
+const [shopRow] = await get("shop?select=currency,delivery_note,locations,hours,about,prices_final");
 
 // Whatever Meta told us this customer is called, which is what decides how the
 // assistant addresses them in Arabic. Overridable so an ambiguous name can be
@@ -44,6 +44,7 @@ const facts = renderFacts({
   shop: shopRow ? {
     currency: shopRow.currency ?? "", deliveryNote: shopRow.delivery_note,
     locations: shopRow.locations, hours: shopRow.hours, about: shopRow.about,
+    pricesFinal: shopRow.prices_final === true,
   } : null,
   zones: zones.map((z) => ({ name: z.name, fee: z.fee })),
   products: products.map((p) => ({

@@ -140,6 +140,16 @@ So whenever a new source of seller-written information is added:
    to learn that too. A discount field is exactly this case.
 4. Re-run `npm run replay` against a real shop, not only the scripted harness.
 
+**Done, and the worked example of this rule:** the pricing stance, added
+22 September 2026. A seller can now say that the listed price is final. All
+four steps above were needed, and step 3 was the interesting one — the guard
+already refused any reply claiming a price was fixed, because until then no
+shop had ever said so. It did not need weakening: `renderFacts` writes the
+claim, in the exact wording the guard watches for, and the claim becomes true.
+Step 4 found the proof, against the real model and the real shop — with the
+setting off the assistant hands price haggling over and says why ("ولا يوجد نص
+يقول إن السعر ثابت"), and with it on it answers and carries on.
+
 **Known and waiting:** the products section needs expanding. It holds a name,
 a price, a description and an in-stock boolean, and that is thin — sellers have
 more to say about what they sell than fits in one free-text line. Whatever it

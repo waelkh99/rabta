@@ -125,6 +125,37 @@
   },
   "alertHandedOver": "حوّلها المساعد إليك",
   "alerts": "التنبيهات",
+  "alertsBody": "ينبّهك المتصفّح عند وصول رسالة أو عندما يحوّل المساعد محادثة إليك. لهذا الجهاز وحده.",
+  "@alertsBody": {
+    "description": "On the settings screen. It says 'this device' because the choice is stored in the browser, not on the account, and a seller who turns it on at the shop should not be surprised that it is off at home."
+  },
+
+  "shopPricing": "السعر",
+  "shopPricingBody": "ماذا يفعل المساعد عندما يطلب الزبون سعراً أفضل.",
+  "shopPricingHandOver": "يحوّل المحادثة إليك",
+  "shopPricingHandOverBody": "يقول السعر كما هو، ولا يساوم، ثم يترك الباقي لك.",
+  "shopPricingFinal": "يقول إن السعر ثابت",
+  "shopPricingFinalBody": "يقول السعر ويوضّح أنه غير قابل للتفاوض، ويكمل المحادثة من دون تحويلها.",
+  "@shopPricingFinalBody": {
+    "description": "The consequence worth stating: choosing this stops these conversations reaching the seller at all."
+  },
+
+  "settingsYou": "أنت وهذا المتصفّح",
+  "@settingsYou": {
+    "description": "The divider between what the assistant tells customers and what belongs to the seller and this browser."
+  },
+  "settingsLanguage": "لغة الواجهة",
+  "settingsLanguageBody": "يُحفظ في هذا المتصفّح.",
+
+  "password": "كلمة المرور",
+  "passwordBody": "غيّرها متى شئت. تحتاج إلى 8 أحرف على الأقل.",
+  "passwordNew": "كلمة المرور الجديدة",
+  "passwordRepeat": "أعد كتابتها",
+  "passwordMismatch": "الكلمتان غير متطابقتين.",
+  "passwordChange": "تغيير كلمة المرور",
+  "passwordChanging": "جارٍ الحفظ",
+  "passwordChanged": "تم تغيير كلمة المرور.",
+  "passwordFailed": "تعذّر تغيير كلمة المرور. حاول مرة أخرى.",
   "@alerts": {
     "description": "A menu row with a switch. The switch carries on and off, so the label is a noun rather than an instruction."
   },

@@ -224,6 +224,7 @@ class Shop {
     this.hours,
     this.about,
     this.assistantEnabled = false,
+    this.pricesFinal = false,
   });
 
   /// Written as the seller writes it and repeated back the same way. Not a
@@ -245,6 +246,17 @@ class Shop {
 
   final bool assistantEnabled;
 
+  /// The seller has said the listed price is the price.
+  ///
+  /// Off by default, and off is what the assistant has always done: quote the
+  /// price, argue nothing, and hand a customer who pushes to the seller. On, it
+  /// says so plainly and keeps the conversation.
+  ///
+  /// The setting only reaches the customer through `renderFacts` on the server
+  /// — which is also what makes the claim legitimate, because the guard that
+  /// refuses invented price policies searches that same text.
+  final bool pricesFinal;
+
   Shop copyWith({
     String? currency,
     String? deliveryNote,
@@ -252,6 +264,7 @@ class Shop {
     String? hours,
     String? about,
     bool? assistantEnabled,
+    bool? pricesFinal,
   }) =>
       Shop(
         currency: currency ?? this.currency,
@@ -260,6 +273,7 @@ class Shop {
         hours: hours ?? this.hours,
         about: about ?? this.about,
         assistantEnabled: assistantEnabled ?? this.assistantEnabled,
+        pricesFinal: pricesFinal ?? this.pricesFinal,
       );
 
   factory Shop.fromRow(Map<String, dynamic> row) => Shop(
@@ -271,6 +285,7 @@ class Shop {
         hours: row['hours'] as String?,
         about: row['about'] as String?,
         assistantEnabled: row['assistant_enabled'] as bool? ?? false,
+        pricesFinal: row['prices_final'] as bool? ?? false,
       );
 }
 
@@ -760,7 +775,7 @@ class Inbox {
         .from('shop')
         .select(
           'currency, delivery_note, locations, hours, about, '
-          'assistant_enabled',
+          'assistant_enabled, prices_final',
         )
         .maybeSingle();
 

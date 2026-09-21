@@ -11,8 +11,11 @@
 // products.
 
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'alerts_switch.dart';
 import 'data.dart';
+import 'locale_switch.dart';
 import 'strings.dart';
 import 'theme.dart';
 
@@ -170,6 +173,19 @@ class _ShopPageState extends State<ShopPage> {
                       ),
                       const SizedBox(height: 32),
 
+                      _Heading(l.shopPricing),
+                      Text(
+                        l.shopPricingBody,
+                        style: Style.preview.copyWith(color: colors.muted, height: 1.6),
+                      ),
+                      const SizedBox(height: 10),
+                      _Pricing(
+                        pricesFinal: shop.pricesFinal,
+                        enabled: !busy,
+                        onChanged: (on) => _save({"prices_final": on}),
+                      ),
+                      const SizedBox(height: 32),
+
                       _Heading(l.shopDelivery),
                       Text(
                         l.shopDeliveryBody,
@@ -250,6 +266,49 @@ class _ShopPageState extends State<ShopPage> {
                         enabled: !busy,
                         onSaved: (value) => _save({"about": Inbox.textOrNull(value)}),
                       ),
+                      const SizedBox(height: 40),
+
+                      // Everything above this line is read by the assistant and
+                      // can end up in front of a customer. Everything below is
+                      // the seller's own, and never leaves this browser except
+                      // the password. Worth separating plainly: they are the
+                      // same kind of control and not the same kind of risk.
+                      Divider(height: 1, color: colors.line),
+                      const SizedBox(height: 24),
+                      Text(
+                        l.settingsYou,
+                        style: Style.groupLabel.copyWith(color: colors.muted),
+                      ),
+                      const SizedBox(height: 20),
+
+                      _Heading(l.settingsLanguage),
+                      Text(
+                        l.settingsLanguageBody,
+                        style: Style.preview.copyWith(color: colors.muted, height: 1.6),
+                      ),
+                      const SizedBox(height: 10),
+                      const Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: LocaleSwitch(),
+                      ),
+                      const SizedBox(height: 32),
+
+                      _Heading(l.alerts),
+                      Text(
+                        l.alertsBody,
+                        style: Style.preview.copyWith(color: colors.muted, height: 1.6),
+                      ),
+                      const SizedBox(height: 10),
+                      const AlertsSwitch(),
+                      const SizedBox(height: 32),
+
+                      _Heading(l.password),
+                      Text(
+                        l.passwordBody,
+                        style: Style.preview.copyWith(color: colors.muted, height: 1.6),
+                      ),
+                      const SizedBox(height: 10),
+                      const _ChangePassword(),
                     ],
                   ),
                 ),
@@ -257,6 +316,259 @@ class _ShopPageState extends State<ShopPage> {
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+/// What the assistant does when a customer asks for a better price.
+///
+/// Two choices rather than a switch, because neither is an absence of the
+/// other and a switch would make one of them read as "off". A seller picking
+/// between them is choosing how their shop behaves, not enabling a feature.
+///
+/// The consequence is stated under each one, because the difference that
+/// matters is not what the assistant says — it is whether these conversations
+/// reach the seller at all.
+class _Pricing extends StatelessWidget {
+  const _Pricing({
+    required this.pricesFinal,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final bool pricesFinal;
+  final bool enabled;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _Choice(
+          label: l.shopPricingHandOver,
+          body: l.shopPricingHandOverBody,
+          selected: !pricesFinal,
+          enabled: enabled,
+          onTap: () => onChanged(false),
+        ),
+        const SizedBox(height: 8),
+        _Choice(
+          label: l.shopPricingFinal,
+          body: l.shopPricingFinalBody,
+          selected: pricesFinal,
+          enabled: enabled,
+          onTap: () => onChanged(true),
+        ),
+      ],
+    );
+  }
+}
+
+class _Choice extends StatelessWidget {
+  const _Choice({
+    required this.label,
+    required this.body,
+    required this.selected,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final String label;
+  final String body;
+  final bool selected;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.rabta;
+
+    return InkWell(
+      onTap: enabled ? onTap : null,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+        decoration: BoxDecoration(
+          color: selected ? colors.raised : colors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: selected ? colors.edge : colors.line),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              selected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+              size: 17,
+              color: selected ? colors.accent : colors.muted,
+            ),
+            const SizedBox(width: 11),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: Style.name.copyWith(
+                      color: selected ? colors.accent : colors.ink,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    body,
+                    style: Style.preview.copyWith(color: colors.muted, height: 1.5),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Changing the password of the account already signed in.
+///
+/// Until now the only way to set one was an invitation or a recovery link, so a
+/// seller who wanted to change theirs had to be sent a new email — which needs
+/// SMTP, which does not exist. This needs neither: they are already signed in,
+/// and Supabase takes the new password on the session they are holding.
+class _ChangePassword extends StatefulWidget {
+  const _ChangePassword();
+
+  @override
+  State<_ChangePassword> createState() => _ChangePasswordState();
+}
+
+class _ChangePasswordState extends State<_ChangePassword> {
+  final _password = TextEditingController();
+  final _repeat = TextEditingController();
+
+  bool _busy = false;
+  String? _problem;
+  bool _done = false;
+
+  @override
+  void dispose() {
+    _password.dispose();
+    _repeat.dispose();
+    super.dispose();
+  }
+
+  Future<void> _change() async {
+    final password = _password.text;
+    final l = context.l;
+
+    // The same two rules the invitation screen applies, so a password that is
+    // acceptable there cannot be refused here.
+    if (password.length < 8) {
+      setState(() => _problem = l.passwordTooShort);
+      return;
+    }
+    if (password != _repeat.text) {
+      setState(() => _problem = l.passwordMismatch);
+      return;
+    }
+
+    setState(() {
+      _busy = true;
+      _problem = null;
+      _done = false;
+    });
+
+    try {
+      await Supabase.instance.client.auth.updateUser(
+        UserAttributes(password: password),
+      );
+      if (!mounted) return;
+      // Cleared on success. Leaving a password sitting in a form on a screen
+      // the seller may walk away from is worse than making them type it again
+      // if they want to change it twice.
+      _password.clear();
+      _repeat.clear();
+      setState(() {
+        _busy = false;
+        _done = true;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _problem = l.passwordFailed;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.rabta;
+    final l = context.l;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _Password(controller: _password, label: l.passwordNew, enabled: !_busy),
+        const SizedBox(height: 10),
+        _Password(controller: _repeat, label: l.passwordRepeat, enabled: !_busy),
+        if (_problem != null) ...[
+          const SizedBox(height: 10),
+          Text(
+            _problem!,
+            style: Style.preview.copyWith(color: colors.urgent, height: 1.5),
+          ),
+        ],
+        if (_done) ...[
+          const SizedBox(height: 10),
+          Text(
+            l.passwordChanged,
+            style: Style.preview.copyWith(color: colors.assistant, height: 1.5),
+          ),
+        ],
+        const SizedBox(height: 14),
+        Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: FilledButton(
+            onPressed: _busy ? null : _change,
+            child: Text(_busy ? l.passwordChanging : l.passwordChange),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _Password extends StatelessWidget {
+  const _Password({
+    required this.controller,
+    required this.label,
+    required this.enabled,
+  });
+
+  final TextEditingController controller;
+  final String label;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.rabta;
+
+    return TextField(
+      controller: controller,
+      enabled: enabled,
+      obscureText: true,
+      // Named so a password manager offers to store the new one rather than
+      // treating this as a sign-in form.
+      autofillHints: const [AutofillHints.newPassword],
+      style: Style.name.copyWith(color: colors.ink),
+      decoration: InputDecoration(
+        labelText: label,
+        // Latin either way: a password is not translated, and an Arabic
+        // interface must not flip the field a password is typed into.
+        hintTextDirection: TextDirection.ltr,
       ),
     );
   }

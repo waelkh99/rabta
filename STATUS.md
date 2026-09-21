@@ -24,7 +24,7 @@ title and a system notification say when something needs them.**
 
 ## Live right now
 
-Supabase project `xejtffbpfguwvybrwqqj`. Eight migrations applied, four Edge
+Supabase project `xejtffbpfguwvybrwqqj`. Nine migrations applied, four Edge
 Functions deployed.
 
 | Function | What it does | Auth |
@@ -46,9 +46,9 @@ against both the **Page** and **Instagram** objects with the same verify token.
 `META_APP_SECRET` and `META_VERIFY_TOKEN` are set on the functions. Public
 sign-up is off: `/auth/v1/settings` reports `disable_signup: true`.
 
-**328 backend tests** (`cd supabase && npm test`, which typechecks every Edge
+**336 backend tests** (`cd supabase && npm test`, which typechecks every Edge
 Function with `deno check` first; about ten seconds, no Docker and no network)
-and **125 client tests** (`flutter test`). Each new piece of
+and **133 client tests** (`flutter test`). Each new piece of
 logic is shown to fail when deliberately broken rather than assumed to be
 covered.
 
@@ -463,6 +463,8 @@ Phase Two:
   22 September:** it does not, and the same card is shown at the top of the
   thread instead whenever the pane is not on screen. The pane keeps its
   breakpoint, so the thread is never squeezed to buy room for one card.
-- Whether a pricing setting should let the seller choose between the assistant
-  handing price negotiation back and it holding the listed price as final.
-  Asked for on 21 September and deliberately parked.
+- ~~Whether a pricing setting should let the seller choose between the
+  assistant handing price negotiation back and it holding the listed price as
+  final.~~ **Built 22 September**, and measured both ways against the real
+  model. Sales and discounts, the other half `CLAUDE.md` promised, is still
+  open.

@@ -8,12 +8,40 @@
 import 'package:flutter/material.dart';
 
 import 'l10n/app_localizations.dart';
+import 'prefs.dart';
 import 'theme.dart';
 
-/// ponytail: in memory, so a reload falls back to the browser again. The
-/// durable home for this is the seller's own row once there is a profile —
-/// a local preference would be a second source of truth to reconcile later.
+/// The language chosen in this tab, or null until somebody chooses one.
+///
+/// It used to stop there, with a note saying the durable home was the seller's
+/// own row once a profile existed, and that a local preference would be a
+/// second source of truth to reconcile later. **Changed 22 September 2026**,
+/// and the reasoning inverted rather than merely expired: per-device is not a
+/// compromise here, it is the correct answer. The case this exists for is a
+/// browser set to a language the seller did not choose — a machine at a
+/// counter, a laptop somebody else configured — and the same seller can easily
+/// want Arabic on one and English on another. A language attached to the
+/// account would be wrong on one of those machines every time.
+///
+/// So there is no second source of truth to reconcile. There is one, and it is
+/// the browser.
 final currentLocale = ValueNotifier<Locale?>(null);
+
+/// What was chosen here last time, if anything.
+///
+/// Ranked below `?lang=` in `main.dart`: a link someone has just been sent is a
+/// more recent statement of intent than a choice made on a previous visit.
+Locale? get savedLocale {
+  final code = savedLanguage;
+  return code == null ? null : Locale(code);
+}
+
+/// Applies a language and remembers it, which are one action from the seller's
+/// side and must not come apart.
+void chooseLocale(Locale locale) {
+  savedLanguage = locale.languageCode;
+  currentLocale.value = locale;
+}
 
 class LocaleSwitch extends StatelessWidget {
   const LocaleSwitch({super.key, this.compact = false});
@@ -40,7 +68,7 @@ class LocaleSwitch extends StatelessWidget {
               label: names[locale.languageCode] ?? locale.languageCode,
               selected: locale.languageCode == active,
               compact: compact,
-              onTap: () => currentLocale.value = locale,
+              onTap: () => chooseLocale(locale),
               colors: colors,
             ),
           ),

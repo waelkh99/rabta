@@ -299,6 +299,51 @@ appeared to behave once. Where something was verified, it says how.
       dot, which broke the parser until it stopped stripping and started
       extracting
 
+## 9c. Settings, on the shop screen
+
+Added 22 September 2026. No new screen: "Your shop" was already a settings page,
+and a second one would have given the seller six menu destinations and two
+places to guess between.
+
+- [x] **The pricing stance.** Two choices, not a switch: bring price
+      negotiation to me, or say the price is final. Default is the behaviour
+      the assistant already had, so nothing changes for a shop that never opens
+      it
+- [x] The guard was not weakened to allow it. `claimsAreGrounded` still refuses
+      a reply claiming a price is fixed; `renderFacts` writes the claim into
+      the same string the guard searches, in the exact wording it watches for,
+      which makes the claim true instead of unchecked. Both mutations caught —
+      dropping the Arabic phrasing fails two tests, and writing the section for
+      every shop fails two others
+- [x] The instructions stayed one string. They defer to the shop's facts rather
+      than branching, so the cached prefix is identical for every seller and
+      there is no second prompt to keep in step. A test asserts the bytes match
+- [x] **Measured against the real model and the real shop**, per the standing
+      rule in `CLAUDE.md`. Off: "حالياً ما في خصم عليه… بجهزلك جواب", handed
+      over, and the model's own reason was "ولا يوجد نص يقول إن السعر ثابت". On:
+      "السعر عنا ثابت وهو 25.5 د.ا… التوصيل بيصير مجاني إذا الطلب فوق 50" — no
+      hand-over, no guard hold, and it still moved the sale forward
+- [x] Saving one field at a time still holds: turning the stance on left
+      `assistant_enabled` untouched in the live row
+- [x] **The interface language is remembered.** It was a query parameter and an
+      in-memory notifier, so a reload threw it away — `main.dart` had carried a
+      comment saying this was waiting for a settings screen. Stored per browser,
+      and ranked below `?lang=`: a link somebody has just been sent is a more
+      recent statement of intent than a choice from a previous visit
+- [x] **Changing the password.** There was no way to: `updateUser` existed only
+      on the invitation and recovery screens, so a seller who wanted a new
+      password needed an email, which needs SMTP, which does not exist. This
+      needs none of it. Driven in the browser: too short refused, mismatch
+      refused, a real change accepted and then changed back — proven by signing
+      in against the live project, where the restored password returns 200 and
+      the temporary one 400
+- [x] Alerts moved out of the drawer and onto this screen, where the seller's
+      own settings now live. The menu is destinations and sign out again
+- [x] A divider separates what the assistant reads from what belongs to the
+      seller. Everything above it can reach a customer; everything below it
+      stays in this browser, except the password
+- [x] Seen in a browser at 390 and 1100, in both languages
+
 ## 9b. The shop
 
 - [x] `shop` and `delivery_zones`, with row level security proven against a

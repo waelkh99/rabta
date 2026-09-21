@@ -19,6 +19,7 @@ import 'dart:js_interop_unsafe';
 import 'package:web/web.dart' as web;
 
 import 'alerts.dart';
+import 'prefs.dart' as prefs;
 
 /// Registered once, lazily, and only when the seller has actually said yes.
 /// A service worker registered on load would be a background thread every
@@ -62,37 +63,12 @@ Future<AlertPermission> ask() async {
   return AlertPermission.granted;
 }
 
-/// The key the seller's own choice is kept under.
-///
-/// In this browser on this device, deliberately, rather than on their account.
-/// Notifications are a property of where you are sitting: the same seller may
-/// want them on the machine at the counter and not on the one at home, and a
-/// preference that followed them between the two would be wrong in one place
-/// every time.
-const _wantedKey = 'rabta.alerts';
+/// Kept in `prefs.dart` with the language, because both are the same kind of
+/// thing: a choice about this browser on this device rather than about the
+/// seller. See the note there on why it does not follow them between machines.
+bool wanted() => prefs.alertsWanted;
 
-/// Defaults to true, so a seller who has granted permission and never touched
-/// the switch gets what they agreed to. Only an explicit "off" is stored as
-/// off.
-bool wanted() {
-  try {
-    return web.window.localStorage.getItem(_wantedKey) != 'off';
-  } catch (_) {
-    // Storage can be unavailable outright — private windows and blocked site
-    // data both throw rather than returning null. Falling back to the default
-    // means alerts keep working; the switch simply does not remember.
-    return true;
-  }
-}
-
-void setWanted(bool on) {
-  try {
-    web.window.localStorage.setItem(_wantedKey, on ? 'on' : 'off');
-  } catch (_) {
-    // Nothing to do. The choice holds for this page and is forgotten on
-    // reload, which is better than failing the tap.
-  }
-}
+void setWanted(bool on) => prefs.alertsWanted = on;
 
 Future<void> prepare() => _register();
 

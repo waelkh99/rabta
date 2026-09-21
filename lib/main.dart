@@ -30,9 +30,11 @@ const _key = String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');
 /// `?lang=ar` or `?lang=en` overrides what the browser asks for.
 ///
 /// A seller's browser is often set to English on a machine they share or did
-/// not configure, which is not the language they want to work in. Until there
-/// is a settings screen this is how they say so, and it is also the only way to
-/// see the Arabic interface without changing the whole browser.
+/// not configure, which is not the language they want to work in. The switch on
+/// the sign-in screen is how they say so, and since 22 September the choice is
+/// remembered — see `locale_switch.dart`. This stays because a link is still
+/// the only way to open Rabta in a given language without touching the
+/// interface first, which is what makes it useful for showing someone.
 Locale? get _requestedLocale {
   final asked = Uri.base.queryParameters['lang'];
   return L.supportedLocales.where((l) => l.languageCode == asked).firstOrNull;
@@ -101,7 +103,11 @@ class RabtaApp extends StatelessWidget {
       // locale automatically, which is why no screen sets one by hand.
       supportedLocales: L.supportedLocales,
       localizationsDelegates: L.localizationsDelegates,
-      locale: chosen ?? _requestedLocale,
+      // In order of how recently the seller said it: what they picked in this
+      // tab, then the link that opened it, then what they picked on a previous
+      // visit. A stale saved language must not override a `?lang=` somebody has
+      // just been sent.
+      locale: chosen ?? _requestedLocale ?? savedLocale,
       localeListResolutionCallback: (requested, supported) {
         for (final locale in requested ?? const <Locale>[]) {
           for (final candidate in supported) {

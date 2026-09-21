@@ -88,6 +88,11 @@ export interface Shop {
   locations: string | null;
   hours: string | null;
   about: string | null;
+
+  /// The seller has said the listed price is the price. Off by default, and
+  /// off means the original behaviour: quote it, argue nothing, hand a haggler
+  /// to the seller.
+  pricesFinal: boolean;
 }
 
 export interface DeliveryZone {
@@ -120,6 +125,21 @@ export function renderFacts(
     );
   }
   if (shop?.deliveryNote?.trim()) delivery.push(shop.deliveryNote.trim());
+
+  // Worded to contain the exact phrases `claimsAreGrounded` watches for —
+  // "fixed price", "non-negotiable", and "السعر عنا ثابت" — because that check
+  // searches this very string. A shop that has said its prices are final makes
+  // the claim true, and the guard then lets the assistant say it in either
+  // language. Reword this and the guard starts refusing a reply the seller
+  // explicitly authorised, with nothing to say why.
+  if (shop?.pricesFinal) {
+    sections.push(
+      "Prices:\nThis is a fixed price shop. The catalog price is the price: " +
+        "it is non-negotiable, and in Arabic السعر عنا ثابت. A customer who " +
+        "asks for a better price is told this warmly and directly, and is not " +
+        "passed to the seller for that alone.",
+    );
+  }
 
   if (delivery.length > 0) sections.push(`Delivery:\n${delivery.join("\n")}`);
   if (shop?.locations?.trim()) sections.push(`Where the shop is:\n${shop.locations.trim()}`);
@@ -617,18 +637,26 @@ information about it — you do know, because it would be written down.
 have, free delivery over a certain amount if the shop said so, the sizes it \
 comes in. That is what someone who runs a shop does with a price objection — \
 they hand the customer a way to say yes.
-- Set handOver. That is a flag on our side, the customer never sees it, and \
-somebody may still choose to offer them something. Do NOT tell them you will \
-get back to them about the price: you have just answered it, and promising to \
-go and check undoes the answer you gave one sentence earlier.
+- Set handOver, UNLESS the shop's facts say this is a fixed price shop. That \
+is a flag on our side, the customer never sees it, and somebody may still \
+choose to offer them something. Do NOT tell them you will get back to them \
+about the price: you have just answered it, and promising to go and check \
+undoes the answer you gave one sentence earlier.
+- If the facts DO say the price is fixed, do not set handOver for this. You \
+have given them the whole answer and there is nothing left for anyone to add — \
+passing it on would only make the customer wait for a second version of what \
+you already told them.
 - NEVER mention a shop owner, a manager, a colleague or anyone else. Not "صاحب \
 المحل", not "صاحبة المحل", not "حدا من المحل", not "the owner", not "someone \
 from the shop". You are the shop. Measured: it wrote "صاحب المحل" in one reply \
 and "صاحبة المحل" in the next — it does not know who runs this shop or whether \
 they are a man or a woman, and it should not be talking about them at all.
-- NEVER say the price is fixed, final, or the best you can do. Nobody told you \
-that, and it is a different claim from "there is no sale right now": one is a \
-policy you invented, the other is what the shop's own list says.
+- NEVER say the price is fixed, final, or the best you can do — UNLESS the \
+shop's facts say so in as many words. Then it is not your invention, it is \
+their policy, and you state it warmly and without apology. When the facts do \
+not say it, nobody told you, and it is a different claim from "there is no \
+sale right now": one is a policy you made up, the other is what the shop's own \
+list says.
 - NEVER offer a discount, a round-down or a better price yourself, however \
 small. It is not yours to give.
 - Do not lecture them about it either. One warm sentence with the price in it, \
@@ -649,9 +677,10 @@ written down. It usually does. Most of an ordinary conversation is yours to carr
 and a customer handed off for something you could have answered is a customer left \
 waiting for no reason.
 
-Set it for: a complaint, an upset customer, haggling over price, anything about an \
-order already placed, anything about payment or returns that is not written below, \
-and any answer that would need a fact nobody wrote down.
+Set it for: a complaint, an upset customer, haggling over price when the shop's \
+facts do NOT say the price is fixed, anything about an order already placed, \
+anything about payment or returns that is not written below, and any answer \
+that would need a fact nobody wrote down.
 
 When you set it, STILL WRITE text. Answer whatever part of it you can, then say \
 YOU will come back to them with an answer on the rest — "رح نرجعلك بجواب". Never \

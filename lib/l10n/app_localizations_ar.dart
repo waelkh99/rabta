@@ -302,6 +302,67 @@ class LAr extends L {
   String get alerts => 'التنبيهات';
 
   @override
+  String get alertsBody =>
+      'ينبّهك المتصفّح عند وصول رسالة أو عندما يحوّل المساعد محادثة إليك. لهذا الجهاز وحده.';
+
+  @override
+  String get shopPricing => 'السعر';
+
+  @override
+  String get shopPricingBody =>
+      'ماذا يفعل المساعد عندما يطلب الزبون سعراً أفضل.';
+
+  @override
+  String get shopPricingHandOver => 'يحوّل المحادثة إليك';
+
+  @override
+  String get shopPricingHandOverBody =>
+      'يقول السعر كما هو، ولا يساوم، ثم يترك الباقي لك.';
+
+  @override
+  String get shopPricingFinal => 'يقول إن السعر ثابت';
+
+  @override
+  String get shopPricingFinalBody =>
+      'يقول السعر ويوضّح أنه غير قابل للتفاوض، ويكمل المحادثة من دون تحويلها.';
+
+  @override
+  String get settingsYou => 'أنت وهذا المتصفّح';
+
+  @override
+  String get settingsLanguage => 'لغة الواجهة';
+
+  @override
+  String get settingsLanguageBody => 'يُحفظ في هذا المتصفّح.';
+
+  @override
+  String get password => 'كلمة المرور';
+
+  @override
+  String get passwordBody => 'غيّرها متى شئت. تحتاج إلى 8 أحرف على الأقل.';
+
+  @override
+  String get passwordNew => 'كلمة المرور الجديدة';
+
+  @override
+  String get passwordRepeat => 'أعد كتابتها';
+
+  @override
+  String get passwordMismatch => 'الكلمتان غير متطابقتين.';
+
+  @override
+  String get passwordChange => 'تغيير كلمة المرور';
+
+  @override
+  String get passwordChanging => 'جارٍ الحفظ';
+
+  @override
+  String get passwordChanged => 'تم تغيير كلمة المرور.';
+
+  @override
+  String get passwordFailed => 'تعذّر تغيير كلمة المرور. حاول مرة أخرى.';
+
+  @override
   String get alertsDenied => 'التنبيهات محظورة في المتصفّح';
 
   @override

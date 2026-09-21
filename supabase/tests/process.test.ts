@@ -106,6 +106,7 @@ class FakeStore implements Store {
       locations: null,
       hours: null,
       about: null,
+      pricesFinal: false,
     },
     zones: [{ name: "عمّان", fee: "2.000" }],
     products: [{ name: "فستان أحمر", price: "25.500", description: null, inStock: true }],

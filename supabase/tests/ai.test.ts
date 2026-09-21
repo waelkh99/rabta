@@ -334,6 +334,7 @@ const SHOP = {
   locations: "عمّان، شارع الرينبو",
   hours: "السبت إلى الخميس ١٠ص-٨م، الجمعة مغلق",
   about: "الدفع عند الاستلام متاح",
+  pricesFinal: false,
 };
 
 const ZONES = [
@@ -435,7 +436,14 @@ test("the facts render the same bytes every time", () => {
 test("an empty section is left out rather than labelled and blank", () => {
   // "Opening hours:" followed by nothing invites the model to fill the gap.
   const bare = renderFacts({
-    shop: { currency: "د.ا", deliveryNote: null, locations: null, hours: null, about: null },
+    shop: {
+      currency: "د.ا",
+      deliveryNote: null,
+      locations: null,
+      hours: null,
+      about: null,
+      pricesFinal: false,
+    },
     zones: [],
     products: [DRESS],
   });
@@ -1612,4 +1620,100 @@ test("an answer the model garbled is unusable, and the seller gets the conversat
   const outcome = await ask("key", requestInput, fetcher);
 
   assert.equal(outcome.status, "unusable");
+});
+
+// ---------------------------------------------------------------------------
+// A shop that does not haggle
+// ---------------------------------------------------------------------------
+//
+// The setting is one boolean. The part worth testing is that turning it on does
+// not weaken `claimsAreGrounded`: the guard still refuses an invented price
+// policy, and now lets through one the seller actually stated. It does that
+// without knowing the setting exists, because the claim is written into the
+// same `facts` string it searches.
+
+const finalShop = { ...SHOP, pricesFinal: true };
+
+const factsWhere = (pricesFinal: boolean) =>
+  renderFacts({
+    shop: { ...SHOP, pricesFinal },
+    zones: [],
+    products: [{ name: "فستان أحمر", price: 25.5, description: null, inStock: true }],
+  });
+
+test("a shop that has not said so has no price policy in its facts", () => {
+  const facts = factsWhere(false);
+
+  assert.doesNotMatch(facts, /fixed price/i);
+  assert.doesNotMatch(facts, /ثابت/);
+});
+
+test("a fixed price shop says so in the facts, in both languages", () => {
+  // Both, because the assistant answers in the customer's language and the
+  // guard searches this string in whichever language the reply came back in.
+  const facts = factsWhere(true);
+
+  assert.match(facts, /fixed price/i);
+  assert.match(facts, /non-negotiable/i);
+  assert.match(facts, /السعر عنا ثابت/);
+});
+
+test("the guard still refuses an invented price policy", () => {
+  // Unchanged, and the reason this feature is not simply a prompt edit.
+  const facts = factsWhere(false);
+
+  assert.equal(claimsAreGrounded("السعر عنا ثابت", facts, []), "السعر عنا ثابت");
+  assert.equal(claimsAreGrounded("It is a fixed price.", facts, []), "fixed price");
+  assert.equal(claimsAreGrounded("Sorry, non-negotiable.", facts, []), "non-negotiable");
+});
+
+test("the guard lets the claim through once the seller has made it", () => {
+  const facts = factsWhere(true);
+
+  assert.equal(claimsAreGrounded("السعر عنا ثابت، بس متوفر بكل المقاسات.", facts, []), null);
+  assert.equal(claimsAreGrounded("It is a fixed price, but it comes in all sizes.", facts, []), null);
+  assert.equal(claimsAreGrounded("The price is non-negotiable.", facts, []), null);
+});
+
+test("a fixed price shop still cannot invent a discount or a guarantee", () => {
+  // The exemption is about one claim, not an amnesty on the rest. Getting this
+  // wrong would turn a pricing preference into a hole in the whole check.
+  const facts = factsWhere(true);
+
+  assert.equal(claimsAreGrounded("في خصم 10% اليوم", facts, []), "خصم");
+  assert.equal(claimsAreGrounded("It is guaranteed for a year.", facts, []), "guarantee");
+  assert.equal(claimsAreGrounded("This is the last one!", facts, []), "last one");
+});
+
+test("ruling a sale out still passes, either way round", () => {
+  // The negation strip predates this setting and must survive it.
+  for (const pricesFinal of [true, false]) {
+    assert.equal(
+      claimsAreGrounded("حالياً ما في خصم على هالقطعة", factsWhere(pricesFinal), []),
+      null,
+    );
+  }
+});
+
+test("the model is told to follow the facts rather than a rule of its own", () => {
+  // One prompt, not two. The instructions defer to the shop's facts, so the
+  // cached prefix is identical for every shop and there is no second variant
+  // to keep in step. If this ever becomes two prompts, the cache halves.
+  const instructions = String(
+    (buildRequest(requestInput).system as Record<string, unknown>[])[0].text,
+  );
+
+  assert.match(instructions, /UNLESS the shop's facts say/);
+  assert.match(instructions, /do not set handOver for this/);
+});
+
+test("the fixed price instructions are the same bytes for every shop", () => {
+  // The guard against the above quietly becoming per-shop.
+  const plain = buildRequest(requestInput).system as Record<string, unknown>[];
+  const strict = buildRequest({
+    ...requestInput,
+    facts: renderFacts({ shop: finalShop, zones: [], products: [] }),
+  }).system as Record<string, unknown>[];
+
+  assert.equal(plain[0].text, strict[0].text);
 });

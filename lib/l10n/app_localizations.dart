@@ -595,6 +595,120 @@ abstract class L {
   /// **'التنبيهات'**
   String get alerts;
 
+  /// On the settings screen. It says 'this device' because the choice is stored in the browser, not on the account, and a seller who turns it on at the shop should not be surprised that it is off at home.
+  ///
+  /// In ar, this message translates to:
+  /// **'ينبّهك المتصفّح عند وصول رسالة أو عندما يحوّل المساعد محادثة إليك. لهذا الجهاز وحده.'**
+  String get alertsBody;
+
+  /// No description provided for @shopPricing.
+  ///
+  /// In ar, this message translates to:
+  /// **'السعر'**
+  String get shopPricing;
+
+  /// No description provided for @shopPricingBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'ماذا يفعل المساعد عندما يطلب الزبون سعراً أفضل.'**
+  String get shopPricingBody;
+
+  /// No description provided for @shopPricingHandOver.
+  ///
+  /// In ar, this message translates to:
+  /// **'يحوّل المحادثة إليك'**
+  String get shopPricingHandOver;
+
+  /// No description provided for @shopPricingHandOverBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'يقول السعر كما هو، ولا يساوم، ثم يترك الباقي لك.'**
+  String get shopPricingHandOverBody;
+
+  /// No description provided for @shopPricingFinal.
+  ///
+  /// In ar, this message translates to:
+  /// **'يقول إن السعر ثابت'**
+  String get shopPricingFinal;
+
+  /// The consequence worth stating: choosing this stops these conversations reaching the seller at all.
+  ///
+  /// In ar, this message translates to:
+  /// **'يقول السعر ويوضّح أنه غير قابل للتفاوض، ويكمل المحادثة من دون تحويلها.'**
+  String get shopPricingFinalBody;
+
+  /// The divider between what the assistant tells customers and what belongs to the seller and this browser.
+  ///
+  /// In ar, this message translates to:
+  /// **'أنت وهذا المتصفّح'**
+  String get settingsYou;
+
+  /// No description provided for @settingsLanguage.
+  ///
+  /// In ar, this message translates to:
+  /// **'لغة الواجهة'**
+  String get settingsLanguage;
+
+  /// No description provided for @settingsLanguageBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'يُحفظ في هذا المتصفّح.'**
+  String get settingsLanguageBody;
+
+  /// No description provided for @password.
+  ///
+  /// In ar, this message translates to:
+  /// **'كلمة المرور'**
+  String get password;
+
+  /// No description provided for @passwordBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'غيّرها متى شئت. تحتاج إلى 8 أحرف على الأقل.'**
+  String get passwordBody;
+
+  /// No description provided for @passwordNew.
+  ///
+  /// In ar, this message translates to:
+  /// **'كلمة المرور الجديدة'**
+  String get passwordNew;
+
+  /// No description provided for @passwordRepeat.
+  ///
+  /// In ar, this message translates to:
+  /// **'أعد كتابتها'**
+  String get passwordRepeat;
+
+  /// No description provided for @passwordMismatch.
+  ///
+  /// In ar, this message translates to:
+  /// **'الكلمتان غير متطابقتين.'**
+  String get passwordMismatch;
+
+  /// No description provided for @passwordChange.
+  ///
+  /// In ar, this message translates to:
+  /// **'تغيير كلمة المرور'**
+  String get passwordChange;
+
+  /// No description provided for @passwordChanging.
+  ///
+  /// In ar, this message translates to:
+  /// **'جارٍ الحفظ'**
+  String get passwordChanging;
+
+  /// No description provided for @passwordChanged.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم تغيير كلمة المرور.'**
+  String get passwordChanged;
+
+  /// No description provided for @passwordFailed.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعذّر تغيير كلمة المرور. حاول مرة أخرى.'**
+  String get passwordFailed;
+
   /// Refused once, and no browser asks a second time. Said plainly instead of leaving a switch that would do nothing.
   ///
   /// In ar, this message translates to:
