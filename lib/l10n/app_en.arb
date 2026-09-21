@@ -78,7 +78,7 @@
   "sentAutomatically": "Automatic reply",
 
   "answeredByAssistant": "The assistant answered",
-  "broughtToYou": "The assistant brought this to you",
+  "broughtToYou": "Handed to you",
   "escalatedWindowClosed": "The reply window closed before it could answer",
   "escalatedAiStreak": "It has answered several times running here",
   "escalatedSellerPresent": "You were replying yourself, so it stayed out of it",

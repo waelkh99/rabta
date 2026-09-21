@@ -538,7 +538,7 @@ abstract class L {
   /// The general hand-over line on an inbox row, used when the assistant wrote no reason of its own or the reason is a kind the interface has not met before. Never reads as an error: handing a conversation over is a good outcome.
   ///
   /// In ar, this message translates to:
-  /// **'حوّلها المساعد إليك'**
+  /// **'حوّلها المساعد'**
   String get broughtToYou;
 
   /// No description provided for @escalatedWindowClosed.

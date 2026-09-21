@@ -614,24 +614,22 @@ void _numerals() {
       expect(note, written);
     });
 
-    test('a hand-over the assistant wrote no reason for still says something',
+    test('a hand-over the assistant wrote no reason for adds nothing under itself',
         () {
-      // In the pane, where there is room for it.
-      // The model is allowed to return no reason, and a blank line under the
-      // preview would read as a rendering fault rather than as a hand-over.
+      // Wherever the reason appears there is already a heading saying the
+      // conversation was handed over. Returning the general line here printed
+      // that heading twice, once as its own explanation.
       for (final language in [ar, en]) {
-        expect(
-          assistantReason(
-            language,
-            _conversation(
-              id: 'c',
-              inboundAgo: const Duration(hours: 1),
-              aiState: 'escalated',
-              aiEscalationCode: 'assistant',
-            ),
-          ),
-          language.broughtToYou,
+        final c = _conversation(
+          id: 'c',
+          inboundAgo: const Duration(hours: 1),
+          aiState: 'escalated',
+          aiEscalationCode: 'assistant',
         );
+
+        expect(assistantReason(language, c), isNull);
+        expect(assistantMark(language, c), language.broughtToYou,
+            reason: 'the seller must still be told it happened');
       }
     });
 
@@ -699,22 +697,21 @@ void _numerals() {
           assistantReason(en, of('window_closed')));
     });
 
-    test('a code the interface has never met reads as a hand-over', () {
-      // Codes are added on the server first. A seller meeting a new one must
-      // see a conversation that needs them, not a blank line and not a token.
+    test('a code the interface has never met reads as a plain hand-over', () {
+      // Codes are added on the server before they are added here, so a seller
+      // will meet one. They must see a conversation that needs them — never a
+      // raw token, and never a row that has quietly gone blank.
       for (final language in [ar, en]) {
-        expect(
-          assistantReason(
-            language,
-            _conversation(
-              id: 'c',
-              inboundAgo: const Duration(hours: 1),
-              aiState: 'escalated',
-              aiEscalationCode: 'something_added_later',
-            ),
-          ),
-          language.broughtToYou,
+        final c = _conversation(
+          id: 'c',
+          inboundAgo: const Duration(hours: 1),
+          aiState: 'escalated',
+          aiEscalationCode: 'something_added_later',
         );
+
+        expect(assistantMark(language, c), language.broughtToYou);
+        expect(assistantReason(language, c), isNull,
+            reason: 'there is nothing true to say about a code we do not know');
       }
     });
 

@@ -366,6 +366,7 @@ class _InboxPageState extends State<InboxPage> {
                       key: ValueKey(_open!.id),
                       inbox: _inbox,
                       conversation: _open!,
+                      showAssistant: true,
                       onBack: () => setState(() => _open = null),
                       onMessages: (m) => setState(() => _messages = m),
                       onSent: (m) => _sent(all, m),
@@ -386,6 +387,8 @@ class _InboxPageState extends State<InboxPage> {
                               key: ValueKey(_open!.id),
                               inbox: _inbox,
                               conversation: _open!,
+                              showAssistant:
+                                  constraints.maxWidth < _threePaneFrom,
                               onMessages: (m) => setState(() => _messages = m),
                               onSent: (m) => _sent(all, m),
                               revision: _revision,
@@ -1203,6 +1206,7 @@ class _Thread extends StatefulWidget {
     this.onMessages,
     this.onSent,
     this.revision = 0,
+    this.showAssistant = false,
   });
 
   final Inbox inbox;
@@ -1222,6 +1226,10 @@ class _Thread extends StatefulWidget {
   /// A reply has reached the customer. The list above needs to know: the
   /// conversation has just left the group of those waiting for one.
   final ValueChanged<Message>? onSent;
+
+  /// Whether this thread has to carry what the assistant did, because the
+  /// details pane that normally shows it is not on screen at this width.
+  final bool showAssistant;
 
   @override
   State<_Thread> createState() => _ThreadState();
@@ -1349,6 +1357,15 @@ class _ThreadState extends State<_Thread> {
             ),
           ),
           Divider(height: 1, color: colors.edge),
+
+          // Above the messages rather than among them: it is not something
+          // anyone said, and a card in the run of bubbles reads as one.
+          if (widget.showAssistant)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              child: AssistantCard(conversation: widget.conversation),
+            ),
+
           Expanded(
             child: FutureBuilder<List<Message>>(
               future: _messages,

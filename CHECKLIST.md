@@ -637,11 +637,20 @@ the two group headings. Then the round trip — a seller reply inserted on the
 live project moved that conversation out of the waiting group, took its note
 off, and dropped the header count from three waiting to two.
 
-**Known and not closed:** the details pane only renders at 1180px and wider
-(`_threePaneFrom`), so below that — a small laptop, a tablet, a phone — the
-assistant's reason is not reachable at all. The mark on the row still says a
-conversation was handed over; the sentence explaining it is desktop-only. Raised
-on 21 September, not yet decided.
+**Closed 22 September**, both of the questions this pass left open. The details
+pane only renders at 1180px and wider, so below that — a small laptop, a tablet,
+a phone — the assistant's reason had been unreachable: the row said a
+conversation was handed over and nothing said why. The same card now sits at the
+top of the thread whenever the pane is not on screen, which covers both the
+760–1179 band and phone width, and the two are never shown at once. And the row
+wording is shorter — "Handed to you" rather than a sentence — because it repeats
+down a narrow column while the card carries the long form.
+
+Shortening it also removed a duplicate: an escalation the model wrote no reason
+for had been printing the general hand-over line as its own explanation,
+directly beneath the identical heading. `assistantReason` now returns null when
+there is nothing specific to say, and two tests were rewritten to assert that
+the reason goes quiet while the mark still speaks.
 
 That pass found a defect no test could have: the escalated line's first icon,
 `assistant_direction_outlined`, resolves at 12px to a dark circular blob that

@@ -119,7 +119,13 @@ String? assistantReason(L l, Conversation c) {
     'ceiling' => l.escalatedCeiling,
     'ungrounded' => l.escalatedUngrounded,
     'not_sent' => l.escalatedNotSent,
-    _ => l.broughtToYou,
+
+    // Null, not a general sentence. Wherever this is shown there is already a
+    // heading saying the conversation was handed over, and repeating it
+    // underneath itself reads as a rendering fault. A code the interface has
+    // not met is a hand-over with nothing to add, which is exactly what the
+    // heading alone says.
+    _ => null,
   };
 }
 

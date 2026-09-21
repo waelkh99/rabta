@@ -268,7 +268,7 @@ class LEn extends L {
   String get answeredByAssistant => 'The assistant answered';
 
   @override
-  String get broughtToYou => 'The assistant brought this to you';
+  String get broughtToYou => 'Handed to you';
 
   @override
   String get escalatedWindowClosed =>

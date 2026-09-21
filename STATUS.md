@@ -424,11 +424,13 @@ automated experiences have not been checked against current policy.
    `functions/_shared/origins.ts`, and set Site URL to match. This also
    unblocks Web Push, which needs a real HTTPS origin.
 4. Custom SMTP, then the password reset button.
-5. Deploy `meta-webhook` again. The repo is ahead of what is running: the
-   escalation code and the assistant-written reason are in the migration, which
-   **is** applied, but the function that writes them is not deployed. Nothing
-   breaks in the meantime — an escalation from the running version leaves the
-   code null and the interface reads that as a plain hand-over.
+5. ~~Deploy `meta-webhook` again.~~ **Done 22 September.** The handshake
+   returns the challenge on the right token and 403 on a wrong one, and a
+   genuinely signed delivery timestamped outside the reply window was escalated
+   with `ai_escalation_code = 'window_closed'` — the column that only exists
+   since the migration, written by the deployed function. Chosen because that
+   guard does not speak to the customer and never reaches the model, so nothing
+   was sent and nothing was spent; the throwaway conversation was deleted.
 
 ---
 
@@ -457,9 +459,10 @@ Phase Two:
 - ~~Whether escalation should cover a customer who is clearly upset.~~
   **Settled 20 September: yes**, and it costs nothing now that handing over no
   longer means silence.
-- Whether the details pane should appear below 1180px. The assistant's reason
-  lives there, so on a small laptop, a tablet or a phone it is currently not
-  reachable at all.
+- ~~Whether the details pane should appear below 1180px.~~ **Settled
+  22 September:** it does not, and the same card is shown at the top of the
+  thread instead whenever the pane is not on screen. The pane keeps its
+  breakpoint, so the thread is never squeezed to buy room for one card.
 - Whether a pricing setting should let the seller choose between the assistant
   handing price negotiation back and it holding the listed price as final.
   Asked for on 21 September and deliberately parked.

@@ -107,7 +107,7 @@
     "description": "On a row in the inbox whose last reply was the assistant's. Not a warning — the seller may want to read what it said, and this is how they know there is something to read."
   },
 
-  "broughtToYou": "حوّلها المساعد إليك",
+  "broughtToYou": "حوّلها المساعد",
   "@broughtToYou": {
     "description": "The general hand-over line on an inbox row, used when the assistant wrote no reason of its own or the reason is a kind the interface has not met before. Never reads as an error: handing a conversation over is a good outcome."
   },

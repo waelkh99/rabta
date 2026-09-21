@@ -77,7 +77,7 @@ class DetailsPanel extends StatelessWidget {
           // What the assistant did here, and why. The inbox row says only that
           // it happened; this is where the sentence it wrote is readable in
           // full instead of ellipsised into a row that had no width for it.
-          _AssistantCard(conversation: c),
+          AssistantCard(conversation: c),
 
           _Fact(
             label: l.detailPlatform,
@@ -100,14 +100,21 @@ class DetailsPanel extends StatelessWidget {
 
 /// Why the assistant stepped back, or that it answered.
 ///
+/// Public because it is shown in two places, never both at once: here when the
+/// pane is on screen, and at the top of the thread when it is not. Below
+/// `_threePaneFrom` this pane does not exist at all, and without the second
+/// home the assistant's own sentence was unreachable on anything narrower than
+/// a wide desktop — a seller on a tablet saw that a conversation had been
+/// handed to them and could not find out why.
+///
 /// Nothing at all when it has not touched this conversation, and nothing once
 /// the seller has replied — which is the moment it stops being true, and is
 /// cleared on the row by the database rather than by this pane.
 ///
 /// Teal throughout, the colour an assistant message already carries in the
 /// thread beside it, so the two read as the same voice.
-class _AssistantCard extends StatelessWidget {
-  const _AssistantCard({required this.conversation});
+class AssistantCard extends StatelessWidget {
+  const AssistantCard({super.key, required this.conversation});
 
   final Conversation conversation;
 

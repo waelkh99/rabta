@@ -272,7 +272,7 @@ class LAr extends L {
   String get answeredByAssistant => 'أجاب المساعد';
 
   @override
-  String get broughtToYou => 'حوّلها المساعد إليك';
+  String get broughtToYou => 'حوّلها المساعد';
 
   @override
   String get escalatedWindowClosed => 'أُغلقت نافذة الرد قبل أن يجيب';
