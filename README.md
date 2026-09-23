@@ -62,8 +62,8 @@ would have to invent.
 The model is the part that can be swapped. The guards are the design.
 
 - **Deterministic guards before the call** — the reply window, whether a human
-  is already at the desk, how many times it has answered in a row, and a
-  monthly ceiling. Most turns never reach the API.
+  is already at the desk, and a monthly ceiling. There is no limit on how
+  many times it answers in a row. Most turns never reach the API.
 - **A grounding check on every number.** Every digit in a reply must appear in
   the shop's own facts or in what the customer wrote, or the reply is held back.
   An invented price is the one failure that loses a seller their customer.

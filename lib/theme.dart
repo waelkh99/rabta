@@ -62,7 +62,9 @@ class RabtaColors extends ThemeExtension<RabtaColors> {
   /// own value instead of inheriting an opacity that only works on white.
   final Color accentSoft;
 
-  /// A reply window about to close, and nothing else.
+  /// Something needs the seller now: a reply window about to close, or a
+  /// conversation the assistant handed to them. Widened from the window alone
+  /// on 23 September 2026 — a hand-over in teal went unnoticed.
   final Color urgent;
 
   /// A message the assistant sent, and nothing else.

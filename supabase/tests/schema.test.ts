@@ -611,8 +611,9 @@ describe("catalog and AI settings", () => {
 
       // Stored rather than assumed: an assistant answering "25.500" with no
       // unit, or the wrong one, is the same problem as an invented price. The
-      // product mainly serves Jordan, so the dinar is the default.
-      assert.equal(shop.currency, "د.ا");
+      // product mainly serves Jordan, so the dinar is the default — written
+      // out since 22 September, at the product owner's word.
+      assert.equal(shop.currency, "دينار أردني");
     });
   });
 
@@ -960,5 +961,330 @@ describe("clearing what the assistant left behind", () => {
     });
 
     assert.equal((await mark()).ai_state, null);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Categories and product photos, 22 September 2026. Photos are the first thing
+// a seller writes into storage rather than a table, so the policies that hold
+// are on storage.objects and are scoped by the path, not a column.
+// ---------------------------------------------------------------------------
+
+describe("categories and product photos", () => {
+  let db: TestDb;
+  let alice: { userId: string; workspaceId: string };
+  let bob: { userId: string; workspaceId: string };
+
+  before(async () => {
+    db = await freshDb();
+    alice = await createSeller(db, "photos-alice@example.test");
+    bob = await createSeller(db, "photos-bob@example.test");
+  });
+
+  after(async () => {
+    await db.close();
+  });
+
+  // No `returning`: it would put the row through the select policy as well,
+  // and a test of the insert policy would then pass on the select policy's
+  // refusal. It did, the first time this was written.
+  const photo = (workspaceId: string, file = "a.jpg") =>
+    db.sql("insert into storage.objects (bucket_id, name) values ('product-photos', $1)", [
+      `${workspaceId}/${file}`,
+    ]);
+
+  const idOf = async (workspaceId: string, file: string) =>
+    (await db.sql("select id from storage.objects where name = $1", [`${workspaceId}/${file}`]))[0];
+
+  test("the bucket exists, is public, and takes JPEG only", async () => {
+    const [bucket] = await db.sql(
+      "select public, allowed_mime_types, file_size_limit from storage.buckets where id = 'product-photos'",
+    );
+    assert.equal(bucket.public, true);
+    assert.deepEqual(bucket.allowed_mime_types, ["image/jpeg"]);
+    assert.equal(Number(bucket.file_size_limit), 2 * 1024 * 1024);
+  });
+
+  test("a seller can upload into their own folder", async () => {
+    await db.asUser(alice.userId, async () => {
+      await photo(alice.workspaceId);
+    });
+  });
+
+  test("a seller cannot upload into another seller's folder", async () => {
+    // Bob's file in Alice's folder would be sent to Alice's customers as if it
+    // were her product.
+    await db.asUser(bob.userId, async () => {
+      await assert.rejects(() => photo(alice.workspaceId, "planted.jpg"), /row-level security/i);
+    });
+  });
+
+  test("a path with no folder is refused", async () => {
+    await db.asUser(alice.userId, async () => {
+      await assert.rejects(
+        () =>
+          db.sql("insert into storage.objects (bucket_id, name) values ('product-photos', 'loose.jpg')"),
+        /row-level security/i,
+      );
+    });
+  });
+
+  test("a seller cannot delete another seller's photo", async () => {
+    await photo(alice.workspaceId, "keep.jpg");
+    const own = await idOf(alice.workspaceId, "keep.jpg");
+
+    await db.asUser(bob.userId, async () => {
+      await db.sql("delete from storage.objects where id = $1", [own.id]);
+    });
+
+    const rows = await db.sql("select id from storage.objects where id = $1", [own.id]);
+    assert.equal(rows.length, 1, "Alice's photo survived Bob's delete");
+  });
+
+  test("a seller can delete their own photo", async () => {
+    await photo(alice.workspaceId, "gone.jpg");
+    const own = await idOf(alice.workspaceId, "gone.jpg");
+
+    await db.asUser(alice.userId, async () => {
+      await db.sql("delete from storage.objects where id = $1", [own.id]);
+    });
+
+    const rows = await db.sql("select id from storage.objects where id = $1", [own.id]);
+    assert.equal(rows.length, 0);
+  });
+
+  test("a product holds at most five photos", async () => {
+    await assert.rejects(
+      () =>
+        db.sql("insert into products (workspace_id, name, photos) values ($1, 'many', $2)", [
+          alice.workspaceId,
+          ["1", "2", "3", "4", "5", "6"],
+        ]),
+      /check/i,
+    );
+  });
+
+  test("a category name is unique per shop, ignoring case", async () => {
+    await db.sql("insert into categories (workspace_id, name) values ($1, 'Dresses')", [
+      alice.workspaceId,
+    ]);
+
+    await assert.rejects(
+      () =>
+        db.sql("insert into categories (workspace_id, name) values ($1, ' dresses')", [
+          alice.workspaceId,
+        ]),
+      /duplicate key|unique/i,
+    );
+
+    // Another shop may have its own.
+    await db.sql("insert into categories (workspace_id, name) values ($1, 'Dresses')", [
+      bob.workspaceId,
+    ]);
+  });
+
+  test("a seller cannot see or add to another seller's categories", async () => {
+    await db.asUser(bob.userId, async () => {
+      const rows = await db.sql("select name from categories");
+      assert.deepEqual(rows.map((row) => row.name), ["Dresses"]);
+
+      await assert.rejects(
+        () =>
+          db.sql("insert into categories (workspace_id, name) values ($1, 'planted')", [
+            alice.workspaceId,
+          ]),
+        /row-level security/i,
+      );
+    });
+  });
+
+  test("deleting a category keeps its products", async () => {
+    const [category] = await db.sql(
+      "insert into categories (workspace_id, name) values ($1, 'Bags') returning id",
+      [alice.workspaceId],
+    );
+    const [product] = await db.sql(
+      "insert into products (workspace_id, name, category_id) values ($1, 'tote', $2) returning id",
+      [alice.workspaceId, category.id],
+    );
+
+    await db.sql("delete from categories where id = $1", [category.id]);
+
+    const [row] = await db.sql("select category_id from products where id = $1", [product.id]);
+    assert.equal(row.category_id, null);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Offers, 22 September 2026. What the assistant tells a customer about money,
+// so a malformed or foreign offer must not be storable at all.
+// ---------------------------------------------------------------------------
+
+describe("offers", () => {
+  let db: TestDb;
+  let alice: { userId: string; workspaceId: string };
+  let bob: { userId: string; workspaceId: string };
+
+  before(async () => {
+    db = await freshDb();
+    alice = await createSeller(db, "offers-alice@example.test");
+    bob = await createSeller(db, "offers-bob@example.test");
+  });
+
+  after(async () => {
+    await db.close();
+  });
+
+  const offer = (workspaceId: string, fields: string, values: unknown[]) =>
+    db.sql(
+      `insert into offers (workspace_id, ${fields}) values ($1, ${values.map((_, i) => `$${i + 2}`).join(", ")})`,
+      [workspaceId, ...values],
+    );
+
+  test("each kind is stored with the fields it needs", async () => {
+    await offer(alice.workspaceId, "kind, value", ["percent", 20]);
+    await offer(alice.workspaceId, "kind, value", ["amount", 5]);
+    await offer(alice.workspaceId, "kind, buy, get", ["buy_get", 2, 1]);
+  });
+
+  test("a percentage of 100 or more is refused", async () => {
+    // 100% off is giving the shop away, and a typo for 10 is the likelier
+    // explanation than a seller meaning it.
+    await assert.rejects(() => offer(alice.workspaceId, "kind, value", ["percent", 100]), /check/);
+    await assert.rejects(() => offer(alice.workspaceId, "kind, value", ["percent", 0]), /check/);
+  });
+
+  test("an offer missing its value, or carrying another kind's, is refused", async () => {
+    await assert.rejects(() => offer(alice.workspaceId, "kind", ["amount"]), /check/);
+    await assert.rejects(() => offer(alice.workspaceId, "kind, buy", ["buy_get", 2]), /check/);
+    await assert.rejects(
+      () => offer(alice.workspaceId, "kind, value, buy, get", ["buy_get", 5, 2, 1]),
+      /check/,
+    );
+  });
+
+  test("an offer cannot end before it starts", async () => {
+    await assert.rejects(
+      () =>
+        offer(alice.workspaceId, "kind, value, starts_on, ends_on", [
+          "percent",
+          10,
+          "2026-10-05",
+          "2026-10-01",
+        ]),
+      /check/,
+    );
+  });
+
+  test("a seller cannot see, add to or change another seller's offers", async () => {
+    await db.asUser(bob.userId, async () => {
+      const rows = await db.sql("select id from offers");
+      assert.equal(rows.length, 0);
+
+      await assert.rejects(
+        () => offer(alice.workspaceId, "kind, value", ["percent", 50]),
+        /row-level security/i,
+      );
+
+      await db.sql("update offers set value = 90 where kind = 'percent'");
+    });
+
+    const [row] = await db.sql("select value from offers where workspace_id = $1 and kind = 'percent'", [
+      alice.workspaceId,
+    ]);
+    assert.equal(Number(row.value), 20, "Bob's update did not reach Alice's offer");
+  });
+});
+
+describe("product codes", () => {
+  let db: TestDb;
+  let alice: { userId: string; workspaceId: string };
+  let bob: { userId: string; workspaceId: string };
+
+  before(async () => {
+    db = await freshDb();
+    alice = await createSeller(db, "codes-alice@example.test");
+    bob = await createSeller(db, "codes-bob@example.test");
+  });
+
+  after(async () => {
+    await db.close();
+  });
+
+  const product = (workspaceId: string, name: string, code: string | null) =>
+    db.sql("insert into products (workspace_id, name, code) values ($1, $2, $3)", [
+      workspaceId,
+      name,
+      code,
+    ]);
+
+  test("a code is unique in a shop, ignoring case and spacing", async () => {
+    // An import updates by code. Two products sharing one would make that
+    // update land on either, or both.
+    await product(alice.workspaceId, "فستان", "FS-101");
+    await assert.rejects(() => product(alice.workspaceId, "Dress", " fs-101"), /duplicate key|unique/i);
+  });
+
+  test("another shop may use the same code", async () => {
+    await product(bob.workspaceId, "dress", "FS-101");
+  });
+
+  test("any number of products may have no code", async () => {
+    await product(alice.workspaceId, "a", null);
+    await product(alice.workspaceId, "b", null);
+  });
+
+  test("a blank code is refused rather than stored as a code nobody can see", async () => {
+    await assert.rejects(() => product(alice.workspaceId, "c", "  "), /check/i);
+  });
+});
+
+describe("offers in the seller's own words", () => {
+  let db: TestDb;
+  let seller: { userId: string; workspaceId: string };
+
+  before(async () => {
+    db = await freshDb();
+    seller = await createSeller(db, "worded@example.test");
+  });
+
+  after(async () => {
+    await db.close();
+  });
+
+  const worded = (fields: string, values: unknown[]) =>
+    db.sql(
+      `insert into offers (workspace_id, kind, ${fields}) values ($1, 'text', ${values.map((_, i) => `$${i + 2}`).join(", ")})`,
+      [seller.workspaceId, ...values],
+    );
+
+  test("an offer with words is stored", async () => {
+    await worded("description", ["خصم 20% على الفساتين"]);
+  });
+
+  test("an offer with no words, or only spaces, is refused", async () => {
+    await assert.rejects(() => worded("description", ["   "]), /check/);
+    await assert.rejects(
+      () => db.sql("insert into offers (workspace_id, kind) values ($1, 'text')", [seller.workspaceId]),
+      /check/,
+    );
+  });
+
+  test("a worded offer carrying a structured value is refused", async () => {
+    // Two versions of one offer, one of them invisible to the seller.
+    await assert.rejects(() => worded("description, value", ["خصم", 20]), /check/);
+  });
+
+  test("the structured kinds are checked as before", async () => {
+    await assert.rejects(
+      () => db.sql("insert into offers (workspace_id, kind) values ($1, 'amount')", [seller.workspaceId]),
+      /check/,
+    );
+  });
+
+  test("a new shop's currency is the Jordanian dinar, written out", async () => {
+    await db.sql("insert into shop (workspace_id) values ($1)", [seller.workspaceId]);
+    const [row] = await db.sql("select currency from shop where workspace_id = $1", [seller.workspaceId]);
+    assert.equal(row.currency, "دينار أردني");
   });
 });

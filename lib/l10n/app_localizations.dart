@@ -406,8 +406,98 @@ abstract class L {
   /// No description provided for @productDescription.
   ///
   /// In ar, this message translates to:
-  /// **'الوصف'**
+  /// **'التفاصيل'**
   String get productDescription;
+
+  /// No description provided for @productDescriptionHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'المقاسات، الألوان، الخامة، القَصّة… اكتبها كما تقولها للزبون، والمساعد يفهمها.'**
+  String get productDescriptionHint;
+
+  /// No description provided for @productCategory.
+  ///
+  /// In ar, this message translates to:
+  /// **'القسم'**
+  String get productCategory;
+
+  /// No description provided for @productCategoryHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'مثل: فساتين. اختياري، ويفيد في العروض.'**
+  String get productCategoryHint;
+
+  /// No description provided for @productPhotos.
+  ///
+  /// In ar, this message translates to:
+  /// **'الصور'**
+  String get productPhotos;
+
+  /// No description provided for @productPhotoAdd.
+  ///
+  /// In ar, this message translates to:
+  /// **'أضف صوراً'**
+  String get productPhotoAdd;
+
+  /// No description provided for @productPhotoCover.
+  ///
+  /// In ar, this message translates to:
+  /// **'الغلاف'**
+  String get productPhotoCover;
+
+  /// No description provided for @productPhotoMakeCover.
+  ///
+  /// In ar, this message translates to:
+  /// **'اجعلها الغلاف'**
+  String get productPhotoMakeCover;
+
+  /// No description provided for @productPhotoRemove.
+  ///
+  /// In ar, this message translates to:
+  /// **'إزالة'**
+  String get productPhotoRemove;
+
+  /// No description provided for @productPhotosBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'الصورة الأولى هي التي يرسلها المساعد لمن يطلب أن يرى المنتج. حتى خمس صور.'**
+  String get productPhotosBody;
+
+  /// No description provided for @productPhotosFailed.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعذّرت قراءة بعض الصور. جرّب صوراً بصيغة JPG أو PNG.'**
+  String get productPhotosFailed;
+
+  /// No description provided for @productPhotosFull.
+  ///
+  /// In ar, this message translates to:
+  /// **'خمس صور كحد أقصى.'**
+  String get productPhotosFull;
+
+  /// No description provided for @productNoPhoto.
+  ///
+  /// In ar, this message translates to:
+  /// **'بلا صورة'**
+  String get productNoPhoto;
+
+  /// No description provided for @catalogAll.
+  ///
+  /// In ar, this message translates to:
+  /// **'الكل'**
+  String get catalogAll;
+
+  /// No description provided for @catalogSearch.
+  ///
+  /// In ar, this message translates to:
+  /// **'ابحث في المنتجات'**
+  String get catalogSearch;
+
+  /// No description provided for @catalogNoMatch.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا يوجد منتج يطابق.'**
+  String get catalogNoMatch;
 
   /// No description provided for @productInStock.
   ///
@@ -460,13 +550,13 @@ abstract class L {
   /// No description provided for @catalogPaste.
   ///
   /// In ar, this message translates to:
-  /// **'لصق قائمة'**
+  /// **'استيراد قائمة'**
   String get catalogPaste;
 
   /// No description provided for @catalogPasteBody.
   ///
   /// In ar, this message translates to:
-  /// **'انسخ الصفوف من ملف إكسل أو من جدول جوجل، ثم الصقها هنا. تُضاف إلى قائمتك ولا تستبدلها.'**
+  /// **'اختر ملف الأسعار الذي عندك، أو انسخ الصفوف من الجدول والصقها. لا داعي لتغيير أعمدته: نفهم الاسم والسعر، وما زاد عنهما — اللون، المقاس — يُضاف إلى التفاصيل.\n\nلتحديث منتجات أضفتها من قبل، يجب أن يكون في ملفك عمود «رمز المنتج». الصف الذي رمزه موجود يحدّث ذلك المنتج، والصف الذي لا رمز له يُضاف منتجاً جديداً ويُعطى رمزاً. أسهل طريقة: نزّل قائمتك، عدّلها، ثم استوردها.'**
   String get catalogPasteBody;
 
   /// No description provided for @catalogPasteHint.
@@ -504,6 +594,384 @@ abstract class L {
   /// In ar, this message translates to:
   /// **'نُسخ النموذج. الصقه في إكسل.'**
   String get catalogTemplateCopied;
+
+  /// No description provided for @needsYou.
+  ///
+  /// In ar, this message translates to:
+  /// **'بحاجة لك'**
+  String get needsYou;
+
+  /// No description provided for @needsYouTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'حوّلها المساعد إليك، والزبون بانتظار ردك'**
+  String get needsYouTitle;
+
+  /// No description provided for @needsYouList.
+  ///
+  /// In ar, this message translates to:
+  /// **'محادثات بحاجة لك'**
+  String get needsYouList;
+
+  /// No description provided for @needsYouEmpty.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا شيء بحاجة لك الآن.'**
+  String get needsYouEmpty;
+
+  /// No description provided for @needsYouTooltip.
+  ///
+  /// In ar, this message translates to:
+  /// **'ما يحتاج ردك'**
+  String get needsYouTooltip;
+
+  /// No description provided for @offerKindText.
+  ///
+  /// In ar, this message translates to:
+  /// **'بكلماتك'**
+  String get offerKindText;
+
+  /// No description provided for @offerText.
+  ///
+  /// In ar, this message translates to:
+  /// **'العرض'**
+  String get offerText;
+
+  /// No description provided for @offerTextHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'اكتبه كما تقوله للزبون، واستخدم أسماء المنتجات والأقسام كما هي في قائمتك ليفهمه المساعد. مثل: «خصم 20% على قسم فساتين» أو «القطعة الثانية من الشنط بنصف السعر». التاريخ تحدّده تحت، لا في النص.'**
+  String get offerTextHint;
+
+  /// No description provided for @offerTextScope.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختياري: إن حدّدت أقساماً أو منتجات، لن يطبّقه المساعد على غيرها.'**
+  String get offerTextScope;
+
+  /// No description provided for @escalatedNoPhoto.
+  ///
+  /// In ar, this message translates to:
+  /// **'طلب الزبون صورة لمنتج ليس له صورة بعد'**
+  String get escalatedNoPhoto;
+
+  /// No description provided for @productCode.
+  ///
+  /// In ar, this message translates to:
+  /// **'رمز المنتج'**
+  String get productCode;
+
+  /// No description provided for @productCodeHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'إذا تركته فارغاً يُعطى رمزاً تلقائياً. هو ما يربط هذا المنتج بصفّه في ملف Excel عندما تستورده مرة أخرى.'**
+  String get productCodeHint;
+
+  /// No description provided for @productCodeTaken.
+  ///
+  /// In ar, this message translates to:
+  /// **'هذا الرمز لمنتج آخر. اختر رمزاً غيره.'**
+  String get productCodeTaken;
+
+  /// No description provided for @catalogDownload.
+  ///
+  /// In ar, this message translates to:
+  /// **'تنزيل قائمتي'**
+  String get catalogDownload;
+
+  /// No description provided for @catalogYes.
+  ///
+  /// In ar, this message translates to:
+  /// **'نعم'**
+  String get catalogYes;
+
+  /// No description provided for @catalogNo.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا'**
+  String get catalogNo;
+
+  /// No description provided for @catalogUpdated.
+  ///
+  /// In ar, this message translates to:
+  /// **'{count, plural, =1{حُدّث منتج واحد} =2{حُدّث منتجان} few{حُدّثت {count} منتجات} many{حُدّث {count} منتجاً} other{حُدّث {count} منتج}}'**
+  String catalogUpdated(int count);
+
+  /// No description provided for @categoriesEdit.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعديل الأقسام'**
+  String get categoriesEdit;
+
+  /// No description provided for @categoriesTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'الأقسام'**
+  String get categoriesTitle;
+
+  /// No description provided for @categoriesEmpty.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد أقسام. تُنشأ عندما تكتب قسماً لمنتج.'**
+  String get categoriesEmpty;
+
+  /// No description provided for @categoryRename.
+  ///
+  /// In ar, this message translates to:
+  /// **'إعادة تسمية'**
+  String get categoryRename;
+
+  /// No description provided for @categoryCount.
+  ///
+  /// In ar, this message translates to:
+  /// **'{count, plural, =0{لا منتجات} =1{منتج واحد} =2{منتجان} few{{count} منتجات} many{{count} منتجاً} other{{count} منتج}}'**
+  String categoryCount(int count);
+
+  /// No description provided for @categoryDeleteTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'حذف قسم «{name}»؟'**
+  String categoryDeleteTitle(String name);
+
+  /// No description provided for @categoryDeleteBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'تبقى منتجاته كما هي، لكن بلا قسم. والعروض على هذا القسم لن تشملها بعد الآن.'**
+  String get categoryDeleteBody;
+
+  /// No description provided for @categoryTaken.
+  ///
+  /// In ar, this message translates to:
+  /// **'يوجد قسم بهذا الاسم.'**
+  String get categoryTaken;
+
+  /// No description provided for @done.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم'**
+  String get done;
+
+  /// No description provided for @offerCoversNothing.
+  ///
+  /// In ar, this message translates to:
+  /// **'لم يعد يشمل شيئاً'**
+  String get offerCoversNothing;
+
+  /// No description provided for @offers.
+  ///
+  /// In ar, this message translates to:
+  /// **'العروض'**
+  String get offers;
+
+  /// No description provided for @offersBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'الخصومات التي تعرضها. يذكرها المساعد للزبون عندما يسأل عن منتج يشمله العرض، مرة واحدة ودون إلحاح. إذا شمل المنتجَ عرضان، يُطبَّق الأفضل للزبون.'**
+  String get offersBody;
+
+  /// No description provided for @offersEmpty.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد عروض بعد.'**
+  String get offersEmpty;
+
+  /// No description provided for @offersFailed.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعذّر فتح العروض'**
+  String get offersFailed;
+
+  /// No description provided for @offerAdd.
+  ///
+  /// In ar, this message translates to:
+  /// **'أضف عرضاً'**
+  String get offerAdd;
+
+  /// No description provided for @offerEdit.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعديل العرض'**
+  String get offerEdit;
+
+  /// No description provided for @offerKindPercent.
+  ///
+  /// In ar, this message translates to:
+  /// **'نسبة'**
+  String get offerKindPercent;
+
+  /// No description provided for @offerKindAmount.
+  ///
+  /// In ar, this message translates to:
+  /// **'مبلغ'**
+  String get offerKindAmount;
+
+  /// No description provided for @offerKindBuyGet.
+  ///
+  /// In ar, this message translates to:
+  /// **'اشترِ واحصل'**
+  String get offerKindBuyGet;
+
+  /// No description provided for @offerPercent.
+  ///
+  /// In ar, this message translates to:
+  /// **'النسبة %'**
+  String get offerPercent;
+
+  /// No description provided for @offerAmount.
+  ///
+  /// In ar, this message translates to:
+  /// **'المبلغ المخصوم'**
+  String get offerAmount;
+
+  /// No description provided for @offerBuy.
+  ///
+  /// In ar, this message translates to:
+  /// **'عند شراء'**
+  String get offerBuy;
+
+  /// No description provided for @offerGet.
+  ///
+  /// In ar, this message translates to:
+  /// **'يحصل مجاناً على'**
+  String get offerGet;
+
+  /// No description provided for @offerBuyGetHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'مثل: اشترِ 2 واحصل على 1 مجاناً. القطعة الأرخص هي المجانية.'**
+  String get offerBuyGetHint;
+
+  /// No description provided for @offerAppliesTo.
+  ///
+  /// In ar, this message translates to:
+  /// **'يشمل'**
+  String get offerAppliesTo;
+
+  /// No description provided for @offerWholeShop.
+  ///
+  /// In ar, this message translates to:
+  /// **'كل المتجر'**
+  String get offerWholeShop;
+
+  /// No description provided for @offerCategories.
+  ///
+  /// In ar, this message translates to:
+  /// **'أقسام'**
+  String get offerCategories;
+
+  /// No description provided for @offerProducts.
+  ///
+  /// In ar, this message translates to:
+  /// **'منتجات'**
+  String get offerProducts;
+
+  /// No description provided for @offerNoCategories.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد أقسام بعد. اختر قسماً لمنتجاتك من صفحة المنتجات.'**
+  String get offerNoCategories;
+
+  /// No description provided for @offerStarts.
+  ///
+  /// In ar, this message translates to:
+  /// **'يبدأ'**
+  String get offerStarts;
+
+  /// No description provided for @offerEnds.
+  ///
+  /// In ar, this message translates to:
+  /// **'ينتهي'**
+  String get offerEnds;
+
+  /// No description provided for @offerStartsNow.
+  ///
+  /// In ar, this message translates to:
+  /// **'من الآن'**
+  String get offerStartsNow;
+
+  /// No description provided for @offerNoEnd.
+  ///
+  /// In ar, this message translates to:
+  /// **'بلا تاريخ'**
+  String get offerNoEnd;
+
+  /// No description provided for @offerName.
+  ///
+  /// In ar, this message translates to:
+  /// **'اسم العرض (اختياري)'**
+  String get offerName;
+
+  /// No description provided for @offerNameHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'مثل: عرض العيد. هكذا يسمّيه المساعد للزبون.'**
+  String get offerNameHint;
+
+  /// No description provided for @offerRunning.
+  ///
+  /// In ar, this message translates to:
+  /// **'جارٍ الآن'**
+  String get offerRunning;
+
+  /// No description provided for @offerScheduled.
+  ///
+  /// In ar, this message translates to:
+  /// **'لم يبدأ بعد'**
+  String get offerScheduled;
+
+  /// No description provided for @offerEnded.
+  ///
+  /// In ar, this message translates to:
+  /// **'انتهى'**
+  String get offerEnded;
+
+  /// No description provided for @offerOff.
+  ///
+  /// In ar, this message translates to:
+  /// **'متوقف'**
+  String get offerOff;
+
+  /// No description provided for @offerDeleteTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'حذف هذا العرض؟'**
+  String get offerDeleteTitle;
+
+  /// No description provided for @offerDeleteBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'سيتوقف المساعد عن ذكره.'**
+  String get offerDeleteBody;
+
+  /// No description provided for @offerSummaryPercent.
+  ///
+  /// In ar, this message translates to:
+  /// **'خصم {value}%'**
+  String offerSummaryPercent(String value);
+
+  /// No description provided for @offerSummaryAmount.
+  ///
+  /// In ar, this message translates to:
+  /// **'خصم {value}'**
+  String offerSummaryAmount(String value);
+
+  /// No description provided for @offerSummaryBuyGet.
+  ///
+  /// In ar, this message translates to:
+  /// **'اشترِ {buy} واحصل على {get} مجاناً'**
+  String offerSummaryBuyGet(String buy, String get);
+
+  /// No description provided for @offerUntil.
+  ///
+  /// In ar, this message translates to:
+  /// **'حتى {date}'**
+  String offerUntil(String date);
+
+  /// No description provided for @offerFrom.
+  ///
+  /// In ar, this message translates to:
+  /// **'من {date}'**
+  String offerFrom(String date);
 
   /// No description provided for @assistantTitle.
   ///
@@ -1290,6 +1758,30 @@ abstract class L {
   /// In ar, this message translates to:
   /// **'التفاصيل'**
   String get detailsHidden;
+
+  /// No description provided for @catalogFileChoose.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر ملف Excel'**
+  String get catalogFileChoose;
+
+  /// No description provided for @catalogFileOr.
+  ///
+  /// In ar, this message translates to:
+  /// **'أو الصق الصفوف'**
+  String get catalogFileOr;
+
+  /// No description provided for @catalogFileOldExcel.
+  ///
+  /// In ar, this message translates to:
+  /// **'هذا ملف Excel بالصيغة القديمة XLS. افتحه واحفظه بصيغة XLSX، ثم اختره مرة أخرى.'**
+  String get catalogFileOldExcel;
+
+  /// No description provided for @catalogFileUnreadable.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعذّرت قراءة هذا الملف. جرّب ملف XLSX أو CSV.'**
+  String get catalogFileUnreadable;
 }
 
 class _LDelegate extends LocalizationsDelegate<L> {

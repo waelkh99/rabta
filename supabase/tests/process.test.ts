@@ -4,6 +4,7 @@ import { test } from "node:test";
 import { parseWebhookPayload } from "../functions/meta-webhook/parse.ts";
 import {
   autoReply,
+  lastSellerReply,
   processMessage,
   refreshCustomerProfile,
 } from "../functions/meta-webhook/process.ts";
@@ -13,7 +14,7 @@ import type {
   AiPrompt,
   Store,
 } from "../functions/meta-webhook/process.ts";
-import { HANDOVER_LINE, MAX_CONSECUTIVE_AI } from "../functions/meta-webhook/ai.ts";
+import { HANDOVER_LINE, MONTHLY_CEILING } from "../functions/meta-webhook/ai.ts";
 import type { CustomerProfile } from "../functions/meta-webhook/profile.ts";
 import type { NormalisedMessage, Platform } from "../functions/meta-webhook/parse.ts";
 
@@ -95,7 +96,6 @@ class FakeStore implements Store {
     windowExpiresAt: new Date(SENT_MS + 12 * 3_600_000).toISOString(),
     lastMessageAt: new Date(SENT_MS).toISOString(),
     lastSellerReplyAt: null,
-    consecutiveAiReplies: 0,
     aiRepliesThisMonth: 0,
   };
 
@@ -119,6 +119,7 @@ class FakeStore implements Store {
   claims = 0;
   finished: { state: string; reason: string | null; code: string | null }[] = [];
   aiReplies: { mid: string; text: string }[] = [];
+  aiPhotos: { mid: string; attachments: unknown[] }[] = [];
 
   aiContext(_conversationId: string): Promise<AiContext | null> {
     return Promise.resolve(this.context);
@@ -153,9 +154,11 @@ class FakeStore implements Store {
     _conversationId: string,
     _workspaceId: string,
     mid: string,
-    text: string,
+    text: string | null,
+    attachments: unknown[] = [],
   ): Promise<void> {
-    this.aiReplies.push({ mid, text });
+    if (text === null) this.aiPhotos.push({ mid, attachments });
+    else this.aiReplies.push({ mid, text });
     return Promise.resolve();
   }
 
@@ -745,13 +748,12 @@ test("a guard that fires hands over instead of asking the model", async () => {
   assert.equal(store.aiReplies.length, 0, "the seller is here; no line is needed");
 });
 
-test("running out of replies tells the customer instead of going quiet", async () => {
-  // This is the change. A conversation that hit the streak cap used to simply
-  // stop, with nothing sent, which from the customer's side is identical to
-  // the assistant having died.
+test("reaching the monthly ceiling tells the customer instead of going quiet", async () => {
+  // A conversation that hit a limit used to simply stop, with nothing sent,
+  // which from the customer's side is identical to the assistant having died.
   const store = new FakeStore();
   store.tokens.set(`acct_messenger_${PAGE_ID}`, "page-token");
-  store.context = { ...store.context!, consecutiveAiReplies: MAX_CONSECUTIVE_AI };
+  store.context = { ...store.context!, aiRepliesThisMonth: MONTHLY_CEILING };
   const { message, outcome } = await storedInbound(store);
 
   const { fetcher, calls } = assistant({ handOver: false, text: "never asked for" });
@@ -762,16 +764,16 @@ test("running out of replies tells the customer instead of going quiet", async (
   assert.equal(store.aiReplies.length, 1);
   assert.equal(store.aiReplies[0].text, HANDOVER_LINE.arabic);
   assert.deepEqual(store.finished, [
-    { state: "escalated", reason: "ai_streak", code: "ai_streak" },
+    { state: "escalated", reason: "ceiling", code: "ceiling" },
   ]);
 });
 
 test("the hand-over line is said once, not on every message after it", async () => {
-  // The line is itself an AI reply, so it pushes the streak one past the cap.
+  // The line is itself an AI reply, so it pushes the count one past the ceiling.
   // A customer who keeps writing must not keep receiving the same sentence.
   const store = new FakeStore();
   store.tokens.set(`acct_messenger_${PAGE_ID}`, "page-token");
-  store.context = { ...store.context!, consecutiveAiReplies: MAX_CONSECUTIVE_AI + 1 };
+  store.context = { ...store.context!, aiRepliesThisMonth: MONTHLY_CEILING + 1 };
   const { message, outcome } = await storedInbound(store);
 
   const { fetcher } = assistant({ handOver: false, text: "never asked for" });
@@ -785,7 +787,7 @@ test("an English customer is handed over in English", async () => {
   const store = new FakeStore();
   store.tokens.set(`acct_messenger_${PAGE_ID}`, "page-token");
   store.connect("messenger", PAGE_ID);
-  store.context = { ...store.context!, consecutiveAiReplies: MAX_CONSECUTIVE_AI };
+  store.context = { ...store.context!, aiRepliesThisMonth: MONTHLY_CEILING };
 
   const message = inbound("en_1", "do you have it in blue?");
   const outcome = await processMessage(store, message);
@@ -804,7 +806,7 @@ test("nothing is said when the send would fail anyway", async () => {
   store.context = {
     ...store.context!,
     windowExpiresAt: new Date(SENT_MS - 1000).toISOString(),
-    consecutiveAiReplies: MAX_CONSECUTIVE_AI,
+    aiRepliesThisMonth: MONTHLY_CEILING,
   };
   const { message, outcome } = await storedInbound(store);
 
@@ -1035,4 +1037,154 @@ test("a message for an account we do not hold is left alone", async () => {
 
   assert.equal(result, "not-applicable");
   assert.equal(calls.length, 0);
+});
+
+// ---------------------------------------------------------------------------
+// Product photos, 22 September 2026
+// ---------------------------------------------------------------------------
+
+const PHOTO_URL = "https://example.supabase.co/storage/v1/object/public/product-photos/ws/bag.jpg";
+
+function photoStore() {
+  const store = new FakeStore();
+  store.tokens.set(`acct_messenger_${PAGE_ID}`, "page-token");
+  store.prompt = {
+    ...store.prompt,
+    products: [
+      { name: "شنطة جلد", price: 18, description: null, inStock: true, photo: PHOTO_URL },
+      { name: "فستان أحمر", price: "25.500", description: null, inStock: true, photo: null },
+    ],
+  };
+  return store;
+}
+
+test("a photo the assistant names is sent after its text, and recorded as the shop's", async () => {
+  const store = photoStore();
+  const { message, outcome } = await storedInbound(store, "ai_photo", "بدي أشوف الشنطة");
+
+  const { fetcher, sent } = assistant({ handOver: false, text: "هاي هي الصورة", photos: ["شنطة جلد"] });
+  const result = await autoReply(store, "key", message, outcome, immediately(fetcher));
+
+  assert.equal(result, "answered");
+
+  // Text first, then the photo: "هاي هي الصورة" has to arrive above it.
+  const toMeta = sent.filter((body) => body.includes("recipient")).map((body) => JSON.parse(body).message);
+  assert.deepEqual(toMeta, [
+    { text: "هاي هي الصورة" },
+    { attachment: { type: "image", payload: { url: PHOTO_URL } } },
+  ]);
+
+  // Stored in Meta's own shape so the inbox shows it, with the product's name
+  // so the next turn knows it was sent.
+  assert.deepEqual(store.aiPhotos, [
+    {
+      mid: "mid_from_meta",
+      attachments: [{ type: "image", payload: { url: PHOTO_URL }, product: "شنطة جلد" }],
+    },
+  ]);
+});
+
+test("a photo of a product that has none is never promised to the customer", async () => {
+  // Seen against a real shop: "تمام، هاي صورته" for a product with no photo,
+  // and nothing arrived. The reply is held back and the seller, who can take
+  // the photo, gets the conversation.
+  for (const photos of [["فستان أحمر"], ["Red dress"]]) {
+    const store = photoStore();
+    const { message, outcome } = await storedInbound(store, `ai_nophoto_${photos[0]}`, "بدي أشوفه");
+
+    const { fetcher, sent } = assistant({ handOver: false, text: "تمام، هاي صورته", photos });
+    const result = await autoReply(store, "key", message, outcome, immediately(fetcher));
+
+    assert.equal(result, "escalated", photos[0]);
+    assert.equal(sent.filter((body) => body.includes("attachment")).length, 0);
+    assert.ok(!store.aiReplies.some((reply) => reply.text.includes("صورته")), "the promise was not sent");
+    // Its own code, so the seller is told to add a photo rather than that
+    // the assistant nearly said something wrong.
+    assert.equal(store.finished.at(-1)?.code, "no_photo");
+    assert.equal(store.finished.at(-1)?.reason, photos[0]);
+  }
+});
+
+test("a photo that fails to send does not undo an answer that was sent", async () => {
+  const store = photoStore();
+  const { message, outcome } = await storedInbound(store, "ai_photofail", "بدي أشوف الشنطة");
+
+  const { fetcher: base, calls } = assistant({
+    handOver: false,
+    text: "هاي هي الصورة",
+    photos: ["شنطة جلد"],
+  });
+
+  // Meta accepts the text and refuses the image.
+  const fetcher = ((url: string, init?: RequestInit) => {
+    if (String(url).includes("graph.facebook.com") && String(init?.body).includes("attachment")) {
+      return Promise.resolve({
+        json: () => Promise.resolve({ error: { message: "bad image", code: 100 } }),
+      } as Response);
+    }
+    return base(url, init);
+  }) as unknown as typeof fetch;
+
+  const result = await autoReply(store, "key", message, outcome, immediately(fetcher));
+
+  assert.equal(result, "answered");
+  assert.deepEqual(store.aiReplies, [{ mid: "mid_from_meta", text: "هاي هي الصورة" }]);
+  assert.deepEqual(store.aiPhotos, []);
+  assert.ok(calls.length > 0);
+});
+
+test("a running offer reaches the model, and one that has ended does not", async () => {
+  const run = async (endsOn: string) => {
+    const store = new FakeStore();
+    store.tokens.set(`acct_messenger_${PAGE_ID}`, "page-token");
+    store.prompt = {
+      ...store.prompt,
+      offers: [{ name: "عرض العيد", kind: "percent", value: 20, endsOn }],
+    };
+    const { message, outcome } = await storedInbound(store, `ai_offer_${endsOn}`, "في خصم؟");
+    const { fetcher, sent } = assistant({ handOver: false, text: "هلا", photos: [] });
+    await autoReply(store, "key", message, outcome, immediately(fetcher));
+    return sent.find((body) => body.includes("system"))!;
+  };
+
+  // The clock in these tests is 4 September 2025 (SENT_MS).
+  // Searched for the offer itself: the instructions carry an example "on sale"
+  // line of their own, so the bare phrase is in every request.
+  assert.ok((await run("2026-12-31")).includes("until 2026-12-31"));
+  assert.ok(!(await run("2025-09-01")).includes("until 2025-09-01"));
+});
+
+test("an ordinary answer is sent even when the model listed a photo it cannot send", async () => {
+  // Seen on the real shop: a price answer that promised nothing, with a
+  // product that has no photo in "photos". Holding it back would hand over
+  // every product question in a shop without photos.
+  const store = photoStore();
+  const { message, outcome } = await storedInbound(store, "ai_nophoto_quiet", "قديش الفستان؟");
+
+  const { fetcher, sent } = assistant({ handOver: false, text: "الفستان الأحمر بـ 25.500", photos: ["فستان أحمر"] });
+  const result = await autoReply(store, "key", message, outcome, immediately(fetcher));
+
+  assert.equal(result, "answered");
+  assert.deepEqual(store.aiReplies, [{ mid: "mid_from_meta", text: "الفستان الأحمر بـ 25.500" }]);
+  assert.equal(sent.filter((body) => body.includes("attachment")).length, 0);
+});
+
+// ---------------------------------------------------------------------------
+// No limit on replies in a row, 23 September. The count that stopped a live
+// customer is gone; what remains is when the seller last wrote themselves.
+// ---------------------------------------------------------------------------
+
+test("the seller's own latest reply is found past any number of the assistant's", () => {
+  const rows = [
+    ...Array.from({ length: 40 }, (_, i) => ({
+      direction: "outbound",
+      origin: "ai",
+      sent_at: new Date(Date.UTC(2026, 8, 23, 18, 0) - i * 60_000).toISOString(),
+    })),
+    { direction: "inbound", sent_at: "2026-09-23T17:00:00Z" },
+    { direction: "outbound", origin: "seller", sent_at: "2026-09-23T16:50:00Z" },
+  ];
+
+  assert.equal(lastSellerReply(rows), "2026-09-23T16:50:00Z");
+  assert.equal(lastSellerReply(rows.slice(0, 41)), null);
 });

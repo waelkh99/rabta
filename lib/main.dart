@@ -15,6 +15,7 @@
 // starting a debug session from the editor already works.
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'inbox_page.dart';
@@ -63,6 +64,12 @@ String? _typeFromUrl() {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Western digits in Arabic too, as decided on 17 September. Flutter's own
+  // date picker formats through intl, which uses Arabic-Indic digits for
+  // Arabic by default — the picker showed "٢٢ سبتمبر ٢٠٢٦" above a grid of
+  // 1 to 30. Found in the Playwright pass of 22 September.
+  DateFormat.useNativeDigitsByDefaultFor('ar', false);
 
   _linkType = _typeFromUrl();
 

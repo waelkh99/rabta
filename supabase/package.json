@@ -13,7 +13,8 @@
     "live": "node scripts/live-ai.ts",
     "assistant": "node scripts/assistant.mjs",
     "catalog": "node scripts/catalog.mjs",
-    "replay": "node scripts/replay.mjs"
+    "replay": "node scripts/replay.mjs",
+    "seed-demo": "node scripts/seed-demo.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",

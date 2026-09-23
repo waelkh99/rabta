@@ -187,7 +187,56 @@ class LEn extends L {
   String get productPrice => 'Price';
 
   @override
-  String get productDescription => 'Description';
+  String get productDescription => 'Details';
+
+  @override
+  String get productDescriptionHint =>
+      'Sizes, colours, material, fit… write it the way you\'d tell a customer. The assistant will understand.';
+
+  @override
+  String get productCategory => 'Category';
+
+  @override
+  String get productCategoryHint =>
+      'For example: Dresses. Optional, and useful for offers.';
+
+  @override
+  String get productPhotos => 'Photos';
+
+  @override
+  String get productPhotoAdd => 'Add photos';
+
+  @override
+  String get productPhotoCover => 'Cover';
+
+  @override
+  String get productPhotoMakeCover => 'Make this the cover';
+
+  @override
+  String get productPhotoRemove => 'Remove';
+
+  @override
+  String get productPhotosBody =>
+      'The first photo is the one the assistant sends to someone who asks to see it. Up to five.';
+
+  @override
+  String get productPhotosFailed =>
+      'Some photos could not be read. Try JPG or PNG.';
+
+  @override
+  String get productPhotosFull => 'Five photos at most.';
+
+  @override
+  String get productNoPhoto => 'No photo';
+
+  @override
+  String get catalogAll => 'All';
+
+  @override
+  String get catalogSearch => 'Search products';
+
+  @override
+  String get catalogNoMatch => 'No product matches.';
 
   @override
   String get productInStock => 'In stock';
@@ -216,11 +265,11 @@ class LEn extends L {
   String get catalogFailedBody => 'Check your connection and try again.';
 
   @override
-  String get catalogPaste => 'Paste a list';
+  String get catalogPaste => 'Import a list';
 
   @override
   String get catalogPasteBody =>
-      'Copy the rows from Excel or Google Sheets and paste them here. They are added to your list, not swapped for it.';
+      'Choose the price list you already have, or copy the rows from your sheet and paste them. No need to change its columns: we find the name and the price, and anything else — colour, size — goes into the details.\n\nTo update products you added before, your file needs a \"Product code\" column. A row whose code exists updates that product; a row with no code is added as a new product and given one. The easiest way: download your list, edit it, and import it back.';
 
   @override
   String get catalogPasteHint => 'Paste the rows here';
@@ -249,6 +298,236 @@ class LEn extends L {
 
   @override
   String get catalogTemplateCopied => 'Template copied. Paste it into Excel.';
+
+  @override
+  String get needsYou => 'Needs you';
+
+  @override
+  String get needsYouTitle =>
+      'The assistant handed this to you — the customer is waiting';
+
+  @override
+  String get needsYouList => 'Conversations that need you';
+
+  @override
+  String get needsYouEmpty => 'Nothing needs you right now.';
+
+  @override
+  String get needsYouTooltip => 'What needs your reply';
+
+  @override
+  String get offerKindText => 'In your words';
+
+  @override
+  String get offerText => 'The offer';
+
+  @override
+  String get offerTextHint =>
+      'Write it the way you would tell a customer, using product and category names exactly as they are in your list so the assistant understands it. For example: \"20% off the Dresses category\" or \"second bag half price\". Set the dates below, not in the text.';
+
+  @override
+  String get offerTextScope =>
+      'Optional: if you pick categories or products, the assistant will not apply it to anything else.';
+
+  @override
+  String get escalatedNoPhoto =>
+      'The customer asked to see a product that has no photo yet';
+
+  @override
+  String get productCode => 'Product code';
+
+  @override
+  String get productCodeHint =>
+      'Left blank, one is given automatically. It is what links this product to its row in your Excel file when you import it again.';
+
+  @override
+  String get productCodeTaken =>
+      'Another product has this code. Choose a different one.';
+
+  @override
+  String get catalogDownload => 'Download my list';
+
+  @override
+  String get catalogYes => 'yes';
+
+  @override
+  String get catalogNo => 'no';
+
+  @override
+  String catalogUpdated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count products updated',
+      one: '1 product updated',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get categoriesEdit => 'Edit categories';
+
+  @override
+  String get categoriesTitle => 'Categories';
+
+  @override
+  String get categoriesEmpty =>
+      'No categories. One is made when you type it on a product.';
+
+  @override
+  String get categoryRename => 'Rename';
+
+  @override
+  String categoryCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count products',
+      one: '1 product',
+      zero: 'No products',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String categoryDeleteTitle(String name) {
+    return 'Delete the category “$name”?';
+  }
+
+  @override
+  String get categoryDeleteBody =>
+      'Its products stay as they are, without a category. Offers on this category will no longer cover them.';
+
+  @override
+  String get categoryTaken => 'A category with that name already exists.';
+
+  @override
+  String get done => 'Done';
+
+  @override
+  String get offerCoversNothing => 'No longer covers anything';
+
+  @override
+  String get offers => 'Offers';
+
+  @override
+  String get offersBody =>
+      'The sales you are running. The assistant mentions one when a customer asks about something it covers — once, and without pushing. If two offers cover a product, the better one for the customer applies.';
+
+  @override
+  String get offersEmpty => 'No offers yet.';
+
+  @override
+  String get offersFailed => 'Offers could not be opened';
+
+  @override
+  String get offerAdd => 'Add an offer';
+
+  @override
+  String get offerEdit => 'Edit offer';
+
+  @override
+  String get offerKindPercent => 'Percent';
+
+  @override
+  String get offerKindAmount => 'Amount';
+
+  @override
+  String get offerKindBuyGet => 'Buy & get';
+
+  @override
+  String get offerPercent => 'Percent off';
+
+  @override
+  String get offerAmount => 'Amount off';
+
+  @override
+  String get offerBuy => 'Buy';
+
+  @override
+  String get offerGet => 'Get free';
+
+  @override
+  String get offerBuyGetHint =>
+      'For example: buy 2, get 1 free. The cheapest item is the free one.';
+
+  @override
+  String get offerAppliesTo => 'Applies to';
+
+  @override
+  String get offerWholeShop => 'The whole shop';
+
+  @override
+  String get offerCategories => 'Categories';
+
+  @override
+  String get offerProducts => 'Products';
+
+  @override
+  String get offerNoCategories =>
+      'No categories yet. Give your products a category on the Products page.';
+
+  @override
+  String get offerStarts => 'Starts';
+
+  @override
+  String get offerEnds => 'Ends';
+
+  @override
+  String get offerStartsNow => 'Now';
+
+  @override
+  String get offerNoEnd => 'No end date';
+
+  @override
+  String get offerName => 'Offer name (optional)';
+
+  @override
+  String get offerNameHint =>
+      'Such as: Eid sale. It is what the assistant calls it to customers.';
+
+  @override
+  String get offerRunning => 'Running';
+
+  @override
+  String get offerScheduled => 'Not started';
+
+  @override
+  String get offerEnded => 'Ended';
+
+  @override
+  String get offerOff => 'Off';
+
+  @override
+  String get offerDeleteTitle => 'Delete this offer?';
+
+  @override
+  String get offerDeleteBody => 'The assistant will stop mentioning it.';
+
+  @override
+  String offerSummaryPercent(String value) {
+    return '$value% off';
+  }
+
+  @override
+  String offerSummaryAmount(String value) {
+    return '$value off';
+  }
+
+  @override
+  String offerSummaryBuyGet(String buy, String get) {
+    return 'Buy $buy, get $get free';
+  }
+
+  @override
+  String offerUntil(String date) {
+    return 'until $date';
+  }
+
+  @override
+  String offerFrom(String date) {
+    return 'from $date';
+  }
 
   @override
   String get assistantTitle => 'The assistant';
@@ -690,4 +969,18 @@ class LEn extends L {
 
   @override
   String get detailsHidden => 'Details';
+
+  @override
+  String get catalogFileChoose => 'Choose an Excel file';
+
+  @override
+  String get catalogFileOr => 'Or paste the rows';
+
+  @override
+  String get catalogFileOldExcel =>
+      'This is an old-style Excel file (.xls). Open it, save it as .xlsx, and choose it again.';
+
+  @override
+  String get catalogFileUnreadable =>
+      'This file could not be read. Try an .xlsx or .csv file.';
 }

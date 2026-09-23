@@ -28,6 +28,7 @@ import 'details_panel.dart';
 import 'invite_page.dart';
 import 'locale_switch.dart';
 import 'menu.dart';
+import 'offers_page.dart';
 import 'platform_icon.dart';
 import 'products_page.dart';
 import 'shop_page.dart';
@@ -252,6 +253,12 @@ class _InboxPageState extends State<InboxPage> {
     if (mounted) await _refresh();
   }
 
+  Future<void> _openOffers() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => OffersPage(inbox: _inbox)),
+    );
+  }
+
   Future<void> _openAccounts() async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => AccountsPage(inbox: _inbox)),
@@ -299,6 +306,7 @@ class _InboxPageState extends State<InboxPage> {
       drawer: AppMenu(
         inbox: _inbox,
         onProducts: _openProducts,
+        onOffers: _openOffers,
         onShop: _openShop,
         onAccounts: _openAccounts,
       ),
@@ -494,6 +502,8 @@ class _ConversationList extends StatelessWidget {
         children: [
           _ListHeader(
             waiting: waiting,
+            needsYou: conversations.where((c) => c.escalated).toList(),
+            onOpen: onOpen,
             onSignOut: onSignOut,
             onAccounts: onAccounts,
             onMenu: onMenu,
@@ -553,6 +563,8 @@ class _ConversationList extends StatelessWidget {
 class _ListHeader extends StatelessWidget {
   const _ListHeader({
     required this.waiting,
+    required this.needsYou,
+    required this.onOpen,
     required this.onSignOut,
     required this.onAccounts,
     required this.onMenu,
@@ -561,6 +573,8 @@ class _ListHeader extends StatelessWidget {
 
   final Inbox inbox;
   final int waiting;
+  final List<Conversation> needsYou;
+  final ValueChanged<Conversation> onOpen;
   final VoidCallback onSignOut;
   final VoidCallback onAccounts;
   final VoidCallback onMenu;
@@ -604,6 +618,7 @@ class _ListHeader extends StatelessWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  _NeedsYouBell(needsYou: needsYou, onOpen: onOpen),
                   IconButton(
                     onPressed: onMenu,
                     icon: const Icon(Icons.menu, size: 19),
@@ -617,6 +632,103 @@ class _ListHeader extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// The conversations the assistant handed to the seller, as a bell with a
+/// count and a list that opens each one.
+///
+/// Asked for on 23 September 2026: "I have the page opened but I can't tell a
+/// chat requires my attention." Only hand-overs, not every unanswered message —
+/// the waiting count beside the wordmark already says how many are unanswered,
+/// and a bell that rings for everything is a bell nobody looks at.
+class _NeedsYouBell extends StatelessWidget {
+  const _NeedsYouBell({required this.needsYou, required this.onOpen});
+
+  final List<Conversation> needsYou;
+  final ValueChanged<Conversation> onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.rabta;
+    final l = context.l;
+
+    return MenuAnchor(
+      alignmentOffset: const Offset(0, 4),
+      style: const MenuStyle(
+        maximumSize: WidgetStatePropertyAll(Size(340, 420)),
+      ),
+      menuChildren: [
+        Padding(
+          padding: const EdgeInsetsDirectional.fromSTEB(16, 12, 16, 8),
+          child: Text(
+            needsYou.isEmpty ? l.needsYouEmpty : l.needsYouList,
+            style: Style.meta.copyWith(
+              color: colors.muted,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+        for (final c in needsYou)
+          MenuItemButton(
+            onPressed: () => onOpen(c),
+            leadingIcon: PlatformIcon(platform: c.platform, size: 14),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 260),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Two widgets, not one string: an Arabic name and a Latin
+                  // "23h" in one line reorder into "23 · سارةh".
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          c.customerName ?? l.customer,
+                          style: Style.name.copyWith(color: colors.ink),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        waitedFor(context, c.lastInboundAt),
+                        style: Style.meta.copyWith(color: colors.muted),
+                      ),
+                    ],
+                  ),
+                  if (assistantReason(l, c) case final reason?)
+                    Text(
+                      reason,
+                      style: Style.meta.copyWith(color: colors.urgent),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                ],
+              ),
+            ),
+          ),
+      ],
+      builder: (context, menu, _) => IconButton(
+        onPressed: () => menu.isOpen ? menu.close() : menu.open(),
+        tooltip: l.needsYouTooltip,
+        visualDensity: VisualDensity.compact,
+        color: needsYou.isEmpty ? colors.muted : colors.urgent,
+        icon: Badge(
+          isLabelVisible: needsYou.isNotEmpty,
+          backgroundColor: colors.urgent,
+          label: Text('${needsYou.length}'),
+          child: Icon(
+            needsYou.isEmpty
+                ? Icons.notifications_none
+                : Icons.notifications_active,
+            size: 19,
+          ),
+        ),
       ),
     );
   }
@@ -705,11 +817,16 @@ class _ConversationRowState extends State<_ConversationRow> {
             // violet, and on a screen that is not the one this was designed on
             // it read as nothing at all. The bar below is the part hover cannot
             // imitate.
+            //
+            // A hand-over is tinted red whatever else is true of the row, so
+            // it stands out in a list the seller is scanning, not reading.
             color: widget.selected
                 ? colors.raised
-                : _hovered
-                    ? colors.raised.withValues(alpha: 0.5)
-                    : colors.surface,
+                : c.escalated
+                    ? colors.urgent.withValues(alpha: _hovered ? 0.12 : 0.07)
+                    : _hovered
+                        ? colors.raised.withValues(alpha: 0.5)
+                        : colors.surface,
             padding: EdgeInsetsDirectional.only(
               // The bar is drawn inside the row's own start padding rather than
               // over it, so nothing shifts sideways when a row is opened.
@@ -796,7 +913,10 @@ class _ConversationRowState extends State<_ConversationRow> {
                           ],
                         ],
                       ),
-                      _AssistantMark(conversation: c),
+                      if (c.escalated)
+                        const _NeedsYouPill()
+                      else
+                        _AssistantMark(conversation: c),
                     ],
                   ),
                 ),
@@ -867,6 +987,45 @@ class _AssistantMark extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// A solid red pill on a row the assistant handed over. Words and a hand as
+/// well as colour, for a seller who cannot tell red from violet.
+class _NeedsYouPill extends StatelessWidget {
+  const _NeedsYouPill();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.rabta;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          decoration: BoxDecoration(
+            color: colors.urgent,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.front_hand, size: 12, color: Colors.white),
+              const SizedBox(width: 5),
+              Text(
+                context.l.needsYou,
+                style: Style.meta.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1360,7 +1519,11 @@ class _ThreadState extends State<_Thread> {
 
           // Above the messages rather than among them: it is not something
           // anyone said, and a card in the run of bubbles reads as one.
-          if (widget.showAssistant)
+          //
+          // A hand-over is shown at every width, even where the details pane
+          // is open beside it: it is the one thing here the seller must not
+          // miss, and the pane is where the eye goes last.
+          if (widget.showAssistant || widget.conversation.escalated)
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
               child: AssistantCard(conversation: widget.conversation),

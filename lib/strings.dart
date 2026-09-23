@@ -118,6 +118,12 @@ String? assistantReason(L l, Conversation c) {
     'seller_present' => l.escalatedSellerPresent,
     'ceiling' => l.escalatedCeiling,
     'ungrounded' => l.escalatedUngrounded,
+    // Its own line, because it tells the seller what to do: add a photo.
+    // With the product's name, from the seller's own catalog, so they know
+    // which photo to add without opening the conversation to find out.
+    'no_photo' => c.aiEscalationReason?.trim().isNotEmpty == true
+        ? '${l.escalatedNoPhoto}: ${c.aiEscalationReason!.trim()}'
+        : l.escalatedNoPhoto,
     'not_sent' => l.escalatedNotSent,
 
     // Null, not a general sentence. Wherever this is shown there is already a
@@ -148,3 +154,12 @@ String attachmentLabel(BuildContext context, String? type) {
     _ => l.attachmentOther,
   };
 }
+
+/// What goes between the parts of a row's second line: "45 د.ا · P-001 · فساتين".
+///
+/// In Arabic the dot is fenced with right-to-left marks. Left bare, a dot
+/// between two Latin parts — a code and an English category — joins them
+/// into one left-to-right run, and the line reads in a different order from
+/// every row around it. Seen in the Playwright pass of 22 September.
+String metaSeparator(BuildContext context) =>
+    Directionality.of(context) == TextDirection.rtl ? '‏ · ‏' : ' · ';

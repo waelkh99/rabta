@@ -7,10 +7,11 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/widgets.dart' show Locale, TextDirection;
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:rabta/data.dart';
+import 'package:rabta/details_panel.dart';
 import 'package:rabta/l10n/app_localizations.dart';
 import 'package:rabta/strings.dart';
 import 'package:rabta/theme.dart';
@@ -550,23 +551,32 @@ void _numerals() {
       expect(answered.awaitingReply, isFalse);
     });
 
-    test('an escalated conversation sorts by how long the customer has waited',
-        () {
-      // It joins the waiting group at its true age, not at the top or the
-      // bottom of it. The oldest customer is still the one to answer first.
+    test('a hand-over sorts to the top of the waiting group', () {
+      // It used to join at its true age, and on 23 September the product
+      // owner could not find one. The customer was told a person is coming.
+      // Oldest first within each part, so neither part starves.
+      Conversation handed(String id, int hours) => _conversation(
+            id: id,
+            inboundAgo: Duration(hours: hours),
+            repliedAgo: Duration(hours: hours - 1),
+            aiState: 'escalated',
+            aiEscalationCode: 'assistant',
+          );
+
       final order = inboxOrder([
         _conversation(id: 'recent', inboundAgo: const Duration(hours: 1)),
-        _conversation(
-          id: 'escalated',
-          inboundAgo: const Duration(hours: 6),
-          repliedAgo: const Duration(hours: 5),
-          aiState: 'escalated',
-          aiEscalationCode: 'assistant',
-        ),
+        handed('handed-new', 3),
         _conversation(id: 'oldest', inboundAgo: const Duration(hours: 9)),
+        handed('handed-old', 6),
+        _conversation(
+          id: 'answered',
+          inboundAgo: const Duration(hours: 2),
+          repliedAgo: const Duration(hours: 1),
+        ),
       ]);
 
-      expect(order.map((c) => c.id), ['oldest', 'escalated', 'recent']);
+      expect(order.map((c) => c.id),
+          ['handed-old', 'handed-new', 'oldest', 'recent', 'answered']);
     });
 
     test('the seller replying takes the mark off, without a reload', () {
@@ -633,6 +643,23 @@ void _numerals() {
       }
     });
 
+    test('a no-photo hand-over names the product, so the seller knows which photo to add', () {
+      for (final language in [ar, en]) {
+        final note = assistantReason(
+          language,
+          _conversation(
+            id: 'c',
+            inboundAgo: const Duration(hours: 1),
+            aiState: 'escalated',
+            aiEscalationCode: 'no_photo',
+            aiEscalationReason: 'فستان صيفي',
+          ),
+        );
+
+        expect(note, '${language.escalatedNoPhoto}: فستان صيفي');
+      }
+    });
+
     test('every escalation code has its own sentence, in both languages', () {
       // Same rule as the send refusals above: two codes sharing a sentence tell
       // the seller the same thing about different problems. window_closed and
@@ -645,6 +672,7 @@ void _numerals() {
         'ceiling',
         'ungrounded',
         'not_sent',
+        'no_photo',
       ];
 
       for (final language in [ar, en]) {
@@ -816,5 +844,46 @@ void _numerals() {
       isEmpty,
       reason: 'Eastern numerals found:\n${offenders.join('\n')}',
     );
+  });
+
+  group('a hand-over reads as one, in both languages', () {
+    for (final locale in const [Locale('ar'), Locale('en')]) {
+      testWidgets('${locale.languageCode}: says the customer is waiting, and why',
+          (tester) async {
+        Future<L> pump(Conversation c) async {
+          await tester.pumpWidget(MaterialApp(
+            theme: rabtaTheme(brightness: Brightness.light),
+            locale: locale,
+            supportedLocales: L.supportedLocales,
+            localizationsDelegates: L.localizationsDelegates,
+            home: Scaffold(body: AssistantCard(conversation: c)),
+          ));
+          await tester.pumpAndSettle();
+          return L.of(tester.element(find.byType(AssistantCard)))!;
+        }
+
+        final l = await pump(_conversation(
+          id: 'handed',
+          inboundAgo: const Duration(hours: 2),
+          repliedAgo: const Duration(hours: 1),
+          aiState: 'escalated',
+          aiEscalationCode: 'ceiling',
+        ));
+        expect(find.text(l.needsYouTitle), findsOneWidget);
+        expect(find.text(l.escalatedCeiling), findsOneWidget);
+        expect(find.byIcon(Icons.front_hand), findsOneWidget);
+
+        // Answering stays quiet: none of the hand-over's alarm.
+        await pump(_conversation(
+          id: 'answered',
+          inboundAgo: const Duration(hours: 2),
+          repliedAgo: const Duration(hours: 1),
+          aiState: 'answered',
+        ));
+        expect(find.text(l.answeredByAssistant), findsOneWidget);
+        expect(find.text(l.needsYouTitle), findsNothing);
+        expect(find.byIcon(Icons.front_hand), findsNothing);
+      });
+    }
   });
 }

@@ -20,14 +20,20 @@ import {
   guard,
   HANDOVER_LINE,
   isSpoken,
+  mentionsPhoto,
   numbersAreGrounded,
+  type Offer,
+  photosMissing,
+  photosToSend,
   type Product,
   readsAsArabic,
   type ReplyContext,
   renderFacts,
   type Shop,
   tidyEmoji,
+  todayInAmman,
   type Turn,
+  wordedOfferPrices,
 } from "./ai.ts";
 // Imported across function directories rather than copied. The CLI bundles the
 // entrypoint's whole module graph, which is why send-message can already
@@ -88,12 +94,17 @@ export interface Store {
   /** The catalog, the shop's own voice, and the conversation so far. */
   aiPrompt(workspaceId: string, conversationId: string): Promise<AiPrompt>;
 
-  /** Stores the AI's reply under the id Meta returned, so its echo is a duplicate. */
+  /**
+   * Stores the AI's reply under the id Meta returned, so its echo is a
+   * duplicate. A photo is stored with null text and its attachment, in the
+   * shape Meta itself delivers, so the inbox shows it like any other.
+   */
   insertAiReply(
     conversationId: string,
     workspaceId: string,
     mid: string,
-    text: string,
+    text: string | null,
+    attachments?: unknown[],
   ): Promise<void>;
 
   /** Records what the AI did, which is what the seller sees on the row. */
@@ -124,6 +135,8 @@ export interface AiPrompt {
   shop: Shop | null;
   zones: DeliveryZone[];
   products: Product[];
+  /** Every offer; renderFacts writes only those running today. */
+  offers?: Offer[];
   examples: string[];
   turns: Turn[];
 }
@@ -313,18 +326,20 @@ export async function autoReply(
    * so the echo arriving a moment later is a duplicate rather than a second
    * bubble.
    *
-   * One helper because there are now two things worth sending — the model's
-   * reply and the hand-over line — and duplicating a Graph send is how the two
-   * quietly stop behaving the same way.
+   * One helper because there are three things worth sending — the model's
+   * reply, a product photo, and the hand-over line — and duplicating a Graph
+   * send is how they quietly stop behaving the same way.
    */
-  const say = async (text: string): Promise<SendOutcome> => {
+  const send = async (
+    content: string | { image: string; product: string },
+  ): Promise<SendOutcome> => {
     const token = await store.accountToken(outcome.accountId);
     if (!token) return { sent: false, retry: false, reason: "no access token" };
 
     const request = sendRequest(
       message.accountExternalId,
       message.customerExternalId,
-      text,
+      typeof content === "string" ? content : { image: content.image },
       token,
     );
 
@@ -345,15 +360,20 @@ export async function autoReply(
       return { sent: false, retry: false, reason: `send ${result.refusal}` };
     }
 
-    await store.insertAiReply(
-      outcome.conversationId,
-      context.workspaceId,
-      result.mid,
-      text,
-    );
+    if (typeof content === "string") {
+      await store.insertAiReply(outcome.conversationId, context.workspaceId, result.mid, content);
+    } else {
+      // The product's name travels with the photo, so the next turn can see
+      // which one was already sent — see attachmentTurn.
+      await store.insertAiReply(outcome.conversationId, context.workspaceId, result.mid, null, [
+        { type: "image", payload: { url: content.image }, product: content.product },
+      ]);
+    }
 
     return { sent: true };
   };
+
+  const say = (text: string) => send(text);
 
   /**
    * Hands the conversation to the seller, and tells the customer so.
@@ -393,6 +413,8 @@ export async function autoReply(
     shop: prompt.shop,
     zones: prompt.zones,
     products: prompt.products,
+    offers: prompt.offers ?? [],
+    today: todayInAmman(now),
   });
 
   const answer = await ask(apiKey, {
@@ -401,6 +423,8 @@ export async function autoReply(
     examples: prompt.examples,
     turns: prompt.turns,
     customerName: context.customerName,
+    // For the thumbnails, when the customer's latest message is a photo.
+    products: prompt.products,
   }, fetcher, workspaceId);
 
   // The only place a seller's running cost is visible. `cacheRead` staying at
@@ -435,8 +459,23 @@ export async function autoReply(
   const reply = tidyEmoji(answer.decision.text);
   const decision = { ...answer.decision, text: reply };
 
-  const refusal = reasonNotToSend(decision.text, facts, prompt.turns, message.platform);
+  const refusal = reasonNotToSend(
+    decision.text,
+    facts,
+    prompt.turns,
+    message.platform,
+    wordedOfferPrices(prompt.products, prompt.offers ?? [], todayInAmman(now)),
+  );
   if (refusal) return handOver("ungrounded", refusal, true);
+
+  // A photo it cannot send, in a reply that talks about one, is a promise
+  // that will not be kept. The seller is the one who can take the photo, so
+  // it goes to them. Without the talk, the missing photo is simply not sent.
+  const missing = photosMissing(decision.photos, prompt.products);
+  if (missing.length > 0 && mentionsPhoto(decision.text)) {
+    // Its own code, so the seller's row says what to do: add a photo.
+    return handOver("no_photo", missing.join(", "), true);
+  }
 
   const delivery = await say(decision.text);
 
@@ -446,6 +485,16 @@ export async function autoReply(
     if (delivery.retry) return "failed";
     await store.finishAiRun(outcome.conversationId, "escalated", delivery.reason, "not_sent");
     return "escalated";
+  }
+
+  // After the text, never instead of it, and never ahead of it: "هاي هي الصورة"
+  // above a photo reads right, and a photo arriving before its sentence does
+  // not. A photo that fails to send is logged and dropped — the answer already
+  // reached the customer, and failing the whole run over a picture would hand
+  // over a conversation the assistant had handled.
+  for (const photo of photosToSend(decision.photos, prompt.products, prompt.turns)) {
+    const sent = await send({ image: photo.url, product: photo.product });
+    if (!sent.sent) console.log(`ai photo not sent ${outcome.conversationId}: ${sent.reason}`);
   }
 
   // Answered AND handed over, which the old shape could not express: a customer
@@ -482,15 +531,33 @@ type SendOutcome =
  * made, and a reply Meta would reject for length while the customer receives
  * nothing at all.
  */
+/**
+ * When the seller last wrote to this customer themselves, from rows newest
+ * first. What the seller-present guard needs.
+ */
+export function lastSellerReply(
+  rows: { direction: string; origin?: string | null; sent_at: string }[],
+): string | null {
+  return rows.find((row) => row.direction === "outbound" && row.origin === "seller")?.sent_at ?? null;
+}
+
+/** The URL of an image the customer sent, from Meta's attachment shape. */
+export function customerPhoto(attachments: unknown): string | undefined {
+  if (!Array.isArray(attachments)) return undefined;
+  const first = attachments[0] as { type?: unknown; payload?: { url?: unknown } } | undefined;
+  return first?.type === "image" && typeof first.payload?.url === "string" ? first.payload.url : undefined;
+}
+
 function reasonNotToSend(
   text: string,
   facts: string,
   turns: Turn[],
   platform: Platform,
+  offerPrices: number[] = [],
 ): string | null {
   const said = turns.map((turn) => turn.text);
 
-  if (!numbersAreGrounded(text, facts, said)) {
+  if (!numbersAreGrounded(text, facts, said, offerPrices)) {
     return "a number the shop never gave it";
   }
 
@@ -512,6 +579,7 @@ function reasonNotToSend(
 /** The slice of supabase-js this module uses. */
 interface SupabaseLike {
   from(table: string): any;
+  storage: { from(bucket: string): { getPublicUrl(path: string): { data: { publicUrl: string } } } };
 }
 
 export function createSupabaseStore(client: SupabaseLike): Store {
@@ -661,29 +729,17 @@ export function createSupabaseStore(client: SupabaseLike): Store {
       // workspace, which is the state every workspace starts in.
       const enabled = settings.data?.assistant_enabled === true;
 
-      // Outbound messages since the seller last said anything themselves. Read
-      // newest first and counted until a seller row appears, which is what
-      // "consecutive" means — the streak, not the total.
+      // The seller's own latest message, for the seller-present guard.
       const recent = await client
         .from("messages")
-        .select("direction, origin, sent_at")
+        .select("direction, origin, sent_at, text")
         .eq("conversation_id", conversationId)
         .order("sent_at", { ascending: false })
-        .limit(20);
+        .limit(60);
 
       if (recent.error) throw new Error(`ai history failed: ${recent.error.message}`);
 
-      let consecutiveAiReplies = 0;
-      let lastSellerReplyAt: string | null = null;
-
-      for (const row of recent.data ?? []) {
-        if (row.direction !== "outbound") continue;
-        if (row.origin === "seller") {
-          lastSellerReplyAt = row.sent_at;
-          break;
-        }
-        consecutiveAiReplies += 1;
-      }
+      const lastSellerReplyAt = lastSellerReply(recent.data ?? []);
 
       const month = new Date();
       month.setUTCDate(1);
@@ -705,7 +761,6 @@ export function createSupabaseStore(client: SupabaseLike): Store {
         windowExpiresAt: data.window_expires_at ?? null,
         lastMessageAt: data.last_message_at ?? null,
         lastSellerReplyAt,
-        consecutiveAiReplies,
         aiRepliesThisMonth: counted.count ?? 0,
       };
     },
@@ -769,12 +824,24 @@ export function createSupabaseStore(client: SupabaseLike): Store {
       // request and no reads at all.
       const products = await client
         .from("products")
-        .select("name, price, description, in_stock")
+        .select("id, code, name, price, description, in_stock, category_id, photos, categories(name)")
         .eq("workspace_id", workspaceId)
         .order("name", { ascending: true })
         .order("id", { ascending: true });
 
       if (products.error) throw new Error(`catalog failed: ${products.error.message}`);
+
+      // Every offer, running or not: which are on today is decided in
+      // renderFacts, against Amman's date, where it can be tested. Ordered so
+      // the rendering is byte-identical between calls, like the catalog.
+      const offers = await client
+        .from("offers")
+        .select("name, kind, value, description, buy, get, category_ids, product_ids, starts_on, ends_on, enabled")
+        .eq("workspace_id", workspaceId)
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true });
+
+      if (offers.error) throw new Error(`offers failed: ${offers.error.message}`);
 
       // The seller's own recent replies, as examples of how this shop talks.
       // Taken from across the workspace rather than this conversation, because
@@ -822,10 +889,36 @@ export function createSupabaseStore(client: SupabaseLike): Store {
           fee: (row.fee ?? null) as number | string | null,
         })),
         products: (products.data ?? []).map((row: Record<string, unknown>) => ({
+          id: String(row.id),
+          categoryId: (row.category_id ?? null) as string | null,
+          code: (row.code ?? null) as string | null,
           name: String(row.name),
           price: (row.price ?? null) as number | string | null,
           description: (row.description ?? null) as string | null,
           inStock: row.in_stock !== false,
+          category: ((row.categories as { name?: string } | null)?.name ?? null),
+          // The cover only: it is the one the assistant sends.
+          photo: Array.isArray(row.photos) && row.photos.length > 0
+            ? client.storage.from("product-photos").getPublicUrl(String(row.photos[0])).data.publicUrl
+            : null,
+          // The small copy beside it — see thumbnailOf in lib/data.dart.
+          thumb: Array.isArray(row.photos) && row.photos.length > 0
+            ? client.storage.from("product-photos")
+              .getPublicUrl(String(row.photos[0]).replace(/\.jpg$/, "_s.jpg")).data.publicUrl
+            : null,
+        })),
+        offers: (offers.data ?? []).map((row: Record<string, unknown>) => ({
+          name: (row.name ?? null) as string | null,
+          kind: row.kind as Offer["kind"],
+          value: (row.value ?? null) as number | string | null,
+          buy: (row.buy ?? null) as number | null,
+          get: (row.get ?? null) as number | null,
+          categoryIds: (row.category_ids ?? []) as string[],
+          productIds: (row.product_ids ?? []) as string[],
+          startsOn: (row.starts_on ?? null) as string | null,
+          endsOn: (row.ends_on ?? null) as string | null,
+          enabled: row.enabled !== false,
+          description: (row.description ?? null) as string | null,
         })),
         examples: (examples.data ?? [])
           .map((row: { text: string }) => row.text)
@@ -839,7 +932,9 @@ export function createSupabaseStore(client: SupabaseLike): Store {
             inbound: row.direction === "inbound",
             text: row.text && row.text.trim().length > 0
               ? row.text
-              : (attachmentTurn(row.attachments as unknown[]) ?? ""),
+              : (attachmentTurn(row.attachments as unknown[], row.direction === "inbound") ?? ""),
+            // A photo the customer sent, so it can be shown to the model.
+            image: row.direction === "inbound" ? customerPhoto(row.attachments) : undefined,
           }))
           // toMessages drops empty turns anyway; doing it here keeps the
           // conversation the grounding check searches the same as the one the
@@ -848,13 +943,14 @@ export function createSupabaseStore(client: SupabaseLike): Store {
       };
     },
 
-    async insertAiReply(conversationId, workspaceId, mid, text) {
+    async insertAiReply(conversationId, workspaceId, mid, text, attachments = []) {
       const { error } = await client.from("messages").insert({
         conversation_id: conversationId,
         workspace_id: workspaceId,
         mid,
         direction: "outbound",
         text,
+        attachments,
         sent_at: new Date().toISOString(),
         origin: "ai",
       });

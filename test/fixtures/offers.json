@@ -1,0 +1,301 @@
+{
+  "_comment": "Read by test/offers_test.dart AND supabase/tests/ai.test.ts. The sale price is worked out twice — on the server for what the assistant says, and in the browser for what the seller sees on the product row — and these cases are what stop the two from disagreeing. Add a case here, not to one side.",
+  "cases": [
+    {
+      "name": "a percentage off, rounded to fils",
+      "product": {
+        "id": "p1",
+        "price": 25.5,
+        "categoryId": null
+      },
+      "offers": [
+        {
+          "kind": "percent",
+          "value": 20
+        }
+      ],
+      "today": "2026-09-22",
+      "expected": 20.4
+    },
+    {
+      "name": "fils survive a percentage that does not divide evenly",
+      "product": {
+        "id": "p1",
+        "price": 12.75,
+        "categoryId": null
+      },
+      "offers": [
+        {
+          "kind": "percent",
+          "value": 15
+        }
+      ],
+      "today": "2026-09-22",
+      "expected": 10.838
+    },
+    {
+      "name": "an amount off",
+      "product": {
+        "id": "p1",
+        "price": 25.5,
+        "categoryId": null
+      },
+      "offers": [
+        {
+          "kind": "amount",
+          "value": 5
+        }
+      ],
+      "today": "2026-09-22",
+      "expected": 20.5
+    },
+    {
+      "name": "an amount larger than the price stops at nothing, never below",
+      "product": {
+        "id": "p1",
+        "price": 3,
+        "categoryId": null
+      },
+      "offers": [
+        {
+          "kind": "amount",
+          "value": 5
+        }
+      ],
+      "today": "2026-09-22",
+      "expected": 0
+    },
+    {
+      "name": "two offers do not stack: the better one for the customer applies",
+      "product": {
+        "id": "p1",
+        "price": 30,
+        "categoryId": null
+      },
+      "offers": [
+        {
+          "kind": "percent",
+          "value": 10
+        },
+        {
+          "kind": "amount",
+          "value": 5
+        }
+      ],
+      "today": "2026-09-22",
+      "expected": 25
+    },
+    {
+      "name": "an offer on the product's category applies",
+      "product": {
+        "id": "p1",
+        "price": 20,
+        "categoryId": "c1"
+      },
+      "offers": [
+        {
+          "kind": "percent",
+          "value": 50,
+          "categoryIds": [
+            "c1"
+          ]
+        }
+      ],
+      "today": "2026-09-22",
+      "expected": 10
+    },
+    {
+      "name": "an offer on another category does not",
+      "product": {
+        "id": "p1",
+        "price": 20,
+        "categoryId": "c1"
+      },
+      "offers": [
+        {
+          "kind": "percent",
+          "value": 50,
+          "categoryIds": [
+            "c2"
+          ]
+        }
+      ],
+      "today": "2026-09-22",
+      "expected": null
+    },
+    {
+      "name": "an offer naming the product applies",
+      "product": {
+        "id": "p1",
+        "price": 20,
+        "categoryId": null
+      },
+      "offers": [
+        {
+          "kind": "amount",
+          "value": 2,
+          "productIds": [
+            "p1"
+          ]
+        }
+      ],
+      "today": "2026-09-22",
+      "expected": 18
+    },
+    {
+      "name": "an offer naming other products does not",
+      "product": {
+        "id": "p1",
+        "price": 20,
+        "categoryId": null
+      },
+      "offers": [
+        {
+          "kind": "amount",
+          "value": 2,
+          "productIds": [
+            "p2"
+          ]
+        }
+      ],
+      "today": "2026-09-22",
+      "expected": null
+    },
+    {
+      "name": "the first day of an offer counts",
+      "product": {
+        "id": "p1",
+        "price": 20,
+        "categoryId": null
+      },
+      "offers": [
+        {
+          "kind": "percent",
+          "value": 10,
+          "startsOn": "2026-09-22",
+          "endsOn": "2026-09-30"
+        }
+      ],
+      "today": "2026-09-22",
+      "expected": 18
+    },
+    {
+      "name": "the last day of an offer counts",
+      "product": {
+        "id": "p1",
+        "price": 20,
+        "categoryId": null
+      },
+      "offers": [
+        {
+          "kind": "percent",
+          "value": 10,
+          "startsOn": "2026-09-01",
+          "endsOn": "2026-09-22"
+        }
+      ],
+      "today": "2026-09-22",
+      "expected": 18
+    },
+    {
+      "name": "an offer that has not started does not apply",
+      "product": {
+        "id": "p1",
+        "price": 20,
+        "categoryId": null
+      },
+      "offers": [
+        {
+          "kind": "percent",
+          "value": 10,
+          "startsOn": "2026-09-23"
+        }
+      ],
+      "today": "2026-09-22",
+      "expected": null
+    },
+    {
+      "name": "an offer that has ended does not apply",
+      "product": {
+        "id": "p1",
+        "price": 20,
+        "categoryId": null
+      },
+      "offers": [
+        {
+          "kind": "percent",
+          "value": 10,
+          "endsOn": "2026-09-21"
+        }
+      ],
+      "today": "2026-09-22",
+      "expected": null
+    },
+    {
+      "name": "an offer switched off does not apply",
+      "product": {
+        "id": "p1",
+        "price": 20,
+        "categoryId": null
+      },
+      "offers": [
+        {
+          "kind": "percent",
+          "value": 10,
+          "enabled": false
+        }
+      ],
+      "today": "2026-09-22",
+      "expected": null
+    },
+    {
+      "name": "buy X get Y has no price of its own",
+      "product": {
+        "id": "p1",
+        "price": 20,
+        "categoryId": null
+      },
+      "offers": [
+        {
+          "kind": "buy_get",
+          "buy": 2,
+          "get": 1
+        }
+      ],
+      "today": "2026-09-22",
+      "expected": null
+    },
+    {
+      "name": "a product with no price has no sale price",
+      "product": {
+        "id": "p1",
+        "price": null,
+        "categoryId": null
+      },
+      "offers": [
+        {
+          "kind": "percent",
+          "value": 10
+        }
+      ],
+      "today": "2026-09-22",
+      "expected": null
+    },
+    {
+      "name": "an offer in the seller's own words has no price of its own",
+      "product": {
+        "id": "p1",
+        "price": 20,
+        "categoryId": null
+      },
+      "offers": [
+        {
+          "kind": "text",
+          "description": "خصم 20% على كل شي"
+        }
+      ],
+      "today": "2026-09-22",
+      "expected": null
+    }
+  ]
+}

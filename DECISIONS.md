@@ -2239,6 +2239,141 @@ down, not by the guard being told to look away.
 
 ---
 
+## The catalog grows
+
+Asked for by the product owner on 22 September 2026.
+
+### Photos, and what the assistant does with them
+
+Up to five per product; the first is the cover. They are shrunk in the browser
+before they leave — a 4032×3024 phone photo becomes a 1600px JPEG and a 320px
+thumbnail — so the bucket only ever takes JPEG under 2 MB. The bucket is
+**public**: Meta fetches the URL itself to deliver a photo, and cannot present
+our credentials. Paths carry a random name, so there is nothing to enumerate.
+
+Photos upload on Save, not on pick, so a cancelled editor leaves nothing
+behind, and a save the database refuses removes what it just uploaded.
+
+The assistant sends the cover when a customer asks to see something or when it
+recommends a product they have not seen. It names products; it never handles a
+URL, so it cannot send anything that is not the shop's. At most two per reply,
+never one already sent in the conversation.
+
+**A reply that promises a photo that does not exist is held back.** Found
+against the real shop: "تمام، هاي صورته" for a product with no photo, and none
+arrived. The instructions forbade it and the model did it anyway, so it is
+decided in code — and only when the reply talks about a photo. The first
+version held back every reply that listed a missing photo, which would have
+handed over an ordinary price answer in any shop without photos; the replay
+caught it before it shipped.
+
+**A customer's screenshot is recognised** (23 September 2026). When the
+message being answered is a photo, the model is shown it with a 320px copy of
+each product's cover, labelled with its code and name, and answers about the
+product it matches; unsure, it asks which; no match, it says so. Only the
+latest photo, never an older one again, and not cached — the sheet sits after
+the conversation, which differs per customer. At most 60 thumbnails
+(`MAX_THUMBNAILS`); a shop with more photographed products needs a first pass
+that narrows the candidates. If a request fails over its images — a customer's
+photo too large, or gone from Meta — it is asked again without them, so the
+customer is still answered.
+
+**A customer who asks to see something with no photo** is handed to the seller
+with its own line and the product's name — "the customer asked to see a
+product that has no photo yet: فستان أحمر" — because the seller is the one who
+can take it.
+
+**The currency is Jordanian dinars, written out**, when a shop has not set
+one — the product owner's default. A currency a shop already chose is kept.
+
+### Sizes and colours are not fields
+
+"I don't want the seller to fill out an endless excel sheet … easiest approach
+for the seller even if it puts extra load on the agent." So there is one
+details box, in the seller's own words, and the assistant reads it. A size or
+colour list with its own stock or price would be variants, and variants are
+still out.
+
+### Codes, not names, identify a product
+
+Importing a sheet a second time updates the products it lists — matched on the
+product code, never the name, because a shop writes one product in Arabic in
+one place and English in another. Every product has a code: the seller's own,
+or the next `P-001`. Numbering continues after the highest and never refills a
+gap, so an old sheet cannot update a different product than the one it was
+written for. "Download my list" is what makes generated codes useful: the
+seller downloads, edits in Excel and imports it back.
+
+An update changes only what the sheet has something to say about. A missing
+column and an empty cell both leave the saved value alone, and photos are never
+touched. Nothing is ever deleted by an import.
+
+A seller's own sheet is read as it is: Arabic and English headers, a title row
+above the header, colour and size columns folded into the details under their
+own names. **A cost-price column is never read** — "سعر التكلفة" contains the
+word for price, and quoting it to a customer would be the worst thing this
+importer could do.
+
+### Categories
+
+A table, not text on the product, so a rename keeps every offer attached.
+Deleting one keeps its products. An offer that named only that category is
+left pointing at nothing rather than having the id removed: an offer with no
+targets means the whole shop, so removing it would turn "20% off dresses" into
+20% off everything.
+
+---
+
+## Offers
+
+Asked for by the product owner on 22 September 2026: a percentage off, an
+amount off, and buy X get Y, each over the whole shop, some categories or some
+products, with optional dates. Promo codes were offered and declined.
+
+**Offers do not stack.** The best single one for the customer applies — the
+convention customers expect, and the only one a seller can explain in a
+sentence.
+
+**The sale price is worked out in code, never by the model.** The grounding
+check refuses any number the shop did not write down, so a price the model
+calculated would be refused on the way out. `salePrice` computes it in whole
+fils and writes it into the catalog line — "on sale: 31.2 instead of 39". The
+client computes the same number for the struck-through price on the product
+row, and one fixture of cases, `test/fixtures/offers.json`, is read by both
+test suites so the two cannot drift.
+
+**Buy X get Y has no price.** It is written as a rule, and the model is not
+asked to add up a basket; a total nobody wrote down goes to the seller.
+
+**Dates are Amman's.** Inclusive at both ends, compared as text against today
+in Asia/Amman, on the server and in the client.
+
+**Offers in the seller's own words** (23 September 2026). The structured kinds
+cover the common sales; a sentence covers the rest — "the second piece half
+price", "a free scarf with any dress" — without a new structure each time. The
+seller writes it, with the same dates, switch and optional scope as any offer,
+and the assistant reads it as written and **understands it**: asked about an
+item the sentence covers, it says what that item now costs, not what the
+sentence says. The number check allows exactly one extra step for these — a
+percentage or amount the seller wrote, applied to one price the seller listed
+(`wordedOfferPrices`) — so it can say "15.3 instead of 18" and still cannot
+invent a basket total. Translating the sentence into a structure when it is
+saved was considered and not chosen: the product owner preferred it read as
+is.
+
+**When to mention an offer.** Only when the conversation is already about
+something it covers — its price, whether it is in stock, what it looks like, a
+customer hesitating over it — and then once, as good news. Never in a greeting,
+a delivery answer or to someone just chatting; the product owner's words were
+"not throw the discount at anyone".
+
+**The guard was made true again, not weakened**, as the price stance did
+before it. A running offer writes "on sale", "discount" and "خصم" into the
+facts, so the check finds them. A shop with nothing running writes nothing, and
+a claimed discount is still refused — tested both ways.
+
+---
+
 ## Telling the seller something happened
 
 Settled 21 September 2026, after asking what a browser notification is actually
@@ -2374,6 +2509,40 @@ which is deliberately not the same wording as "blocked" — the seller has done
 nothing wrong and installing fixes it.
 
 ---
+
+### A hand-over is loud, and there is no limit on replies in a row
+
+23 September 2026, from a live chat on the product owner's own Page.
+
+**The limit is gone.** The assistant answered eight times, the ninth message
+asked a price, and `ai_streak` handed over without calling the model: "we'll
+get back to you", then silence while the customer kept writing. The product
+owner: "remove the message limit, as long as the conversation is going.
+Freezing is not an option." The assistant only ever answers a customer's own
+message, so it cannot run away by itself; the monthly ceiling is the cost
+backstop. `ai_streak` stays in the interface's list of reasons only so that
+conversations escalated before this still read correctly.
+
+**A hand-over was invisible.** "I honestly couldn't tell this chat got handed
+over." It was a 12px teal line under the preview, sorted among everything else
+waiting, and at desktop width its reason sat in the details pane. Now:
+
+- the row has a solid red «بحاجة لك» pill and a red ground;
+- hand-overs sort first in the waiting group, oldest first within them. This
+  reverses the rule that they join at their true age: the customer has been
+  told a person is coming, which makes them the most overdue, not one of many;
+- a red banner above the messages says the customer is waiting and why, at
+  every width. The details pane no longer repeats it;
+- a bell in the list header counts hand-overs and lists them, each opening its
+  conversation. "I have the page opened but I can't tell a chat requires my
+  attention."
+
+`urgent` now means *something needs the seller now* — a closing window or a
+hand-over — rather than the window alone.
+
+The bell counts **hand-overs only**, not every unanswered message. The waiting
+count under the wordmark already says how many are unanswered, and a bell that
+rings for everything is one nobody looks at.
 
 ## Platform constraints
 
@@ -2517,19 +2686,14 @@ settled the cheaper they are.
   previously forbidden words are now legitimate, and re-run `npm run replay`
   against a real shop.
 
-- **Expand the products section.** Named by the product owner as the next thing
-  the catalog needs. It currently holds a name, a price, a free-text
-  description and an in-stock boolean, which is thin — a seller has more to say
-  about what they sell than fits on one line, and the assistant is limited to
-  exactly what is there. What it should grow into is not decided; `CLAUDE.md`
-  still rules out stock counts, variants, SKUs and images, so this is a
-  decision to take deliberately rather than by accretion.
+- ~~**Expand the products section.**~~ **Closed 22 September 2026** — photos,
+  categories, product codes and spreadsheet import and download. See "The
+  catalog grows" above.
 
-- **The sales and discounts section**, already promised. When it exists the
-  assistant reads whatever applies to the item being asked about, and the
-  blanket "حالياً ما في خصم على هالقطعة" stops being the default answer. The
-  negation exemption in `claimsAreGrounded` was built for exactly the world
-  where that sentence is true; it will need revisiting when it is not.
+- ~~**The sales and discounts section.**~~ **Closed 22 September 2026** — see
+  "Offers" above. The negation exemption did not need revisiting: the
+  instructions now say "حالياً ما في خصم" only for an item with no sale line,
+  and a running offer is written into the facts, so the guard finds it.
 
 - **A question asked before the shop last replied, and never answered.** Seen
   live: "شفت عندكم فستان" sat unanswered from 19 September, and the pleasantry

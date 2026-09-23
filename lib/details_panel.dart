@@ -77,7 +77,10 @@ class DetailsPanel extends StatelessWidget {
           // What the assistant did here, and why. The inbox row says only that
           // it happened; this is where the sentence it wrote is readable in
           // full instead of ellipsised into a row that had no width for it.
-          AssistantCard(conversation: c),
+          //
+          // A hand-over is shown above the messages instead, at every width,
+          // so it is not repeated here.
+          if (!c.escalated) AssistantCard(conversation: c),
 
           _Fact(
             label: l.detailPlatform,
@@ -128,13 +131,21 @@ class AssistantCard extends StatelessWidget {
 
     final reason = assistantReason(l, c);
 
+    // A hand-over is loud: urgent, bordered, and headed in words that say the
+    // customer is waiting. The product owner, 23 September 2026: "I honestly
+    // couldn't tell this chat got handed over." Answering stays quiet teal.
+    final tint = c.escalated ? colors.urgent : colors.assistant;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 24),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: colors.assistant.withValues(alpha: 0.07),
+          color: tint.withValues(alpha: c.escalated ? 0.10 : 0.07),
           borderRadius: BorderRadius.circular(12),
+          border: c.escalated
+              ? BorderDirectional(start: BorderSide(color: tint, width: 4))
+              : null,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -142,16 +153,16 @@ class AssistantCard extends StatelessWidget {
             Row(
               children: [
                 Icon(
-                  c.escalated ? Icons.flag_outlined : Icons.auto_awesome_outlined,
-                  size: 13,
-                  color: colors.assistant,
+                  c.escalated ? Icons.front_hand : Icons.auto_awesome_outlined,
+                  size: c.escalated ? 18 : 13,
+                  color: tint,
                 ),
                 const SizedBox(width: 7),
                 Expanded(
                   child: Text(
-                    c.escalated ? l.broughtToYou : l.answeredByAssistant,
-                    style: Style.meta.copyWith(
-                      color: colors.assistant,
+                    c.escalated ? l.needsYouTitle : l.answeredByAssistant,
+                    style: (c.escalated ? Style.name : Style.meta).copyWith(
+                      color: tint,
                       fontWeight: FontWeight.w700,
                     ),
                   ),

@@ -21,12 +21,14 @@ class AppMenu extends StatelessWidget {
     super.key,
     required this.inbox,
     required this.onProducts,
+    required this.onOffers,
     required this.onShop,
     required this.onAccounts,
   });
 
   final Inbox inbox;
   final VoidCallback onProducts;
+  final VoidCallback onOffers;
   final VoidCallback onShop;
   final VoidCallback onAccounts;
 
@@ -63,6 +65,14 @@ class AppMenu extends StatelessWidget {
               onTap: () {
                 Navigator.pop(context);
                 onProducts();
+              },
+            ),
+            _MenuItem(
+              icon: Icons.percent,
+              label: l.offers,
+              onTap: () {
+                Navigator.pop(context);
+                onOffers();
               },
             ),
             _MenuItem(

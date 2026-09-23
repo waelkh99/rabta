@@ -79,9 +79,17 @@ export function checkWindow(
 export function sendRequest(
   accountExternalId: string,
   customerExternalId: string,
-  text: string,
+  // A string is text. An image is sent by URL, which Meta fetches itself —
+  // the reason product photos live in a public bucket. Instagram and
+  // Messenger take the same shape; `is_reusable` is left out because
+  // Instagram does not document it.
+  content: string | { image: string },
   accessToken: string,
 ): { url: string; init: RequestInit } {
+  const message = typeof content === "string"
+    ? { text: content }
+    : { attachment: { type: "image", payload: { url: content.image } } };
+
   return {
     url: `${GRAPH}/${accountExternalId}/messages`,
     init: {
@@ -92,7 +100,7 @@ export function sendRequest(
         // update or a promotion. Meta enforces different rules for each.
         messaging_type: "RESPONSE",
         recipient: { id: customerExternalId },
-        message: { text },
+        message,
         access_token: accessToken,
       }),
     },

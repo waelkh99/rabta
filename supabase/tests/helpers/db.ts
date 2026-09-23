@@ -48,6 +48,40 @@ const SUPABASE_SHIM = `
   create role service_role bypassrls;
 
   create publication supabase_realtime;
+
+  -- Storage, reduced to what a migration touches: the bucket row, the objects
+  -- table the policies sit on, and foldername as Supabase defines it — every
+  -- path segment but the last. Row level security is on, as it is there, so a
+  -- policy test proves the policy rather than an open table.
+  create schema storage;
+
+  create table storage.buckets (
+    id                 text primary key,
+    name               text not null,
+    public             boolean default false,
+    file_size_limit    bigint,
+    allowed_mime_types text[]
+  );
+
+  create table storage.objects (
+    id        uuid primary key default gen_random_uuid(),
+    bucket_id text references storage.buckets (id),
+    name      text,
+    owner     uuid
+  );
+
+  alter table storage.objects enable row level security;
+
+  create function storage.foldername(name text) returns text[]
+  language plpgsql immutable
+  as $$
+  declare
+    _parts text[];
+  begin
+    select string_to_array(name, '/') into _parts;
+    return _parts[1:array_length(_parts, 1) - 1];
+  end
+  $$;
 `;
 
 // Supabase grants table access to these roles by default and relies on row
@@ -57,6 +91,8 @@ const SUPABASE_GRANTS = `
   grant usage on schema public to anon, authenticated, service_role;
   grant all on all tables in schema public to anon, authenticated, service_role;
   grant all on all sequences in schema public to anon, authenticated, service_role;
+  grant usage on schema storage to anon, authenticated, service_role;
+  grant all on all tables in schema storage to anon, authenticated, service_role;
 `;
 
 export interface TestDb {

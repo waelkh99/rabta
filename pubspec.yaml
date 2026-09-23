@@ -23,6 +23,7 @@ dependencies:
   # it directly and an unnamed transitive dependency is one version bump from
   # disappearing.
   web: ^1.1.1
+  excel: ^4.0.6
 
 dev_dependencies:
   flutter_test:

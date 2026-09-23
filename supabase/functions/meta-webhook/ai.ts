@@ -53,19 +53,15 @@ export const MAX_TOKENS = 400;
 /** A seller who has typed in the last quarter of an hour is at their desk. */
 export const SELLER_PRESENT_MINUTES = 15;
 
-/**
- * How many times the AI may answer in a row before it hands over.
- *
- * It was three, on the reasoning that a customer who keeps getting machine
- * answers is being kept from a person. That is true, and three is not where the
- * line sits: a sale runs eight to twelve turns, and the conversation was dying
- * — in silence — at the point the customer was closest to buying.
- *
- * The seven-turn thread recorded in DECISIONS.md as proof it could hold a
- * conversation was fed in by hand and never passed through `guard`. In
- * production it stopped after the third reply.
+/*
+ * There is no limit on how many times the AI answers in a row. There was one —
+ * three, then eight, then twenty — and on 23 September 2026 it stopped a live
+ * customer mid-conversation: asked the price of a bag it had just shown, the
+ * assistant said "we'll get back to you" and went silent. The product owner:
+ * "remove the message limit, as long as the conversation is going. Freezing is
+ * not an option." It only ever answers a customer's own message, so it cannot
+ * talk to itself; the monthly ceiling below is the cost backstop.
  */
-export const MAX_CONSECUTIVE_AI = 8;
 
 /** Roughly $7 of Haiku at the prices in DECISIONS.md. A backstop, not a quota. */
 export const MONTHLY_CEILING = 2000;
@@ -75,10 +71,31 @@ export const MONTHLY_CEILING = 2000;
 // ---------------------------------------------------------------------------
 
 export interface Product {
+  /** Only needed to match offers that name the product. */
+  id?: string;
+  /** Only needed to match offers that name the category. */
+  categoryId?: string | null;
   name: string;
   price: number | string | null;
   description: string | null;
   inStock: boolean;
+  /**
+   * The seller's own code for it — "FS-101". Shops put these on their posts,
+   * and customers quote them.
+   */
+  code?: string | null;
+  /** The seller's own grouping, if they gave one. */
+  category?: string | null;
+  /**
+   * The public URL of the cover photo, or null. Never shown to the model —
+   * it only needs to know a photo exists — and the one sent when it asks.
+   */
+  photo?: string | null;
+  /**
+   * The 320px copy of the cover. What the model compares a customer's
+   * screenshot against: about 137 tokens a product rather than a full photo.
+   */
+  thumb?: string | null;
 }
 
 /** The facts about a shop that are not products. */
@@ -106,6 +123,232 @@ export interface DeliveryZone {
   fee: number | string | null;
 }
 
+// ---------------------------------------------------------------------------
+// Offers
+// ---------------------------------------------------------------------------
+
+/** What a price is in when the shop has not said. */
+export const DEFAULT_CURRENCY = "دينار أردني";
+
+/**
+ * Prices the model may state for an offer written in the shop's own words.
+ *
+ * The number check refuses any number the shop did not write, so "خصم 20% على
+ * الفساتين" written as a sentence would have every dress's sale price refused.
+ * The model is allowed exactly one step instead: a percentage or an amount the
+ * seller wrote, applied to a price the seller listed. Those results — the
+ * price after, and the saving — are what this returns, and nothing else is
+ * added. A basket total, or any other arithmetic, is still refused and goes to
+ * the seller.
+ *
+ * ponytail: applied to every listed price, not only to the products the
+ * sentence covers — the sentence is free text and cannot be scoped in code.
+ * The instructions scope it; a sale price stated for the wrong product would
+ * pass this check. A structured offer has no such gap.
+ */
+export function wordedOfferPrices(products: Product[], offers: Offer[], today: string): number[] {
+  const worded = offers.filter((o) => o.kind === "text" && offerIsLive(o, today) && o.description);
+  if (worded.length === 0) return [];
+
+  const round = (n: number) => Math.round(n * 1000) / 1000;
+  const values: number[] = [];
+
+  for (const offer of worded) {
+    const text = normaliseDigits(offer.description!).replace(/,/g, "");
+    const percents = [...text.matchAll(/(\d+(?:\.\d+)?)\s*(?:%|٪|بالمية|بالمئة|percent)/gi)].map((m) => Number(m[1]));
+    const amounts = [...text.matchAll(/\d+(?:\.\d+)?/g)].map((m) => Number(m[0]));
+
+    for (const product of products) {
+      // When the seller also picked what it applies to, that is enforced here;
+      // when they did not, offerCovers is true for every product.
+      if (!offerCovers(offer, product)) continue;
+
+      const price = Number(product.price);
+      if (!Number.isFinite(price) || price <= 0) continue;
+
+      for (const pct of percents) {
+        if (pct <= 0 || pct >= 100) continue;
+        values.push(round(price * (100 - pct) / 100), round(price * pct / 100));
+      }
+      for (const amount of amounts) {
+        if (amount > 0 && amount < price) values.push(round(price - amount));
+      }
+    }
+  }
+
+  return values;
+}
+
+/** One row of `offers`. See `20260923000002_offers.sql`. */
+export interface Offer {
+  name?: string | null;
+  /**
+   * "text" is an offer the seller wrote in their own words, read by the
+   * assistant as written. Asked for on 22 September 2026: the structured kinds
+   * cover the common sales, and a sentence covers the rest without a new
+   * structure for every idea a seller has.
+   */
+  kind: "percent" | "amount" | "buy_get" | "text";
+  value?: number | string | null;
+  /** The seller's own words, for a "text" offer. */
+  description?: string | null;
+  buy?: number | null;
+  get?: number | null;
+  /** Both empty, or missing, means the whole shop. */
+  categoryIds?: string[];
+  productIds?: string[];
+  /** `YYYY-MM-DD`, inclusive, in Amman. */
+  startsOn?: string | null;
+  endsOn?: string | null;
+  enabled?: boolean;
+}
+
+/** Today's date in the shop's own time, as `YYYY-MM-DD`. */
+export function todayInAmman(now: Date): string {
+  // en-CA writes dates the ISO way round, which is what compares correctly as
+  // text against the date columns.
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Amman" }).format(now);
+}
+
+/** Whether an offer is on today at all, whatever it covers. */
+export function offerIsLive(offer: Offer, today: string): boolean {
+  if (offer.enabled === false) return false;
+  if (offer.startsOn && today < offer.startsOn) return false;
+  if (offer.endsOn && today > offer.endsOn) return false;
+  return true;
+}
+
+/** Whether an offer covers this product. */
+export function offerCovers(offer: Offer, product: Product): boolean {
+  const categories = offer.categoryIds ?? [];
+  const products = offer.productIds ?? [];
+
+  if (categories.length === 0 && products.length === 0) return true;
+
+  return (!!product.id && products.includes(product.id)) ||
+    (!!product.categoryId && categories.includes(product.categoryId));
+}
+
+/**
+ * What a product costs today with the best offer that covers it, or null if
+ * none brings the price down.
+ *
+ * Worked out here and never by the model. The grounding check refuses any
+ * number the shop did not write down, so a price the model calculated itself
+ * would be refused on the way out — and it would sometimes be wrong. This
+ * number is written into the catalog, where the check finds it.
+ *
+ * Offers do not stack: the one that leaves the lowest price applies, which is
+ * the convention customers expect and the only one a seller can explain in a
+ * sentence. Rounded to fils, and never below nothing.
+ *
+ * Kept in step with `salePrice` in lib/data.dart by the shared cases in
+ * test/fixtures/offers.json.
+ */
+export function salePrice(
+  product: Product,
+  offers: Offer[],
+  today: string,
+): { price: number; offer: Offer } | null {
+  const listed = product.price === null || product.price === undefined ? NaN : Number(product.price);
+  if (!Number.isFinite(listed)) return null;
+
+  // In fils, as integers, so 25.5 x 80% is 20.4 and not 20.400000000000002.
+  const fils = Math.round(listed * 1000);
+  let best: { fils: number; offer: Offer } | null = null;
+
+  for (const offer of offers) {
+    // Only the two kinds with a price of their own. Buy X get Y has none, and
+    // an offer in the seller's own words is read by the model, not computed.
+    if (offer.kind !== "percent" && offer.kind !== "amount") continue;
+    if (!offerIsLive(offer, today) || !offerCovers(offer, product)) continue;
+
+    const value = Number(offer.value);
+    if (!Number.isFinite(value) || value <= 0) continue;
+
+    const after = offer.kind === "percent"
+      ? Math.round((fils * (100 - value)) / 100)
+      : Math.max(0, fils - Math.round(value * 1000));
+
+    if (after < fils && (!best || after < best.fils)) best = { fils: after, offer };
+  }
+
+  return best ? { price: best.fils / 1000, offer: best.offer } : null;
+}
+
+/** How an offer is described in the facts, in both languages the guard reads. */
+function describeOffer(offer: Offer, currency: string): string {
+  const value = formatPrice(offer.value ?? null) ?? "";
+
+  switch (offer.kind) {
+    case "percent":
+      return `${value}% off (خصم ${value}%)`;
+    case "amount":
+      return `${value}${currency ? ` ${currency}` : ""} off (خصم ${value}${currency ? ` ${currency}` : ""})`;
+    case "buy_get":
+      return `buy ${offer.buy} get ${offer.get} free (اشتري ${offer.buy} وخذ ${offer.get} مجاناً) — ` +
+        "the cheapest items in the order are the free ones";
+    case "text":
+      return `${offer.description?.trim() ?? ""} (in the shop's own words)`;
+  }
+}
+
+/**
+ * The offers running today, as a section of the facts.
+ *
+ * Written only when something is live. Its header carries the words the
+ * grounding check watches for — "discount", "on sale", "خصم" — because that
+ * check searches this string: once a shop has an offer running, saying so is
+ * true, and the guard lets it through. It was not weakened to allow this. A
+ * shop with nothing running writes nothing here, and a reply claiming a
+ * discount is still refused.
+ */
+function renderOffers(offers: Offer[], products: Product[], currency: string, today: string): string | null {
+  const live = offers.filter((offer) => offerIsLive(offer, today));
+  if (live.length === 0) return null;
+
+  const categoryNames = new Map<string, string>();
+  for (const product of products) {
+    if (product.categoryId && product.category) categoryNames.set(product.categoryId, product.category);
+  }
+
+  const lines = live.map((offer) => {
+    const until = offer.endsOn ? `, until ${offer.endsOn}` : "";
+    const named = offer.name?.trim() ? `${offer.name.trim()}: ` : "";
+
+    const scope: string[] = [];
+    for (const id of offer.categoryIds ?? []) {
+      const name = categoryNames.get(id);
+      if (name) scope.push(`everything in ${name}`);
+    }
+    for (const id of offer.productIds ?? []) {
+      const product = products.find((p) => p.id === id);
+      if (product) scope.push(product.name);
+    }
+
+    const targeted = (offer.categoryIds?.length ?? 0) + (offer.productIds?.length ?? 0) > 0;
+    // Targeted at things that no longer exist: covers nothing, so say nothing.
+    if (targeted && scope.length === 0) return null;
+
+    const covers = targeted ? scope.join(", ") : "everything in the shop";
+
+    // An offer in the shop's own words says what it covers in its own
+    // sentence, unless the seller also picked products or categories — then
+    // those are stated, and they are the limit.
+    if (offer.kind === "text") {
+      if (!offer.description?.trim()) return null;
+      const limit = targeted ? `, and only on ${covers}` : "";
+      return `- ${named}${describeOffer(offer, currency)}${limit}${until}`;
+    }
+
+    return `- ${named}${describeOffer(offer, currency)}, on ${covers}${until}`;
+  }).filter((line): line is string => line !== null);
+
+  if (lines.length === 0) return null;
+
+  return "Offers and discounts running now (on sale, خصم):\n" + lines.join("\n");
+}
+
 /**
  * Everything the assistant is allowed to know, as one block of text.
  *
@@ -115,10 +358,21 @@ export interface DeliveryZone {
  * reach the model and then be refused on the way out as an invented number.
  */
 export function renderFacts(
-  input: { shop: Shop | null; zones: DeliveryZone[]; products: Product[] },
+  input: {
+    shop: Shop | null;
+    zones: DeliveryZone[];
+    products: Product[];
+    /** Every offer the shop has; only today's are written. */
+    offers?: Offer[];
+    /** `YYYY-MM-DD` in Amman — see todayInAmman. A parameter so this stays testable. */
+    today?: string;
+  },
 ): string {
   const shop = input.shop;
-  const currency = shop?.currency?.trim() || "";
+  // Jordanian dinars unless the shop says otherwise. Said by the product
+  // owner on 22 September 2026: a shop that never opened its settings was
+  // answering "31.2" with no currency at all.
+  const currency = shop?.currency?.trim() || DEFAULT_CURRENCY;
   const sections: string[] = [];
 
   const delivery: string[] = [];
@@ -159,7 +413,14 @@ export function renderFacts(
   if (shop?.hours?.trim()) sections.push(`Opening hours:\n${shop.hours.trim()}`);
   if (shop?.about?.trim()) sections.push(`About this shop:\n${shop.about.trim()}`);
 
-  sections.push(`Catalog:\n${renderCatalog(input.products, currency)}`);
+  const offers = input.today
+    ? renderOffers(input.offers ?? [], input.products, currency, input.today)
+    : null;
+  if (offers) sections.push(offers);
+
+  sections.push(
+    `Catalog:\n${renderCatalog(input.products, currency, input.offers ?? [], input.today ?? "")}`,
+  );
 
   return sections.join("\n\n");
 }
@@ -175,7 +436,12 @@ export function renderFacts(
  * now" is a useful answer, and dropping the row would leave the model unable
  * to tell a product it does not sell from one it has run out of.
  */
-export function renderCatalog(products: Product[], currency = ""): string {
+export function renderCatalog(
+  products: Product[],
+  currency = "",
+  offers: Offer[] = [],
+  today = "",
+): string {
   if (products.length === 0) return "(no products)";
 
   return products
@@ -185,9 +451,36 @@ export function renderCatalog(products: Product[], currency = ""): string {
       const price = formatPrice(product.price);
       if (price) parts.push(currency ? `${price} ${currency}` : price);
 
+      // The sale price, worked out in code — see salePrice. Written beside the
+      // listed price so the model can say what it was, and with the end date
+      // so it can say how long it lasts without inventing urgency.
+      const sale = today ? salePrice(product, offers, today) : null;
+      if (sale) {
+        const now = formatPrice(sale.price)!;
+        const name = sale.offer.name?.trim() ? `${sale.offer.name.trim()}, ` : "";
+        const until = sale.offer.endsOn ? `, until ${sale.offer.endsOn}` : "";
+        parts.push(
+          `on sale: ${currency ? `${now} ${currency}` : now} instead of ${price} ` +
+            `(${name}${describeOffer(sale.offer, currency)}${until})`,
+        );
+      }
+
       parts.push(product.inStock ? "in stock" : "out of stock");
 
-      if (product.description) parts.push(product.description.trim());
+      if (product.code?.trim()) parts.push(`code: ${product.code.trim()}`);
+      if (product.category?.trim()) parts.push(`category: ${product.category.trim()}`);
+
+      // A marker, not the URL. The model decides whether to send it by name;
+      // the URL would be tokens it never needs, and a string it could copy
+      // into the reply.
+      if (product.photo) parts.push("has photo");
+
+      // Written by the seller in their own words, often over several lines —
+      // sizes on one, colours on the next. Folded onto the product's line so
+      // each product stays one line, which is what keeps the list readable.
+      if (product.description?.trim()) {
+        parts.push(product.description.trim().split(/\s*\n\s*/).join("; "));
+      }
 
       return `- ${parts.join(" | ")}`;
     })
@@ -217,7 +510,6 @@ export type GuardReason =
   | "disabled" // the seller has not switched it on
   | "no_window" // the customer has never written
   | "window_closed" // Meta would refuse the send anyway
-  | "ai_streak" // it has already answered enough times running
   | "seller_present" // a human is at the desk right now
   | "ceiling"; // the monthly backstop
 
@@ -239,28 +531,27 @@ export type EscalationCode =
   | "ungrounded" // it wrote something the shop never said, and we held it back
   | "unusable" // the model came back with nothing we could send
   | "not_sent" // Meta refused the send; the customer received nothing
+  | "no_photo" // they asked to see something that has no photo yet
   | "assistant"; // the model handed over, and wrote why
 
 /**
  * Whether the customer should be told, rather than left waiting on silence.
  *
- * Only two guards say anything. `window_closed` and `no_window` cannot — Meta
+ * Only the ceiling says anything. `window_closed` and `no_window` cannot — Meta
  * would refuse the send. `seller_present` should not: the seller is at their
  * desk and about to answer in person, which beats a line promising they will.
  * `disabled` means nothing is running at all.
  *
- * And only at the exact moment a limit is crossed, not every message after it.
+ * And only at the exact moment it is crossed, not every message after it.
  * The line is itself an AI reply, so sending it pushes the count one past the
- * limit and the next message finds the equality false — said once, with no
- * extra state to keep anywhere. The seller answering resets the streak, which
- * is exactly when it becomes worth saying again.
+ * ceiling and the next message finds the equality false — said once, with no
+ * extra state to keep anywhere.
  *
  * `conversations.ai_state` would have been the obvious flag and is the wrong
  * one: nothing clears it, so a conversation escalated once would never hear
  * this again.
  */
 export function isSpoken(reason: GuardReason, context: ReplyContext): boolean {
-  if (reason === "ai_streak") return context.consecutiveAiReplies === MAX_CONSECUTIVE_AI;
   if (reason === "ceiling") return context.aiRepliesThisMonth === MONTHLY_CEILING;
   return false;
 }
@@ -282,8 +573,6 @@ export interface ReplyContext {
   windowExpiresAt: string | null;
   /** The seller's own most recent outbound message, not the AI's. */
   lastSellerReplyAt: string | null;
-  /** Outbound AI messages since the seller last said anything. */
-  consecutiveAiReplies: number;
   aiRepliesThisMonth: number;
 }
 
@@ -310,7 +599,7 @@ export function guard(context: ReplyContext, now: Date): GuardReason | null {
   // people send a screenshot of a story and write "بكم هاي؟" — it was a
   // frequent one.
 
-  if (context.consecutiveAiReplies >= MAX_CONSECUTIVE_AI) return "ai_streak";
+  // No limit on replies in a row: see the note at the top of this file.
 
   // If the seller is replying to people right now, the AI talking over them is
   // worse than it staying quiet. They will reach this conversation themselves.
@@ -334,6 +623,12 @@ export function guard(context: ReplyContext, now: Date): GuardReason | null {
 export interface Turn {
   inbound: boolean;
   text: string;
+  /**
+   * The URL of a photo the customer sent, when the turn is one. Only the
+   * latest customer turn's photo is ever shown to the model — see
+   * buildRequest.
+   */
+  image?: string;
 }
 
 /**
@@ -351,10 +646,21 @@ export interface Turn {
 /** Recognises what attachmentTurn writes, so it is never read as the customer's own words. */
 export const ATTACHMENT_MARKER = /^\[the customer sent /;
 
-export function attachmentTurn(attachments: unknown[]): string | null {
+export function attachmentTurn(attachments: unknown[], inbound = true): string | null {
   if (!Array.isArray(attachments) || attachments.length === 0) return null;
 
   const type = (attachments[0] as { type?: unknown })?.type;
+
+  // Our own photos, sent by the assistant. The product's name is stored with
+  // the attachment so the model can see which it has already sent and does
+  // not send the same one twice.
+  if (!inbound) {
+    const product = (attachments[0] as { product?: unknown })?.product;
+    if (type !== "image") return "[the shop sent a file]";
+    return typeof product === "string" && product.length > 0
+      ? `[the shop sent a photo of ${product}]`
+      : "[the shop sent a photo]";
+  }
 
   const noun = type === "image"
     ? "a photo"
@@ -641,7 +947,9 @@ So when someone asks you to come down — "بتنزلي السعر شوي؟", "�
 - State the price plainly and warmly, once. The item and the number the shop \
 wrote down, in their language. No apology, no softening — you know the price, \
 so say it like someone who knows it.
-- If they asked specifically about a discount or a sale, tell them straight: \
+- If the item's line says "on sale", or an offer under "Offers and discounts \
+running now" covers it, that IS the answer: give the sale price exactly as \
+written, and the end date if one is written. Otherwise tell them straight: \
 there is no sale on this item at the moment. "حالياً ما في خصم على هالقطعة." \
 Say it as a fact about right now, not as a rule forever, and never as an \
 apology. What you must NOT say is that you do not know, or that you have no \
@@ -680,9 +988,90 @@ one that moves them forward. That is the whole reply.
 A customer asking for a better price is a customer who wants to buy. Sound like \
 someone who wants to sell to them.
 
+OFFERS
+
+When the shop has offers running, they are listed under "Offers and discounts \
+running now", and each product a price offer applies to shows its sale price on \
+its own line: "on sale: 20.4 instead of 25.5".
+
+Mention an offer the way a good shop assistant would — only when the \
+conversation is already about something it covers, and it helps them decide. \
+That means: they are asking about that item (its price, whether you have it, \
+what it looks like), weighing it up, or hesitating over its price. Then tell \
+them once, as good news in the same breath as the answer — what it comes to \
+and until when.
+
+Do NOT bring an offer up in a greeting or a thank-you, in an answer about \
+delivery, hours, location or an order, to someone who is just chatting, or \
+about an item the offer does not cover. Do not mention it again once they have \
+heard it or said no, and never more than one offer at a time unless they ask \
+what offers there are. If they ask "في عروض؟" or "any offers?", that is the \
+context: tell them what is running. Never press: no "لا تفوّتي", no "grab it", \
+no urgency the shop did not write. If they want something else, help them \
+with that.
+
+- Quote a sale price exactly as it is written. Do not work one out yourself, \
+except as the next point allows. Never a total, never two items together: if \
+they want a total, tell them the rule as written and set handOver for the total.
+- Some offers are written by the shop in its own words ("in the shop's own \
+words"). Understand them; do not recite them. When one covers the item the \
+customer is asking about — by its name, its code or its category — work out \
+what it means for THAT item and say it: the price after a percentage or amount \
+off, or what they get. That the bag they asked about is 15% off, so 15.3 \
+instead of 18, is what a shop says; reciting "في خصم 15% على قسم الحقائب" back \
+to them is not. One product \
+at a time, one step: the listed price with the written percentage or amount \
+applied. If you are not sure the offer covers the item, do not apply it.
+- Say when an offer ends only if an end date is written, and say it the way a \
+person would ("لآخر الشهر", "لغاية 30 أيلول"), not as a date code.
+- An offer applies only to what it says it covers. Do not stretch "everything \
+in Bags" to a dress.
+
+PHOTOS THE CUSTOMER SENDS
+
+Customers often send a screenshot of a post, with "كم سعر هاد؟" or with no words \
+at all. When they do, you are shown their photo and one photo of each product, \
+labelled with its code and name. Compare them.
+
+- If it is clearly one product, answer about that product as if they had named \
+it — its price, whether you have it, and anything else they asked.
+- If two or three products could be it, ask which one, naming them: "قصدك \
+الفستان الأسود ولا الخمري؟". Never quote a price for a product you are not \
+sure is the one in their photo.
+- If it matches nothing in the list, say you do not have that one, and offer \
+the closest thing you have IN STOCK if there is one — a similar kind of item, \
+not merely the same colour. If nothing is close, just say so. Do not describe what is in \
+their photo back to them as if you sold it.
+- If you cannot see a photo — only "[the customer sent a photo]" — ask which \
+item they mean.
+
+PRODUCT CODES
+
+A product may have a code — "code: FS-101". Shops write these on their posts, \
+so a customer who sends one ("كود FS-101", "fs101", "بدي 101") means that \
+product: match it loosely on the letters and digits, and answer about it as if \
+they had named it. Mention a code only if they used one first.
+
+PHOTOS
+
+Some products in the list say "has photo". You can send that photo by putting \
+the product's name in "photos", exactly as it is written in the list. It arrives \
+straight after your text, so write the text as if they are about to see it — \
+"هاي هي الصورة" rather than describing what it looks like.
+
+Send one when they ask to see something — "بدي أشوفه", "في صورة؟", "شو شكله" — \
+and when you are recommending a product they have not seen yet. At most two in a \
+reply. Never a product whose photo the conversation shows you already sent \
+("[the shop sent a photo of …]"), and never a product without "has photo". A \
+product without "has photo" has NO photo you can send: never write "هاي صورته", \
+"here it is" or anything else that says a photo is coming. If they ask to see \
+one, say plainly that you will send them one, leave "photos" empty, and set \
+handOver so it reaches someone who can take it.
+
 HANDING OVER
 
-You return two things. "text" is always sent to the customer. "handOver" tells the \
+You return three things. "text" is always sent to the customer. "photos" is the \
+products whose photo goes with it, usually none. "handOver" tells the \
 conversation for a human to pick up. It is a flag on our side, not something \
 the customer sees or hears about — never mention it to them.
 
@@ -719,6 +1108,12 @@ const DECISION_SCHEMA = {
       type: "string",
       description: "What to send the customer. Always required, including when handing over.",
     },
+    photos: {
+      type: "array",
+      items: { type: "string" },
+      description:
+        "Names of products from the catalog, written exactly as listed, whose photo is sent after the text. Only products marked \"has photo\". Usually empty; at most two.",
+    },
     handOver: {
       type: "boolean",
       description:
@@ -730,7 +1125,7 @@ const DECISION_SCHEMA = {
         "One short sentence saying what you could not handle here, so whoever picks it up knows what they are taking on before they open it. Write it in the same language you are writing to the customer in. Say the thing itself — \"she is asking when the order arrives and no delivery time is written down\" — not that you were unsure. Only when handOver is true.",
     },
   },
-  required: ["text", "handOver"],
+  required: ["text", "photos", "handOver"],
   additionalProperties: false,
 };
 
@@ -792,6 +1187,18 @@ export interface RequestInput {
    * was sitting in the database unused until 20 September.
    */
   customerName?: string | null;
+
+  /**
+   * The catalog, for its thumbnails. Only read when the customer's latest
+   * message is a photo.
+   */
+  products?: Product[];
+
+  /**
+   * False to leave every image out and describe a customer's photo in words
+   * instead. What `ask` retries with when a request carrying images fails.
+   */
+  withImages?: boolean;
 
   /** Defaults to MODEL. Set by the comparison harness, not in production. */
   model?: string;
@@ -923,7 +1330,7 @@ export function buildRequest(input: RequestInput): Record<string, unknown> {
     model,
     max_tokens: MAX_TOKENS,
     system,
-    messages: toMessages(input.turns),
+    messages: withScreenshot(toMessages(input.turns), input),
     output_config: { format: { type: "json_schema", schema: DECISION_SCHEMA } },
     // Haiku takes no `thinking` field at all; everything else must be told,
     // because the default there is adaptive. See the note above.
@@ -931,6 +1338,60 @@ export function buildRequest(input: RequestInput): Record<string, unknown> {
       ? {}
       : { thinking: { type: input.think ? "adaptive" : "disabled" } }),
   };
+}
+
+/** The most catalog thumbnails sent with one screenshot. */
+export const MAX_THUMBNAILS = 60;
+
+/**
+ * The customer's photo, and the catalog to compare it with, added to the
+ * message being answered — when that message is a photo.
+ *
+ * Customers screenshot a post and send it with "كم سعر هاد؟", or with nothing
+ * at all. Described in words, all the model knew was "[the customer sent a
+ * photo]", and it had to ask which item they meant. With the photo and a small
+ * copy of every product's cover, each labelled with its name and code, it can
+ * see which one it is.
+ *
+ * Only the latest message, and only when it is the customer's: an older photo
+ * has already been answered, and paying for it again on every turn would
+ * multiply the cost of a conversation for nothing. Not cached: the sheet sits
+ * after the conversation, which differs per customer, so a cache entry would
+ * never be read.
+ *
+ * ponytail: at most MAX_THUMBNAILS products, the first ones in the catalog's
+ * order. The API takes up to 100 images a request; a shop with more photographed
+ * products than that needs a first pass that narrows the candidates.
+ */
+function withScreenshot(
+  messages: { role: string; content: unknown }[],
+  input: RequestInput,
+): { role: string; content: unknown }[] {
+  if (input.withImages === false) return messages;
+
+  const last = input.turns[input.turns.length - 1];
+  const final = messages[messages.length - 1];
+  if (!last?.inbound || !last.image || !final || final.role !== "user") return messages;
+
+  const sheet = (input.products ?? []).filter((p) => p.thumb).slice(0, MAX_THUMBNAILS);
+  const image = (url: string) => ({ type: "image", source: { type: "url", url } });
+
+  const blocks: Record<string, unknown>[] = [];
+  if (sheet.length > 0) {
+    blocks.push({
+      type: "text",
+      text: "The shop's products, one photo each, to compare with the photo the customer sent:",
+    });
+    for (const product of sheet) {
+      blocks.push({ type: "text", text: product.code ? `${product.code} — ${product.name}` : product.name });
+      blocks.push(image(product.thumb!));
+    }
+  }
+  blocks.push({ type: "text", text: "The photo the customer sent:" });
+  blocks.push(image(last.image));
+  blocks.push({ type: "text", text: String(final.content) });
+
+  return [...messages.slice(0, -1), { role: "user", content: blocks }];
 }
 
 /**
@@ -973,6 +1434,8 @@ export interface Decision {
   handOver: boolean;
   /** A few words for the seller's row. Null when it is not handing over. */
   reason: string | null;
+  /** Product names whose photo follows the text. Checked by photosToSend. */
+  photos: string[];
 }
 
 /**
@@ -1001,7 +1464,9 @@ export function readDecision(body: unknown): Decision | null {
     return null;
   }
 
-  const decision = parsed as { handOver?: unknown; text?: unknown; reason?: unknown } | null;
+  const decision = parsed as
+    | { handOver?: unknown; text?: unknown; reason?: unknown; photos?: unknown }
+    | null;
   if (!decision || typeof decision !== "object") return null;
 
   // No text is the one unusable answer. The schema requires it, so this is the
@@ -1018,11 +1483,95 @@ export function readDecision(body: unknown): Decision | null {
   // here would be the one line of the interface that is not translated. The
   // escalation code says a hand-over happened; the interface supplies the
   // general wording when the model supplied none.
+  // Missing or malformed photos are no photos, not an unusable answer: the
+  // text is still worth sending.
+  const photos = Array.isArray(decision.photos)
+    ? decision.photos.filter((name): name is string => typeof name === "string")
+    : [];
+
   return {
     text: decision.text.trim(),
     handOver,
     reason: handOver ? reason : null,
+    photos,
   };
+}
+
+/**
+ * Names the model asked to send a photo of that no product has a photo for:
+ * a product without one, or a name that is not in the catalog.
+ *
+ * A reply that asked for one of these almost always says a photo is coming —
+ * "تمام، هاي صورته" — and none will arrive. Seen against a real shop on
+ * 22 September: the instructions say not to, and the model did it anyway. So
+ * it is decided here, like the other guards, and the reply is held back
+ * rather than sent with a promise nobody can keep. Asking for a photo that
+ * was already sent is not a miss: the reply may well be "that's the one I
+ * sent".
+ */
+export function photosMissing(names: string[], products: Product[]): string[] {
+  return names.filter((name) =>
+    !products.some((p) => p.name.trim() === name.trim() && p.photo)
+  );
+}
+
+/**
+ * Whether a reply talks about a photo — "هاي صورته", "here's a photo".
+ *
+ * The missing-photo guard only holds a reply back when it does. The model
+ * also lists products in "photos" on an ordinary price answer that promises
+ * nothing — seen on the same real shop, the same day — and holding those back
+ * would hand over every product question in a shop with no photos.
+ *
+ * ponytail: a word list, like WATCHED. It catches the ways the model has
+ * actually said it; a promise worded around all of these would get through,
+ * and would show up in `npm run replay` as a photo line with no photo.
+ */
+export function mentionsPhoto(text: string): boolean {
+  return /صور|photo|picture|\bpics?\b/i.test(text);
+}
+
+/** The most photos sent with one reply. Two is a comparison; more is a catalog dump. */
+export const MAX_PHOTOS = 2;
+
+/**
+ * The photos actually sent, from the names the model asked for.
+ *
+ * The model names products and never handles a URL, so it cannot send
+ * something that is not the shop's. A name is matched exactly after trimming —
+ * a near miss is dropped rather than guessed at, because the wrong photo
+ * under a price is worse than no photo. A product whose photo the
+ * conversation already shows was sent is skipped: the instructions say so,
+ * and this makes it true even when the model forgets.
+ */
+export function photosToSend(
+  names: string[],
+  products: Product[],
+  turns: Turn[],
+): { product: string; url: string }[] {
+  const sent = new Set(
+    turns
+      .filter((turn) => !turn.inbound)
+      .map((turn) => /^\[the shop sent a photo of (.+)\]$/.exec(turn.text)?.[1])
+      .filter((name): name is string => !!name),
+  );
+
+  const chosen: { product: string; url: string }[] = [];
+
+  for (const name of names) {
+    // Two products can share a name — a sheet row with no code is always a
+    // new product — and only one of them may have a photo. The one with a
+    // photo is the one worth sending.
+    const same = products.filter((p) => p.name.trim() === name.trim());
+    const product = same.find((p) => p.photo) ?? same[0];
+    if (!product?.photo || sent.has(product.name)) continue;
+    if (chosen.some((c) => c.product === product.name)) continue;
+
+    chosen.push({ product: product.name, url: product.photo });
+    if (chosen.length === MAX_PHOTOS) break;
+  }
+
+  return chosen;
 }
 
 export interface Usage {
@@ -1083,10 +1632,13 @@ export function numbersAreGrounded(
   reply: string,
   facts: string,
   conversation: string[],
+  // Prices from an offer in the shop's own words — see wordedOfferPrices.
+  also: number[] = [],
 ): boolean {
   // The same string the model was given, so a delivery fee it was told about
   // cannot be refused on the way out as something it made up.
   const known = numbersIn([facts, ...conversation].join(" "));
+  for (const value of also) known.add(value);
 
   for (const value of numbersIn(reply)) {
     if (!known.has(value)) return false;
@@ -1342,6 +1894,26 @@ export async function ask(
   input: RequestInput,
   fetcher: typeof fetch = fetch,
   workspaceId = "",
+): Promise<AskOutcome> {
+  const first = await askOnce(apiKey, input, fetcher, workspaceId);
+
+  // A request carrying images can fail over the images alone — a customer's
+  // photo too large or gone from Meta's servers. That is no reason to leave
+  // them unanswered: asked again without the images, the model still knows a
+  // photo was sent and can ask which item they mean.
+  const hadImages = input.withImages !== false && !!input.turns.at(-1)?.image;
+  if (first.status === "failed" && hadImages && first.detail.startsWith("http 4")) {
+    return askOnce(apiKey, { ...input, withImages: false }, fetcher, workspaceId);
+  }
+
+  return first;
+}
+
+async function askOnce(
+  apiKey: string,
+  input: RequestInput,
+  fetcher: typeof fetch,
+  workspaceId: string,
 ): Promise<AskOutcome> {
   let response: Response;
 

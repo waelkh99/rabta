@@ -35,6 +35,7 @@ void main() {
       expect(products.single.name, 'فستان أحمر');
       expect(products.single.price, 25.500);
       expect(products.single.inStock, isTrue);
+      expect(products.single.category, 'فساتين');
     });
   });
 
@@ -119,6 +120,21 @@ void main() {
 
       expect(products.single.name, 'فستان');
       expect(products.single.price, 25.500);
+    });
+
+    test('a file saved from the old template, with no header, still reads', () {
+      // The category column was added last so that this row, four columns
+      // long, keeps meaning what it meant.
+      final products = parseCatalogCsv('فستان,25.500,قطن,no\n');
+
+      expect(products.single.description, 'قطن');
+      expect(products.single.inStock, isFalse);
+      expect(products.single.category, isNull);
+    });
+
+    test('a category column is read', () {
+      final products = parseCatalogCsv('name,price,category\nفستان,25,فساتين\n');
+      expect(products.single.category, 'فساتين');
     });
 
     test('columns in a different order are followed, not assumed', () {
@@ -212,6 +228,36 @@ void main() {
       expect(product.inStock, isTrue);
     });
 
+    test('a category and photos are read back with the product', () {
+      final product = Product.fromRow({
+        'id': 'p1',
+        'name': 'فستان',
+        'category_id': 'c1',
+        'categories': {'name': 'فساتين'},
+        'photos': ['w/a.jpg', 'w/b.jpg'],
+      });
+
+      expect(product.categoryId, 'c1');
+      expect(product.category, 'فساتين');
+      expect(product.photos, ['w/a.jpg', 'w/b.jpg']);
+    });
+
+    test('a product with no category or photos has neither', () {
+      final product = Product.fromRow({'id': 'p1', 'name': 'فستان', 'categories': null});
+
+      expect(product.category, isNull);
+      expect(product.photos, isEmpty);
+    });
+
+    test('a thumbnail sits beside its photo', () {
+      expect(thumbnailOf('w/abc.jpg'), 'w/abc_s.jpg');
+    });
+
+    test('a category is the same whatever its case or spacing', () {
+      expect(categoryKey(' Dresses '), categoryKey('dresses'));
+      expect(categoryKey('فساتين'), isNot(categoryKey('أحذية')));
+    });
+
     test('a price can be cleared, which copyWith alone cannot express', () {
       const product = Product(id: 'p1', name: 'فستان', price: 25.500);
 
@@ -232,9 +278,9 @@ void main() {
     test('a shop with no currency set still has one', () {
       // The product mainly serves Jordan. A price with no unit is not an
       // answer, so there is never no currency — only an unchanged default.
-      expect(const Shop().currency, 'د.ا');
-      expect(Shop.fromRow({'currency': ''}).currency, 'د.ا');
-      expect(Shop.fromRow({'currency': '  '}).currency, 'د.ا');
+      expect(const Shop().currency, 'دينار أردني');
+      expect(Shop.fromRow({'currency': ''}).currency, 'دينار أردني');
+      expect(Shop.fromRow({'currency': '  '}).currency, 'دينار أردني');
       expect(Shop.fromRow({'currency': r'$'}).currency, r'$');
     });
 

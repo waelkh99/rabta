@@ -189,7 +189,55 @@ class LAr extends L {
   String get productPrice => 'السعر';
 
   @override
-  String get productDescription => 'الوصف';
+  String get productDescription => 'التفاصيل';
+
+  @override
+  String get productDescriptionHint =>
+      'المقاسات، الألوان، الخامة، القَصّة… اكتبها كما تقولها للزبون، والمساعد يفهمها.';
+
+  @override
+  String get productCategory => 'القسم';
+
+  @override
+  String get productCategoryHint => 'مثل: فساتين. اختياري، ويفيد في العروض.';
+
+  @override
+  String get productPhotos => 'الصور';
+
+  @override
+  String get productPhotoAdd => 'أضف صوراً';
+
+  @override
+  String get productPhotoCover => 'الغلاف';
+
+  @override
+  String get productPhotoMakeCover => 'اجعلها الغلاف';
+
+  @override
+  String get productPhotoRemove => 'إزالة';
+
+  @override
+  String get productPhotosBody =>
+      'الصورة الأولى هي التي يرسلها المساعد لمن يطلب أن يرى المنتج. حتى خمس صور.';
+
+  @override
+  String get productPhotosFailed =>
+      'تعذّرت قراءة بعض الصور. جرّب صوراً بصيغة JPG أو PNG.';
+
+  @override
+  String get productPhotosFull => 'خمس صور كحد أقصى.';
+
+  @override
+  String get productNoPhoto => 'بلا صورة';
+
+  @override
+  String get catalogAll => 'الكل';
+
+  @override
+  String get catalogSearch => 'ابحث في المنتجات';
+
+  @override
+  String get catalogNoMatch => 'لا يوجد منتج يطابق.';
 
   @override
   String get productInStock => 'متوفر';
@@ -218,11 +266,11 @@ class LAr extends L {
   String get catalogFailedBody => 'تحقق من اتصالك ثم أعد المحاولة.';
 
   @override
-  String get catalogPaste => 'لصق قائمة';
+  String get catalogPaste => 'استيراد قائمة';
 
   @override
   String get catalogPasteBody =>
-      'انسخ الصفوف من ملف إكسل أو من جدول جوجل، ثم الصقها هنا. تُضاف إلى قائمتك ولا تستبدلها.';
+      'اختر ملف الأسعار الذي عندك، أو انسخ الصفوف من الجدول والصقها. لا داعي لتغيير أعمدته: نفهم الاسم والسعر، وما زاد عنهما — اللون، المقاس — يُضاف إلى التفاصيل.\n\nلتحديث منتجات أضفتها من قبل، يجب أن يكون في ملفك عمود «رمز المنتج». الصف الذي رمزه موجود يحدّث ذلك المنتج، والصف الذي لا رمز له يُضاف منتجاً جديداً ويُعطى رمزاً. أسهل طريقة: نزّل قائمتك، عدّلها، ثم استوردها.';
 
   @override
   String get catalogPasteHint => 'الصق الصفوف هنا';
@@ -253,6 +301,237 @@ class LAr extends L {
 
   @override
   String get catalogTemplateCopied => 'نُسخ النموذج. الصقه في إكسل.';
+
+  @override
+  String get needsYou => 'بحاجة لك';
+
+  @override
+  String get needsYouTitle => 'حوّلها المساعد إليك، والزبون بانتظار ردك';
+
+  @override
+  String get needsYouList => 'محادثات بحاجة لك';
+
+  @override
+  String get needsYouEmpty => 'لا شيء بحاجة لك الآن.';
+
+  @override
+  String get needsYouTooltip => 'ما يحتاج ردك';
+
+  @override
+  String get offerKindText => 'بكلماتك';
+
+  @override
+  String get offerText => 'العرض';
+
+  @override
+  String get offerTextHint =>
+      'اكتبه كما تقوله للزبون، واستخدم أسماء المنتجات والأقسام كما هي في قائمتك ليفهمه المساعد. مثل: «خصم 20% على قسم فساتين» أو «القطعة الثانية من الشنط بنصف السعر». التاريخ تحدّده تحت، لا في النص.';
+
+  @override
+  String get offerTextScope =>
+      'اختياري: إن حدّدت أقساماً أو منتجات، لن يطبّقه المساعد على غيرها.';
+
+  @override
+  String get escalatedNoPhoto => 'طلب الزبون صورة لمنتج ليس له صورة بعد';
+
+  @override
+  String get productCode => 'رمز المنتج';
+
+  @override
+  String get productCodeHint =>
+      'إذا تركته فارغاً يُعطى رمزاً تلقائياً. هو ما يربط هذا المنتج بصفّه في ملف Excel عندما تستورده مرة أخرى.';
+
+  @override
+  String get productCodeTaken => 'هذا الرمز لمنتج آخر. اختر رمزاً غيره.';
+
+  @override
+  String get catalogDownload => 'تنزيل قائمتي';
+
+  @override
+  String get catalogYes => 'نعم';
+
+  @override
+  String get catalogNo => 'لا';
+
+  @override
+  String catalogUpdated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'حُدّث $count منتج',
+      many: 'حُدّث $count منتجاً',
+      few: 'حُدّثت $count منتجات',
+      two: 'حُدّث منتجان',
+      one: 'حُدّث منتج واحد',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get categoriesEdit => 'تعديل الأقسام';
+
+  @override
+  String get categoriesTitle => 'الأقسام';
+
+  @override
+  String get categoriesEmpty => 'لا توجد أقسام. تُنشأ عندما تكتب قسماً لمنتج.';
+
+  @override
+  String get categoryRename => 'إعادة تسمية';
+
+  @override
+  String categoryCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count منتج',
+      many: '$count منتجاً',
+      few: '$count منتجات',
+      two: 'منتجان',
+      one: 'منتج واحد',
+      zero: 'لا منتجات',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String categoryDeleteTitle(String name) {
+    return 'حذف قسم «$name»؟';
+  }
+
+  @override
+  String get categoryDeleteBody =>
+      'تبقى منتجاته كما هي، لكن بلا قسم. والعروض على هذا القسم لن تشملها بعد الآن.';
+
+  @override
+  String get categoryTaken => 'يوجد قسم بهذا الاسم.';
+
+  @override
+  String get done => 'تم';
+
+  @override
+  String get offerCoversNothing => 'لم يعد يشمل شيئاً';
+
+  @override
+  String get offers => 'العروض';
+
+  @override
+  String get offersBody =>
+      'الخصومات التي تعرضها. يذكرها المساعد للزبون عندما يسأل عن منتج يشمله العرض، مرة واحدة ودون إلحاح. إذا شمل المنتجَ عرضان، يُطبَّق الأفضل للزبون.';
+
+  @override
+  String get offersEmpty => 'لا توجد عروض بعد.';
+
+  @override
+  String get offersFailed => 'تعذّر فتح العروض';
+
+  @override
+  String get offerAdd => 'أضف عرضاً';
+
+  @override
+  String get offerEdit => 'تعديل العرض';
+
+  @override
+  String get offerKindPercent => 'نسبة';
+
+  @override
+  String get offerKindAmount => 'مبلغ';
+
+  @override
+  String get offerKindBuyGet => 'اشترِ واحصل';
+
+  @override
+  String get offerPercent => 'النسبة %';
+
+  @override
+  String get offerAmount => 'المبلغ المخصوم';
+
+  @override
+  String get offerBuy => 'عند شراء';
+
+  @override
+  String get offerGet => 'يحصل مجاناً على';
+
+  @override
+  String get offerBuyGetHint =>
+      'مثل: اشترِ 2 واحصل على 1 مجاناً. القطعة الأرخص هي المجانية.';
+
+  @override
+  String get offerAppliesTo => 'يشمل';
+
+  @override
+  String get offerWholeShop => 'كل المتجر';
+
+  @override
+  String get offerCategories => 'أقسام';
+
+  @override
+  String get offerProducts => 'منتجات';
+
+  @override
+  String get offerNoCategories =>
+      'لا توجد أقسام بعد. اختر قسماً لمنتجاتك من صفحة المنتجات.';
+
+  @override
+  String get offerStarts => 'يبدأ';
+
+  @override
+  String get offerEnds => 'ينتهي';
+
+  @override
+  String get offerStartsNow => 'من الآن';
+
+  @override
+  String get offerNoEnd => 'بلا تاريخ';
+
+  @override
+  String get offerName => 'اسم العرض (اختياري)';
+
+  @override
+  String get offerNameHint => 'مثل: عرض العيد. هكذا يسمّيه المساعد للزبون.';
+
+  @override
+  String get offerRunning => 'جارٍ الآن';
+
+  @override
+  String get offerScheduled => 'لم يبدأ بعد';
+
+  @override
+  String get offerEnded => 'انتهى';
+
+  @override
+  String get offerOff => 'متوقف';
+
+  @override
+  String get offerDeleteTitle => 'حذف هذا العرض؟';
+
+  @override
+  String get offerDeleteBody => 'سيتوقف المساعد عن ذكره.';
+
+  @override
+  String offerSummaryPercent(String value) {
+    return 'خصم $value%';
+  }
+
+  @override
+  String offerSummaryAmount(String value) {
+    return 'خصم $value';
+  }
+
+  @override
+  String offerSummaryBuyGet(String buy, String get) {
+    return 'اشترِ $buy واحصل على $get مجاناً';
+  }
+
+  @override
+  String offerUntil(String date) {
+    return 'حتى $date';
+  }
+
+  @override
+  String offerFrom(String date) {
+    return 'من $date';
+  }
 
   @override
   String get assistantTitle => 'المساعد';
@@ -690,4 +969,18 @@ class LAr extends L {
 
   @override
   String get detailsHidden => 'التفاصيل';
+
+  @override
+  String get catalogFileChoose => 'اختر ملف Excel';
+
+  @override
+  String get catalogFileOr => 'أو الصق الصفوف';
+
+  @override
+  String get catalogFileOldExcel =>
+      'هذا ملف Excel بالصيغة القديمة XLS. افتحه واحفظه بصيغة XLSX، ثم اختره مرة أخرى.';
+
+  @override
+  String get catalogFileUnreadable =>
+      'تعذّرت قراءة هذا الملف. جرّب ملف XLSX أو CSV.';
 }

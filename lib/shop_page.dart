@@ -42,7 +42,7 @@ class _ShopPageState extends State<ShopPage> {
   }
 
   void _reload() {
-    if (mounted) setState(() => _view = _load());
+    if (mounted) setState(() { _view = _load(); });
   }
 
   void _complain() {

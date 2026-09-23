@@ -1,6 +1,6 @@
 # Where we are
 
-Updated 22 September 2026.
+Updated 23 September 2026.
 
 What is built, what is live, and what comes next. `CLAUDE.md` holds the product
 direction, `DECISIONS.md` the settled decisions and why, `CHECKLIST.md` the
@@ -18,13 +18,18 @@ answers basic inquiries from the seller's catalog — was requested on
 answered and delivered. As of 22 September the seller can also see what it did:
 the inbox marks what the assistant answered and what it handed back, the
 details pane carries the assistant's own reason in its own words, and the tab
-title and a system notification say when something needs them.**
+title and a system notification say when something needs them. On
+22–23 September products gained photos, codes, categories and spreadsheet
+import; offers got their own screen; the assistant sends product photos,
+recognises a customer's screenshot, and understands offers written in the
+seller's own words. A hand-over is now impossible to miss, and there is no
+longer any limit on how many times in a row the assistant answers.**
 
 ---
 
 ## Live right now
 
-Supabase project `xejtffbpfguwvybrwqqj`. Ten migrations applied, four Edge
+Supabase project `xejtffbpfguwvybrwqqj`. Thirteen migrations applied, four Edge
 Functions deployed.
 
 | Function | What it does | Auth |
@@ -46,9 +51,9 @@ against both the **Page** and **Instagram** objects with the same verify token.
 `META_APP_SECRET` and `META_VERIFY_TOKEN` are set on the functions. Public
 sign-up is off: `/auth/v1/settings` reports `disable_signup: true`.
 
-**338 backend tests** (`cd supabase && npm test`, which typechecks every Edge
+**419 backend tests** (`cd supabase && npm test`, which typechecks every Edge
 Function with `deno check` first; about ten seconds, no Docker and no network)
-and **135 client tests** (`flutter test`). Each new piece of
+and **213 client tests** (`flutter test`). Each new piece of
 logic is shown to fail when deliberately broken rather than assumed to be
 covered.
 
@@ -126,7 +131,9 @@ a browser in both languages, at desktop and phone width.
 - **The font is fetched, not bundled.** Almarai renders through `google_fonts`,
   which pulls from Google's CDN at runtime, so every cold load makes a
   third-party request and shows a fallback face until it lands.
-- **Notifications reach an open tab only.** A background tab is covered; a
+- **Notifications reach an open tab only.** Inside it a hand-over is loud
+  since 23 September — a red pill on the row, a red banner in the thread, and
+  a bell counting them. A background tab is covered; a
   closed browser is not, and on an iPhone a Safari tab cannot show one at all
   until the seller adds Rabta to their home screen. `DECISIONS.md`, "Telling
   the seller something happened", has the whole picture.
@@ -175,6 +182,20 @@ without setting anything up again.
   so this workspace answers messages sent to the test Page
 - one conversation with the customer `28847995138118550` ("Wael K. Saleh"), its
   messages, and the raw events behind them
+- **dummy catalog, seeded 23 September:** ten products with codes `T-001` to
+  `T-010`, photos, four categories (فساتين، حقائب، عطور، إكسسوارات) and four
+  offers. The assistant answers from it, so a message to the test Page gets
+  real prices, photos and offers. Remove it with
+  `cd supabase && npm run seed-demo -- remove`, which deletes the `T-`
+  products, their photos, the four offers and any category left empty. The
+  original `فستان أحمر` (`P-001`) is not touched
+- a second seller, **`playwright-seller@example.test`**, workspace
+  `b7e924a6-0f36-49ef-9cc7-9643a44a1ba8`, used to drive the products and offers
+  screens in Playwright without touching the Page's own shop. No password;
+  sign in with `npm run invite -- playwright-seller@example.test --link
+  --return http://localhost:5353`. It holds eight products, four offers and a
+  fake conversation with "سارة" whose photo links now fail to load. Nothing
+  connects to it
 
 None of it is real seller data. Clear it whenever it stops being useful — but
 removing a `connected_accounts` row sends later deliveries back to being stored
@@ -415,6 +436,31 @@ turns carried on the careful setting, then handed to the seller on "طيب ام�
 بيوصل؟" because no delivery time is written down anywhere. A greeting gets a
 greeting.
 
+**Built 22–23 September, seen in a browser and against the real model.**
+
+- **Products:** up to five photos each (shrunk in the browser, stored in the
+  public `product-photos` bucket with a 320px thumbnail), a product code
+  generated as `P-001` when the seller has none, optional categories that can
+  be renamed and deleted, and a free-text details box for sizes and colours.
+  Import reads the seller's own sheet (.xlsx or .csv, whatever the headers)
+  and updates by code, never by name; the catalog downloads as a sheet.
+- **Offers (العروض):** percentage, amount, buy X get Y, or written in the
+  seller's own words; whole shop, categories or products; optional dates.
+  Sale prices are computed in code in both TypeScript and Dart from one shared
+  fixture, never by the model. The assistant mentions an offer only when the
+  customer is interested, once, and never pushes.
+- **Photos to and from customers:** the assistant sends a product's photo
+  after its text, and hands over with `no_photo` naming the product when asked
+  for one that does not exist. A screenshot from a customer is matched against
+  the thumbnails. Seen arriving on the product owner's phone on 23 September.
+- **No limit on replies in a row.** The streak cap stopped a live customer and
+  was removed; the monthly ceiling is the only count left.
+- **Hand-overs are loud:** red pill and ground on the row, first in the
+  waiting group, a red banner in the thread at every width, and a bell with a
+  count and a list.
+
+`meta-webhook` has been redeployed with all of it.
+
 **Unverified and potentially blocking:** Meta's disclosure requirements for
 automated experiences have not been checked against current policy.
 
@@ -434,16 +480,16 @@ automated experiences have not been checked against current policy.
 Nothing above is code, and nothing in Phase Two is waiting on code. The
 product-side work that is genuinely next, in the order it makes sense:
 
-5. **The sales and discounts section.** Promised in `CLAUDE.md` and the last
-   thing the assistant says it does not know by default. The mechanism is
-   settled — see "What the assistant does when a customer pushes on price" in
-   `DECISIONS.md` — so this is the same shape of work as the pricing stance:
-   a table, a section on the shop screen, a block in `renderFacts`, and the
-   `خصم` patterns in `claimsAreGrounded` becoming legitimate the same way.
-6. **Expanding what a product can say.** A name, a price, a description and an
-   in-stock boolean is thin, and `CLAUDE.md` says so. Whatever it grows into,
-   the assistant reads it.
-7. **Decide what `notify` should mean.** It currently does what the assistant
+5. ~~**The sales and discounts section.**~~ **Done 22–23 September** — the
+   offers screen, structured and in the seller's own words. See `CHECKLIST.md`.
+6. ~~**Expanding what a product can say.**~~ **Done 22–23 September** —
+   photos, codes, categories, a details box, spreadsheet import and download.
+7. **Web Push**, once there is hosting — the only way a hand-over reaches a
+   seller whose browser is closed, which is the 11pm case Phase Two exists for.
+8. **The screenshot quirk.** With no match for a customer's screenshot, the
+   model offers the nearest item even when it is out of stock. Truthful, not
+   ideal.
+9. **Decide what `notify` should mean.** It currently does what the assistant
    already did — answers, marks, hands over. Left open deliberately until
    there is a real case to watch.
 

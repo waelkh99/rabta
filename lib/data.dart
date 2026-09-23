@@ -5,6 +5,10 @@
 // deliberate: a forgotten `.eq('workspace_id', ...)` would otherwise be a
 // silent leak of another seller's customers.
 
+import 'dart:math';
+import 'dart:typed_data';
+
+import 'package:excel/excel.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class Conversation {
@@ -162,9 +166,11 @@ class Account {
 
 /// One thing the seller sells.
 ///
-/// Deliberately small. This exists so the assistant can answer "how much is
-/// it" and "do you have it", not so the seller can run their stock from here —
-/// no variants, no SKUs, no quantities, no pictures.
+/// This exists so the assistant can answer "how much is it", "do you have it"
+/// and "can I see it", not so the seller can run their stock from here — no
+/// variants, no SKUs, no quantities. Sizes and colours go in [description], in
+/// the seller's own words: the product owner asked for the least typing for
+/// the seller, even if the assistant has to work harder to read it.
 class Product {
   const Product({
     this.id,
@@ -172,14 +178,35 @@ class Product {
     this.price,
     this.description,
     this.inStock = true,
+    this.categoryId,
+    this.category,
+    this.photos = const [],
+    this.code,
   });
 
   /// Null for a product that has been typed in but not saved yet.
   final String? id;
+
+  /// The seller's own code for it — "FS-101". Optional, unique in the shop,
+  /// and what a second import of a sheet matches on. Names are not matched:
+  /// a shop writes one product in Arabic in one place and English in another.
+  final String? code;
+
   final String name;
   final double? price;
   final String? description;
   final bool inStock;
+
+  final String? categoryId;
+
+  /// The category's name, read alongside the product. On a product read out of
+  /// a spreadsheet it is the only one of the two that is set: the id is found,
+  /// or the category made, when it is saved.
+  final String? category;
+
+  /// Storage paths in the product-photos bucket. The first is the cover, and
+  /// the one the assistant sends.
+  final List<String> photos;
 
   Product copyWith({
     String? name,
@@ -187,6 +214,7 @@ class Product {
     String? description,
     bool? inStock,
     bool clearPrice = false,
+    List<String>? photos,
   }) =>
       Product(
         id: id,
@@ -194,6 +222,10 @@ class Product {
         price: clearPrice ? null : (price ?? this.price),
         description: description ?? this.description,
         inStock: inStock ?? this.inStock,
+        categoryId: categoryId,
+        category: category,
+        photos: photos ?? this.photos,
+        code: code,
       );
 
   factory Product.fromRow(Map<String, dynamic> row) => Product(
@@ -208,7 +240,247 @@ class Product {
         },
         description: row['description'] as String?,
         inStock: row['in_stock'] as bool? ?? true,
+        categoryId: row['category_id'] as String?,
+        code: row['code'] as String?,
+        category: (row['categories'] as Map<String, dynamic>?)?['name'] as String?,
+        photos: [
+          for (final path in (row['photos'] as List<dynamic>?) ?? const []) path as String,
+        ],
       );
+}
+
+/// A group of products, so an offer can name all of them at once.
+class Category {
+  const Category({required this.id, required this.name});
+
+  final String id;
+  final String name;
+
+  factory Category.fromRow(Map<String, dynamic> row) =>
+      Category(id: row['id'] as String, name: row['name'] as String);
+}
+
+enum OfferKind {
+  /// خصم 20%
+  percent,
+
+  /// 5 دنانير خصم
+  amount,
+
+  /// اشتري 2 والثالثة مجاناً. Has no price of its own — the assistant states
+  /// the rule and never adds up a basket.
+  buyGet,
+
+  /// Written by the seller in their own words, and read by the assistant as
+  /// written. For everything the three above do not cover.
+  text;
+
+  String get stored => this == buyGet ? 'buy_get' : name;
+
+  static OfferKind of(String? value) => switch (value) {
+        'amount' => amount,
+        'buy_get' => buyGet,
+        'text' => text,
+        _ => percent,
+      };
+}
+
+/// A sale the seller is running, or has run, or will.
+///
+/// No categories and no products named means the whole shop. Dates are
+/// inclusive and read in Amman; either end may be open.
+class Offer {
+  const Offer({
+    this.id,
+    this.name,
+    required this.kind,
+    this.value,
+    this.buy,
+    this.get,
+    this.categoryIds = const [],
+    this.productIds = const [],
+    this.startsOn,
+    this.endsOn,
+    this.enabled = true,
+    this.description,
+  });
+
+  final String? id;
+  final String? name;
+  final OfferKind kind;
+
+  /// The seller's own words, for an offer of kind [OfferKind.text].
+  final String? description;
+
+  /// The percentage, or the amount off. Null for buy X get Y.
+  final double? value;
+  final int? buy;
+  final int? get;
+  final List<String> categoryIds;
+  final List<String> productIds;
+
+  /// `YYYY-MM-DD`, compared as text, the same way the server does.
+  final String? startsOn;
+  final String? endsOn;
+  final bool enabled;
+
+  bool get wholeShop => categoryIds.isEmpty && productIds.isEmpty;
+
+  bool covers(Product product) =>
+      wholeShop ||
+      (product.id != null && productIds.contains(product.id)) ||
+      (product.categoryId != null && categoryIds.contains(product.categoryId));
+
+  OfferState stateOn(String today) {
+    if (!enabled) return OfferState.off;
+    if (startsOn != null && today.compareTo(startsOn!) < 0) return OfferState.scheduled;
+    if (endsOn != null && today.compareTo(endsOn!) > 0) return OfferState.ended;
+    return OfferState.running;
+  }
+
+  Offer copyWith({bool? enabled}) => Offer(
+        id: id,
+        name: name,
+        kind: kind,
+        value: value,
+        buy: buy,
+        get: get,
+        categoryIds: categoryIds,
+        productIds: productIds,
+        startsOn: startsOn,
+        endsOn: endsOn,
+        enabled: enabled ?? this.enabled,
+        description: description,
+      );
+
+  factory Offer.fromRow(Map<String, dynamic> row) => Offer(
+        id: row['id'] as String?,
+        name: row['name'] as String?,
+        kind: OfferKind.of(row['kind'] as String?),
+        value: switch (row['value']) {
+          final num value => value.toDouble(),
+          final String value => double.tryParse(value),
+          _ => null,
+        },
+        buy: (row['buy'] as num?)?.toInt(),
+        get: (row['get'] as num?)?.toInt(),
+        categoryIds: [for (final id in (row['category_ids'] as List?) ?? const []) id as String],
+        productIds: [for (final id in (row['product_ids'] as List?) ?? const []) id as String],
+        startsOn: row['starts_on'] as String?,
+        endsOn: row['ends_on'] as String?,
+        enabled: row['enabled'] as bool? ?? true,
+        description: row['description'] as String?,
+      );
+
+  Map<String, dynamic> toRow() => {
+        'name': name?.trim().isEmpty ?? true ? null : name!.trim(),
+        'kind': kind.stored,
+        // Only the two kinds with a number of their own carry one. The database
+        // refuses a worded offer with a value, and a buy X get Y with one.
+        'value': kind == OfferKind.percent || kind == OfferKind.amount ? value : null,
+        'description': kind == OfferKind.text ? description?.trim() : null,
+        'buy': kind == OfferKind.buyGet ? buy : null,
+        'get': kind == OfferKind.buyGet ? get : null,
+        'category_ids': categoryIds,
+        'product_ids': productIds,
+        'starts_on': startsOn,
+        'ends_on': endsOn,
+        'enabled': enabled,
+      };
+}
+
+enum OfferState { running, scheduled, ended, off }
+
+/// What prices are in when the shop has not said: the Jordanian dinar, written
+/// out, as the product owner set it on 22 September 2026. The same words as
+/// DEFAULT_CURRENCY in the webhook's ai.ts and the column default.
+const defaultCurrency = 'دينار أردني';
+
+/// Today in Amman, as `YYYY-MM-DD`. Jordan has kept UTC+3 all year since 2022,
+/// so a fixed offset is the whole of it — the browser's own time zone is not,
+/// since a seller abroad would see the wrong day.
+String todayInAmman([DateTime? now]) {
+  final amman = (now ?? DateTime.now()).toUtc().add(const Duration(hours: 3));
+  String two(int n) => n.toString().padLeft(2, '0');
+  return '${amman.year}-${two(amman.month)}-${two(amman.day)}';
+}
+
+/// What a product costs today with the best offer that covers it, or null if
+/// none brings the price down.
+///
+/// The same rule as `salePrice` in the webhook's ai.ts, which is what the
+/// assistant tells customers. The two are held together by the shared cases in
+/// test/fixtures/offers.json: offers do not stack, the lowest price wins,
+/// worked in whole fils, never below nothing.
+double? salePrice(Product product, List<Offer> offers, String today) {
+  final listed = product.price;
+  if (listed == null) return null;
+
+  final fils = (listed * 1000).round();
+  int? best;
+
+  for (final offer in offers) {
+    // Only the kinds with a price of their own; a worded offer is read by the
+    // assistant, not computed.
+    if (offer.kind != OfferKind.percent && offer.kind != OfferKind.amount) continue;
+    if (offer.stateOn(today) != OfferState.running || !offer.covers(product)) continue;
+
+    final value = offer.value;
+    if (value == null || value <= 0) continue;
+
+    final after = offer.kind == OfferKind.percent
+        ? (fils * (100 - value) / 100).round()
+        : max(0, fils - (value * 1000).round());
+
+    if (after < fils && (best == null || after < best)) best = after;
+  }
+
+  return best == null ? null : best / 1000;
+}
+
+/// A product code another product in the shop already has.
+class CodeTaken implements Exception {
+  const CodeTaken();
+}
+
+/// A rename to a name another category already has.
+class CategoryTaken implements Exception {
+  const CategoryTaken();
+}
+
+/// One name to a seller: case and surrounding space do not make a second
+/// category. The same rule as the unique index in `20260923000001_catalog.sql`.
+String categoryKey(String name) => name.trim().toLowerCase();
+
+/// Where product photos live. Made in `20260923000001_catalog.sql`.
+const photoBucket = 'product-photos';
+
+/// The same cap as the check constraint on `products.photos`.
+const maxPhotos = 5;
+
+/// The small copy of a photo, kept beside it so the assistant can compare a
+/// customer's screenshot against the catalog without reading full-size images.
+String thumbnailOf(String path) => path.replaceFirst(RegExp(r'\.jpg$'), '_s.jpg');
+
+/// A photo the seller has picked and not saved yet, already shrunk in the
+/// browser. A phone photo arrives at about 6 MB, and a catalog does not need
+/// that.
+class PickedPhoto {
+  const PickedPhoto({required this.full, required this.thumbnail});
+
+  final Uint8List full;
+  final Uint8List thumbnail;
+}
+
+/// One photo in the editor: either already stored, with a [path], or just
+/// [picked]. One list of these keeps the seller's order across both, so a new
+/// photo can be made the cover.
+class PhotoSlot {
+  const PhotoSlot.stored(String this.path) : picked = null;
+  const PhotoSlot.picked(PickedPhoto this.picked) : path = null;
+
+  final String? path;
+  final PickedPhoto? picked;
 }
 
 /// What the assistant does when a customer pushes on price.
@@ -245,7 +517,7 @@ enum PriceStance {
 /// assistant hands most of a normal conversation back to the seller.
 class Shop {
   const Shop({
-    this.currency = 'د.ا',
+    this.currency = defaultCurrency,
     this.deliveryNote,
     this.locations,
     this.hours,
@@ -302,7 +574,7 @@ class Shop {
   factory Shop.fromRow(Map<String, dynamic> row) => Shop(
         currency: (row['currency'] as String?)?.trim().isNotEmpty == true
             ? (row['currency'] as String).trim()
-            : 'د.ا',
+            : defaultCurrency,
         deliveryNote: row['delivery_note'] as String?,
         locations: row['locations'] as String?,
         hours: row['hours'] as String?,
@@ -343,12 +615,16 @@ const catalogBom = '﻿';
 
 /// The column order the template hands out, and the order it is read back in
 /// when a file has no usable header.
-const catalogColumns = ['name', 'price', 'description', 'in_stock'];
+///
+/// `category` and `code` are last because they were added last. A file with no
+/// header is read in this order, so a new column anywhere else would shift
+/// every file saved from the old template by one.
+const catalogColumns = ['name', 'price', 'description', 'in_stock', 'category', 'code'];
 
 /// A spreadsheet the seller can fill in, with one example row to show the
 /// shape. Arabic, because that is the language this product is for.
 String catalogTemplateCsv() => '$catalogBom${catalogColumns.join(',')}\n'
-    'فستان أحمر,25.500,قطن، مقاسات S M L,yes\n';
+    'فستان أحمر,25.500,قطن، مقاسات S M L,yes,فساتين,FS-101\n';
 
 /// Products read out of a spreadsheet the seller filled in.
 ///
@@ -357,41 +633,341 @@ String catalogTemplateCsv() => '$catalogBom${catalogColumns.join(',')}\n'
 /// explanation is worse than one that imports what it understood. Rows with no
 /// name are skipped, because a price with nothing attached to it is not a
 /// product.
-List<Product> parseCatalogCsv(String content) {
-  final cleaned = content.replaceFirst(catalogBom, '');
-  final rows = _csvRows(cleaned, _delimiterOf(cleaned));
-  if (rows.isEmpty) return const [];
+List<Product> parseCatalogCsv(String content) => readCatalogCsv(content).products;
 
-  // A header if it names any column we know; otherwise the file starts with
-  // data and we fall back to the template's own order.
-  final first = rows.first.map((cell) => cell.trim().toLowerCase()).toList();
-  final hasHeader = first.any(catalogColumns.contains);
-  final header = hasHeader ? first : catalogColumns;
-  final body = hasHeader ? rows.skip(1) : rows;
+CatalogSheet readCatalogCsv(String content) {
+  final cleaned = content.replaceFirst(catalogBom, '');
+  return readCatalogRows(_csvRows(cleaned, _delimiterOf(cleaned)));
+}
+
+/// The first sheet in an Excel workbook that has anything in it, as products.
+///
+/// Sellers keep price lists in Excel already. Asking them to save it as CSV
+/// first is a step most do not know how to take.
+List<Product> parseCatalogXlsx(Uint8List bytes) => readCatalogXlsx(bytes).products;
+
+CatalogSheet readCatalogXlsx(Uint8List bytes) {
+  final workbook = Excel.decodeBytes(bytes);
+
+  for (final sheet in workbook.tables.values) {
+    final rows = [
+      for (final row in sheet.rows) [for (final cell in row) _cellText(cell?.value)],
+    ];
+
+    final read = readCatalogRows(rows);
+    if (read.products.isNotEmpty) return read;
+  }
+
+  return const CatalogSheet([], {});
+}
+
+/// Products read out of a sheet, and which of our fields it had a column for.
+///
+/// The columns matter when the sheet updates products already saved. A sheet
+/// with no stock column says nothing about stock, and must not put every
+/// product the seller marked out of stock back in stock just because
+/// [Product.inStock] defaults to true.
+class CatalogSheet {
+  const CatalogSheet(this.products, this.columns);
+
+  final List<Product> products;
+  final Set<String> columns;
+}
+
+/// What a sheet does to the catalog: products to add, and products already
+/// there to update, each carrying its saved id.
+///
+/// A row updates the product with the same code — ignoring case and spacing.
+/// Asked for by the product owner on 22 September 2026, and specifically not
+/// by name: a shop writes one product in Arabic in one place and English in
+/// another, and matching on names would update the wrong thing or nothing. So
+/// a row with no code is always a new product, and a row whose code is new is
+/// a new product that keeps that code. Matched by code, a row can rename a
+/// product.
+///
+/// An update changes only what the sheet has something to say about. A column
+/// the sheet does not have leaves the field alone, and so does an empty cell —
+/// a blank is far more often a cell nobody filled in than a request to clear
+/// it. Photos are never touched by a sheet. If one code appears twice in the
+/// sheet, the lower row wins, as it would if it were typed in order.
+///
+/// Codes are given to the new products that have none — see [nextCodes] — so
+/// that every product can be matched the next time.
+({List<Product> added, List<Product> updated}) planImport(
+  CatalogSheet sheet,
+  List<Product> existing,
+) {
+  String key(String code) => code.trim().toLowerCase();
+
+  final saved = {
+    for (final product in existing)
+      if (product.code != null) key(product.code!): product,
+  };
+
+  // Rows with a code collapse onto it; rows without one are all kept.
+  final coded = <String, Product>{};
+  final uncoded = <Product>[];
+  for (final row in sheet.products) {
+    if (row.code == null) {
+      uncoded.add(row);
+    } else {
+      coded[key(row.code!)] = row;
+    }
+  }
+
+  final added = <Product>[];
+  final updated = <Product>[];
+  final has = sheet.columns.contains;
+
+  for (final MapEntry(key: code, value: row) in coded.entries) {
+    final old = saved[code];
+    if (old == null) {
+      if (row.name.isNotEmpty) added.add(row);
+      continue;
+    }
+
+    final category = has('category') && row.category != null ? row.category : null;
+
+    updated.add(Product(
+      id: old.id,
+      code: old.code,
+      name: row.name.isNotEmpty ? row.name : old.name,
+      price: has('price') && row.price != null ? row.price : old.price,
+      description:
+          has('description') && row.description != null ? row.description : old.description,
+      inStock: has('in_stock') ? row.inStock : old.inStock,
+      // A new category is carried by name and resolved when saved; an
+      // unchanged one keeps its id.
+      categoryId: category == null ? old.categoryId : null,
+      category: category ?? old.category,
+      photos: old.photos,
+    ));
+  }
+
+  final codes = nextCodes([...existing.map((p) => p.code), ...coded.values.map((p) => p.code)], uncoded.length);
+
+  for (final (index, row) in uncoded.indexed) {
+    added.add(Product(
+      name: row.name,
+      price: row.price,
+      description: row.description,
+      inStock: row.inStock,
+      category: row.category,
+      code: codes[index],
+    ));
+  }
+
+  return (added: added, updated: updated);
+}
+
+/// The catalog as an Excel file the seller can edit and import again.
+///
+/// This is what makes generated codes useful: a seller who imported a sheet
+/// with no codes gets them here, in a file that imports straight back and
+/// updates what it lists. The headers are given in the seller's language and
+/// are words the importer already reads — a test round-trips them.
+Uint8List catalogWorkbook(
+  List<Product> products, {
+  required List<String> headers,
+  required String yes,
+  required String no,
+}) {
+  final book = Excel.createExcel();
+  final sheet = book[book.getDefaultSheet()!];
+
+  sheet.appendRow([for (final header in headers) TextCellValue(header)]);
+
+  for (final product in products) {
+    sheet.appendRow([
+      TextCellValue(product.code ?? ''),
+      TextCellValue(product.name),
+      product.price == null ? null : DoubleCellValue(product.price!),
+      TextCellValue(product.description ?? ''),
+      TextCellValue(product.inStock ? yes : no),
+      TextCellValue(product.category ?? ''),
+    ]);
+  }
+
+  return Uint8List.fromList(book.encode()!);
+}
+
+/// The next [count] free codes in this shop: P-001, P-002…
+///
+/// Numbered after the highest P- code already taken rather than filling gaps,
+/// so a code a seller deleted is not handed to a different product that their
+/// old sheet would then update. Codes the seller chose themselves — "FS-101" —
+/// are left alone and never collide, because they are not P- numbers.
+List<String> nextCodes(Iterable<String?> taken, int count) {
+  var highest = 0;
+  for (final code in taken) {
+    final match = RegExp(r'^p-(\d+)$').firstMatch(code?.trim().toLowerCase() ?? '');
+    if (match != null) highest = max(highest, int.parse(match.group(1)!));
+  }
+
+  return [
+    for (var i = 1; i <= count; i++) 'P-${(highest + i).toString().padLeft(3, '0')}',
+  ];
+}
+
+/// A cell as the seller would read it. A whole number stored as 25.0 is "25",
+/// not "25.0" — the same price the seller typed.
+String _cellText(CellValue? value) => switch (value) {
+      null => '',
+      DoubleCellValue(value: final number) when number == number.roundToDouble() =>
+        number.round().toString(),
+      DoubleCellValue(value: final number) => number.toString(),
+      IntCellValue(value: final number) => number.toString(),
+      TextCellValue() => value.value.toString(),
+      _ => value.toString(),
+    };
+
+/// Headers that mean one of our columns, in the words sellers actually use.
+///
+/// A seller's own sheet says "اسم المنتج" or "Product name", not `name`. Each
+/// header is matched by containing one of these, in the order of this map:
+/// category and price come before name because "اسم القسم" and "product price"
+/// contain a word for name as well.
+const _headerWords = {
+  'category': ['category', 'type', 'section', 'collection', 'قسم', 'فئة', 'تصنيف', 'نوع'],
+  'price': ['price', 'سعر'],
+  'in_stock': [
+    'stock', 'available', 'availability', 'qty', 'quantity',
+    'متوفر', 'توفر', 'كمية', 'مخزون',
+  ],
+  'description': ['description', 'details', 'notes', 'desc', 'وصف', 'تفاصيل', 'ملاحظات'],
+  'name': ['name', 'product', 'item', 'title', 'اسم', 'منتج', 'صنف', 'قطعة'],
+};
+
+/// Headers whose column is dropped rather than read, checked before anything
+/// else. What a shop paid for something must never reach a customer, and
+/// "سعر التكلفة" — cost price — contains the word for price. Barcodes and
+/// links are dropped because the assistant has nothing useful to say with them.
+const _dropWords = [
+  'cost', 'تكلفة', 'كلفة', 'wholesale', 'جملة', 'profit', 'ربح', 'margin',
+  'supplier', 'مورد', 'vendor', 'purchase', 'شراء',
+  'barcode', 'باركود', 'image', 'photo', 'صورة', 'link', 'url', 'رابط',
+];
+
+/// Columns that are only ever a row number.
+const _serialHeaders = {'#', 'no', 'no.', 'م', 'ت'};
+
+/// Headers that are the seller's own product code — what a second import
+/// matches on. Checked before the drop words, which hold "barcode", and
+/// before names, since "رقم المنتج" contains the word for product.
+bool _isCode(String words) =>
+    words == 'id' ||
+    words.endsWith(' id') ||
+    words == 'رقم المنتج' ||
+    words == 'رقم' ||
+    (!words.contains('bar') && !words.contains('باركود') &&
+        ['code', 'sku', 'كود', 'رمز'].any(words.contains));
+
+const _drop = '-';
+
+/// Which of our columns a header means: one of [catalogColumns], [_drop] for
+/// one to ignore, or null for a column we do not have but the seller filled
+/// in — colour, size, material. Those are not thrown away.
+String? _columnOf(String header) {
+  final words = header.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+  if (words.isEmpty || _serialHeaders.contains(words)) return _drop;
+  if (catalogColumns.contains(words)) return words;
+  if (_isCode(words)) return 'code';
+  if (_dropWords.any(words.contains)) return _drop;
+
+  for (final MapEntry(key: column, value: aliases) in _headerWords.entries) {
+    if (aliases.any(words.contains)) return column;
+  }
+
+  return null;
+}
+
+/// Where the header is, if there is one.
+///
+/// Not always the first row: a seller's own sheet often starts with a title —
+/// the shop's name, "قائمة الأسعار" — and a blank line. So the first few rows
+/// are searched for one that names a product column and at least one other.
+int? _headerRow(List<List<String>> rows) {
+  for (var i = 0; i < rows.length && i < 10; i++) {
+    final columns = rows[i].map(_columnOf).whereType<String>().where((c) => c != _drop).toSet();
+    if (columns.contains('name') && columns.length > 1) return i;
+
+    // Our own template's header, even with only the name column left in it.
+    if (rows[i].any((cell) => catalogColumns.contains(cell.trim().toLowerCase()))) return i;
+  }
+
+  return null;
+}
+
+/// Rows of cells, from either kind of file, as products.
+///
+/// Columns we have no field for are kept rather than dropped: they are added
+/// to the details as "Colour: red", in the seller's own header. The product
+/// owner asked for the least work for the seller even if it is more for the
+/// assistant — so the seller's sheet is taken as it is and the assistant reads
+/// what is in it, rather than the seller being asked to reshape it first.
+List<Product> parseCatalogRows(List<List<String>> rows) => readCatalogRows(rows).products;
+
+CatalogSheet readCatalogRows(List<List<String>> rows) {
+  if (rows.isEmpty) return const CatalogSheet([], {});
+
+  // With no header the file starts with data, and is read in the template's
+  // own order.
+  final at = _headerRow(rows);
+  final headers = at == null ? catalogColumns : rows[at];
+  final columns = at == null ? catalogColumns : headers.map(_columnOf).toList();
+  final body = at == null ? rows : rows.skip(at + 1);
+
+  // The first column that means each field is the one read. A second "price"
+  // column — a sale price, an old price — is kept in the details instead of
+  // silently overriding the first.
+  final first = <String, int>{};
+  for (final (index, column) in columns.indexed) {
+    if (column != null && column != _drop) first.putIfAbsent(column, () => index);
+  }
 
   final products = <Product>[];
 
   for (final row in body) {
-    String? cell(String column) {
-      final index = header.indexOf(column);
-      if (index < 0 || index >= row.length) return null;
+    String? at(int? index) {
+      if (index == null || index >= row.length) return null;
 
       final value = row[index].trim();
       return value.isEmpty ? null : value;
     }
 
+    String? cell(String column) => at(first[column]);
+
+    // A row needs a name or a code. A code alone is an update — a new price
+    // for FS-101 — and needs no name; planImport drops it if nothing has that
+    // code, rather than adding a product with no name.
     final name = cell('name');
-    if (name == null) continue;
+    if (name == null && cell('code') == null) continue;
+
+    final extras = [
+      for (final (index, column) in columns.indexed)
+        if (column != _drop && first[column] != index && at(index) != null)
+          '${headers[index].trim()}: ${at(index)}',
+    ];
+
+    final description = [?cell('description'), ...extras].join('\n');
 
     products.add(Product(
-      name: name,
+      name: name ?? '',
       price: _price(cell('price')),
-      description: cell('description'),
+      description: description.isEmpty ? null : description,
       inStock: _inStock(cell('in_stock')),
+      category: cell('category'),
+      code: cell('code'),
     ));
   }
 
-  return products;
+  // Columns beyond our own are written into the details, so a sheet that has
+  // them has something to say about the details too.
+  final hasExtras = columns.indexed.any(
+    (entry) => entry.$2 != _drop && first[entry.$2] != entry.$1,
+  );
+
+  return CatalogSheet(products, {...first.keys, if (hasExtras) 'description'});
 }
 
 /// A price as the seller reads it back: grouped, in Western numerals, and in
@@ -632,10 +1208,18 @@ List<Message> mergeMessages(List<Message> stored, List<Message> pending) {
 /// starves its oldest item. Against a hard 24 hour reply window, starvation is
 /// not slow service — it is a customer who can never be answered again.
 ///
+/// Inside the waiting group, what the assistant handed over comes first. The
+/// customer was told a person is coming, and the product owner could not tell
+/// such a conversation apart from the rest (23 September 2026). Oldest first
+/// within each part, so neither part starves.
+///
 /// Pure, so the ordering can be tested without a database.
 List<Conversation> inboxOrder(List<Conversation> all) {
   final waiting = all.where((c) => c.awaitingReply).toList()
-    ..sort((a, b) => a.lastInboundAt!.compareTo(b.lastInboundAt!));
+    ..sort((a, b) {
+      if (a.escalated != b.escalated) return a.escalated ? -1 : 1;
+      return a.lastInboundAt!.compareTo(b.lastInboundAt!);
+    });
 
   final answered = all.where((c) => !c.awaitingReply).toList()
     ..sort((a, b) {
@@ -734,58 +1318,246 @@ class Inbox {
   Future<List<Product>> products() async {
     final rows = await _db
         .from('products')
-        .select('id, name, price, description, in_stock')
+        .select('id, code, name, price, description, in_stock, category_id, photos, categories(name)')
         .order('name', ascending: true);
 
     return rows.map(Product.fromRow).toList();
+  }
+
+  Future<List<Category>> categories() async {
+    final rows = await _db.from('categories').select('id, name').order('name', ascending: true);
+    return rows.map(Category.fromRow).toList();
+  }
+
+  /// The id of the category with this name, made if there is not one yet.
+  ///
+  /// Typing a category is how one is made — there is no screen for managing
+  /// them, because a seller would never open it. Null for a blank name, which
+  /// means no category.
+  Future<String?> categoryNamed(String? name, [List<Category>? known]) async {
+    if (name == null || name.trim().isEmpty) return null;
+
+    final existing = (known ?? await categories())
+        .where((category) => categoryKey(category.name) == categoryKey(name));
+    if (existing.isNotEmpty) return existing.first.id;
+
+    final workspace = await _workspaceId();
+    final row = await _db
+        .from('categories')
+        .insert({'workspace_id': workspace, 'name': name.trim()})
+        .select('id')
+        .single();
+
+    return row['id'] as String;
+  }
+
+  /// Offers point at a category by id, so a rename keeps every offer on it.
+  /// A name another category already has is refused by the unique index;
+  /// that arrives here as [CategoryTaken] so the interface can say so.
+  Future<void> renameCategory(String id, String name) async {
+    try {
+      await _db.from('categories').update({'name': name.trim()}).eq('id', id);
+    } on PostgrestException catch (error) {
+      if (error.code == '23505') throw const CategoryTaken();
+      rethrow;
+    }
+  }
+
+  /// Its products keep everything but the category (`on delete set null`).
+  ///
+  /// Offers that name it are deliberately left alone. An offer with no
+  /// targets means the whole shop, so taking this id out of them would turn
+  /// "20% off dresses" into 20% off everything. Left in, it matches nothing,
+  /// the assistant says nothing about it, and the offers screen says it no
+  /// longer covers anything.
+  Future<void> deleteCategory(String id) async {
+    await _db.from('categories').delete().eq('id', id);
+  }
+
+  /// Where a photo can be fetched from. Public, because Meta fetches it itself
+  /// to deliver it to a customer — see `20260923000001_catalog.sql`.
+  String photoUrl(String path) => _db.storage.from(photoBucket).getPublicUrl(path);
+
+  /// Puts a picked photo in storage and returns its path.
+  ///
+  /// The path starts with the workspace id because that is what the storage
+  /// policy checks. The file name is random so the public URL cannot be
+  /// guessed from another one.
+  Future<String> uploadPhoto(PickedPhoto photo) async {
+    final workspace = await _workspaceId();
+    final random = Random.secure();
+    final name = List.generate(16, (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0')).join();
+    final path = '$workspace/$name.jpg';
+
+    const options = FileOptions(contentType: 'image/jpeg');
+    final bucket = _db.storage.from(photoBucket);
+    await bucket.uploadBinary(path, photo.full, fileOptions: options);
+    await bucket.uploadBinary(thumbnailOf(path), photo.thumbnail, fileOptions: options);
+
+    return path;
+  }
+
+  /// Removes photos and their thumbnails.
+  ///
+  /// Called after the row that pointed at them is saved or deleted, and its
+  /// failure is swallowed: a file left over in storage costs a few hundred
+  /// kilobytes, while failing the save over it would lose what the seller
+  /// typed.
+  Future<void> removePhotos(Iterable<String> paths) async {
+    final all = [for (final path in paths) ...[path, thumbnailOf(path)]];
+    if (all.isEmpty) return;
+
+    try {
+      await _db.storage.from(photoBucket).remove(all);
+    } catch (_) {
+      // ponytail: orphaned files are left behind. Sweep the bucket for paths
+      // no product names if storage ever costs enough to notice.
+    }
   }
 
   /// Adds a product, or updates the one already saved.
   ///
   /// No workspace is named. Row level security fills it in from the seller's
   /// own token, the same as every other write in this file.
-  Future<void> saveProduct(Product product) async {
+  ///
+  /// [photos] is the editor's list in the seller's order: photos already
+  /// stored, and ones picked but not yet uploaded. The new ones go up here, on
+  /// save, rather than when they are picked, so a seller who cancels leaves
+  /// nothing behind. Null keeps whatever the product already had.
+  ///
+  /// [previousPhotos] are the ones the product had before the edit, so any the
+  /// seller removed can be deleted from storage.
+  Future<void> saveProduct(
+    Product product, {
+    List<PhotoSlot>? photos,
+    List<String> previousPhotos = const [],
+  }) async {
+    final paths = photos == null
+        ? product.photos
+        : [for (final slot in photos) slot.path ?? await uploadPhoto(slot.picked!)];
+
+    // Every product has a code. Left blank, it gets the next free one, so
+    // the product can always be matched by a sheet later.
+    final typed = product.code?.trim() ?? '';
+    final code = typed.isNotEmpty
+        ? typed
+        : nextCodes((await products()).map((p) => p.code), 1).single;
+
     final values = {
+      'code': code,
       'name': product.name.trim(),
       'price': product.price,
       'description': product.description?.trim(),
       'in_stock': product.inStock,
+      'category_id': await categoryNamed(product.category),
+      'photos': paths,
     };
 
-    if (product.id == null) {
+    try {
+      if (product.id == null) {
+        final workspace = await _workspaceId();
+        await _db.from('products').insert({...values, 'workspace_id': workspace});
+      } else {
+        await _db.from('products').update(values).eq('id', product.id!);
+      }
+    } catch (error) {
+      // The photos went up before the row was written, so a refused row
+      // would leave them in storage with nothing pointing at them.
+      await removePhotos(paths.where((path) => !previousPhotos.contains(path)));
+
+      // The only unique index a product save can hit is the code's.
+      if (error is PostgrestException && error.code == '23505') throw const CodeTaken();
+      rethrow;
+    }
+
+    await removePhotos(previousPhotos.where((path) => !paths.contains(path)));
+  }
+
+  Future<List<Offer>> offers() async {
+    final rows = await _db
+        .from('offers')
+        .select(
+          'id, name, kind, value, description, buy, get, category_ids, product_ids, starts_on, ends_on, enabled',
+        )
+        .order('created_at', ascending: true);
+
+    return rows.map(Offer.fromRow).toList();
+  }
+
+  /// Adds an offer, or updates the one already saved. The database refuses a
+  /// malformed one — a percentage of 100, an amount with no amount — so what
+  /// reaches the assistant is always something it can state.
+  Future<void> saveOffer(Offer offer) async {
+    if (offer.id == null) {
       final workspace = await _workspaceId();
-      await _db.from('products').insert({...values, 'workspace_id': workspace});
+      await _db.from('offers').insert({...offer.toRow(), 'workspace_id': workspace});
     } else {
-      await _db.from('products').update(values).eq('id', product.id!);
+      await _db.from('offers').update(offer.toRow()).eq('id', offer.id!);
     }
   }
 
-  Future<void> deleteProduct(String id) async {
-    await _db.from('products').delete().eq('id', id);
+  Future<void> deleteOffer(String id) async {
+    await _db.from('offers').delete().eq('id', id);
   }
 
-  /// Saves a whole spreadsheet at once.
-  ///
-  /// Adds to the catalog rather than replacing it. Replacing would be one
-  /// mis-click away from deleting everything the seller has, and re-importing
-  /// a corrected file is a smaller annoyance than that.
-  Future<int> importProducts(List<Product> products) async {
-    if (products.isEmpty) return 0;
+  Future<void> deleteProduct(Product product) async {
+    await _db.from('products').delete().eq('id', product.id!);
+    await removePhotos(product.photos);
+  }
 
+  /// Saves a whole spreadsheet at once: new products are added, and products
+  /// already in the catalog under the same name are updated — see
+  /// [planImport] for exactly what changes.
+  ///
+  /// Nothing is ever removed. A product missing from the sheet stays, because
+  /// a seller importing only their new arrivals would otherwise lose everything
+  /// else.
+  Future<({int added, int updated})> importProducts(CatalogSheet sheet) async {
+    if (sheet.products.isEmpty) return (added: 0, updated: 0);
+
+    final plan = planImport(sheet, await products());
     final workspace = await _workspaceId();
 
-    await _db.from('products').insert([
-      for (final product in products)
-        {
+    // One lookup per distinct name, not per row. A category made for the first
+    // row is added to the list so the fifth row finds it rather than making it
+    // again and failing on the unique index.
+    final known = await categories();
+    final ids = <String, String?>{};
+    for (final product in [...plan.added, ...plan.updated]) {
+      final name = product.category;
+      if (product.categoryId != null || name == null || ids.containsKey(categoryKey(name))) {
+        continue;
+      }
+
+      final id = await categoryNamed(name, known);
+      ids[categoryKey(name)] = id;
+      if (id != null) known.add(Category(id: id, name: name));
+    }
+
+    Map<String, dynamic> row(Product product) => {
           'workspace_id': workspace,
+          'code': product.code?.trim(),
           'name': product.name.trim(),
           'price': product.price,
           'description': product.description?.trim(),
           'in_stock': product.inStock,
-        },
-    ]);
+          'category_id': product.categoryId ??
+              (product.category == null ? null : ids[categoryKey(product.category!)]),
+        };
 
-    return products.length;
+    if (plan.added.isNotEmpty) {
+      await _db.from('products').insert([for (final product in plan.added) row(product)]);
+    }
+
+    // One request for every update: each row carries its id and all of its
+    // fields, already merged, so an upsert on the key is an update.
+    if (plan.updated.isNotEmpty) {
+      await _db.from('products').upsert([
+        for (final product in plan.updated) {...row(product), 'id': product.id},
+      ]);
+    }
+
+    return (added: plan.added.length, updated: plan.updated.length);
   }
 
   /// The shop's own facts, and whether the assistant answers.

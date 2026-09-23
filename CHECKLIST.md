@@ -206,7 +206,9 @@ only; the receiving path in section 2 is still uncovered.
 - [x] Customers are named, not all called "Customer"
 
 - [x] Attachments displayed — verified against the real image delivered by Meta
-- [ ] In-page notification and title badge while the tab is open
+- [x] In-page notification and title badge while the tab is open — the title
+      count and system notification on 22 September, the hand-over bell on
+      23 September, both seen in a browser
 - [ ] Empty states, loading states, and what happens when offline — the first
       two are built and seen; offline is not handled at all
 - [ ] First load is measured again once there is a real interface
@@ -298,6 +300,76 @@ appeared to behave once. Where something was verified, it says how.
 - [x] A price written with the dinar beside it still parses — "د.ا" contains a
       dot, which broke the parser until it stopped stripping and started
       extracting
+
+## 9d. Photos, codes, categories, spreadsheets and offers
+
+Asked for on 22 September 2026. Every item marked *seen* was driven with
+Playwright against the live project, in both languages and at desktop and phone
+width, with a dedicated test seller (`playwright-seller@example.test`) so no
+test data touched the real shop.
+
+- [x] Migrations `20260923000001_catalog.sql` and `20260923000002_offers.sql`
+      applied to the live project. Existing products numbered P-001… in the
+      order they were added; the one real product became P-001. Verified live:
+      the bucket is public, 2 MB, JPEG only; an anonymous offer insert is
+      refused (42501); an anonymous category read returns nothing
+- [x] Row level security on categories, offers, product codes and the photo
+      bucket, proven against a second seller in PGlite. The insert test first
+      passed against a broken policy — `returning` sent the row through the
+      select policy — and was rewritten until breaking each policy failed it
+- [x] **Photos, seen.** Five per product, shrunk in the browser (a 4032×3024
+      phone photo arrives as a 1600px JPEG plus a 320px thumbnail), a
+      transparent PNG on white, an unreadable file reported without losing the
+      others, cover chosen by tapping, removal deletes the file and thumbnail
+      from storage, deleting a product deletes all of its photos
+- [x] **Codes, seen.** Generated when left blank, shown on the row, found by
+      search, a clash caught in the editor before anything is uploaded
+- [x] **Categories, seen.** Typed with suggestions; renamed (products follow,
+      being linked by id); a taken name refused; deleted without deleting its
+      products; an offer on a deleted category covers nothing and says so in
+      red, and the assistant stops mentioning it
+- [x] **Import, seen.** A seller's own `.xlsx` with a title row, Arabic
+      headers, a cost-price column (never stored), a quantity column (read as
+      in stock or not), and colour and size columns folded into the details; a
+      Windows-1256 CSV; an old `.xls` named as such; "Download my list", edited
+      in Excel and imported back — 8 updated and 1 added, photos and
+      out-of-stock untouched
+- [x] **Offers, seen.** All three kinds, each scope, dates, the switch; running,
+      not started, off and orphaned states; struck-through sale prices on the
+      product rows, identical to the server's by the shared fixture
+- [x] **The assistant, measured against the real model.** Quotes the sale price
+      the code worked out, says there is no discount where there is none,
+      matches a product code, sends a photo and chooses the one of two
+      same-named products that has one. Deployed to `meta-webhook`
+- [x] A reply promising a photo that does not exist is held back and handed to
+      the seller. Found on the real shop: "تمام، هاي صورته" for a product with no
+      photo. Only a reply that talks about a photo is held back — the first
+      version held back an ordinary price answer too, and the replay caught it
+- [x] **Second round, 23 September.** Migration
+      `20260923000003_worded_offers.sql` applied and `meta-webhook` redeployed:
+  - [x] **Offers in the seller's own words, seen.** A fourth kind, "بكلماتك",
+        with a hint to use the catalog's own names; same dates, switch and
+        optional scope. The assistant understands it rather than reciting it —
+        measured: "15.3 دينار بدل 18" for a bag in the category the sentence
+        names, and "no" for a wallet outside it. The number check allows
+        exactly one step: a written percentage or amount applied to a listed
+        price
+  - [x] **Offers only when the context suits, measured.** Nothing on a
+        greeting or a delivery question; once, as good news, when a customer
+        asks about an item one covers; the list when asked "في عروض؟"
+  - [x] **Screenshot recognition, measured.** A cropped phone screenshot of a
+        post matched to the right product against unlabelled thumbnails, with
+        and without words; something the shop does not sell is said plainly.
+        A request refused over its images is asked again without them
+  - [x] **No photo, seen.** Its own hand-over line with the product's name, so
+        the seller knows which photo to add
+  - [x] **Currency** is Jordanian dinars, written out, when a shop has not set
+        one; a currency already chosen is kept
+  - [ ] Known quirk: with no match for a screenshot, the model still offers the
+        nearest item even when it is out of stock. Truthful, not ideal
+- [x] **A real product photo delivered through Meta.** Seen arriving on the
+      product owner's phone on 23 September 2026, sent by the assistant from
+      the seeded catalog to a real customer message on their Page
 
 ## 9c. Settings, on the shop screen
 
@@ -453,6 +525,17 @@ places to guess between.
       count itself is the flag, so `>=` in place of `===` fails two tests
 - [x] The streak cap raised from 3 to 8 — three killed the conversation at the
       point the customer was closest to buying
+- [x] **The streak cap removed entirely** (23 September). It stopped a live
+      customer after "we'll check" and the product owner ruled: "freezing is
+      not an option." Deployed; the ceiling is the only count left
+- [x] A hand-over you cannot miss (23 September): a red «بحاجة لك» pill and red
+      ground on the row, hand-overs first in the waiting group, a red banner
+      above the messages at every width, and a bell in the list header counting
+      them with a list that opens each one. Ordering and the banner's wording
+      unit-tested and shown to fail; **seen** in Playwright in Arabic and
+      English at 1440px and 390px, bell opened and a conversation opened from
+      it on both. Seeing it caught a name-and-time line reordering into
+      "23 · سارةh", fixed by splitting it
 - [x] An attachment-only message reaches the model as `[the customer sent a
       photo]` instead of being refused, and every attachment type Meta might
       send has a word for it
@@ -778,8 +861,9 @@ These are not optional, and none of them may be inferred from the code.
       called the model, and was escalated when **Meta refused the send with
       `window_closed`** — no message row written for something the customer
       never received. The designed failure path, seen working in production
-- [ ] Token expiry on the receiving path, and the seller notification that
-      tells them an escalated conversation is waiting
+- [ ] Token expiry on the receiving path. (The seller notification for an
+      escalated conversation is done inside an open tab — the bell, 23
+      September; a closed browser waits on Web Push, below)
 
 ## Phase Two is done when
 

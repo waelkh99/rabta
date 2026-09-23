@@ -46,8 +46,8 @@ Do not add these unless explicitly requested:
   see below.**
 - ~~Product catalog management.~~ **Partly requested 19 September 2026.** A
   product catalog exists in Phase Two so the AI can answer questions from it.
-  It is not inventory management: no stock counts, no variants, no SKUs, no
-  images.
+  It is not inventory management: no stock counts, no variants, no SKUs, ~~no
+  images~~. **Product photos requested 22 September 2026** — see Phase Two.
 - Order management.
 - Inventory management.
 - Delivery company integrations.
@@ -106,7 +106,33 @@ has three parts:
 ### Still out of scope in Phase Two
 
 Insights and recommendations to the seller, analytics, order management, stock
-decrementing, product variants, SKUs and product images.
+decrementing, product variants, SKUs, ~~and product images~~, and promo codes.
+
+**Asked for on 22 September 2026, and now in Phase Two:**
+
+- **Product photos**, up to five per product. The assistant sends them to a
+  customer who asks to see an item, and later recognises a screenshot a
+  customer sends of one.
+- **Categories**, optional, so an offer can target a group of products.
+- **Offers** (العروض) — percentage off, a fixed amount off, and buy X get Y,
+  each for the whole shop, some categories or some products, with optional
+  dates; and, from 23 September, an offer written in the seller's own words,
+  which the assistant reads as written.
+
+- **Excel import and download.** A seller's own sheet is read as it is,
+  whatever its column names, and the catalog can be downloaded as a sheet to
+  edit and import back.
+- **A product code** (رمز المنتج), so a sheet imported again updates the
+  products it lists. Matched on the code, never the name — a shop writes one
+  product in Arabic in one place and English in another. Every product has
+  one: the seller's own, or the next `P-001` style code. This is a label the
+  seller already uses, not a SKU in the inventory sense; nothing hangs off it.
+
+Sizes, colours and fit are **not** structured fields. The product owner asked
+for the easiest thing for the seller "even if it puts extra load on the agent":
+the seller writes them in one details box, in their own words, and the
+assistant reads it. A size or colour list with its own stock or price would be
+variants, and variants are still out.
 
 The catalog exists so the model can answer questions. It is not a place for the
 seller to run their inventory, and it should not grow into one without a
@@ -158,13 +184,17 @@ When the sales section exists it becomes a third source feeding the same
 `renderFacts` string, and the `خصم` patterns in `claimsAreGrounded` become
 legitimate the same way this one did — by the shop having written it down.
 
-**Known and waiting:** the products section needs expanding. It holds a name,
-a price, a description and an in-stock boolean, and that is thin — sellers have
-more to say about what they sell than fits in one free-text line. Whatever it
-grows into, the assistant reads it. The sales and discounts section is the
-other one already promised: when it exists, the assistant reads whatever
-applies to the item the customer is asking about, and stops saying "حالياً ما
-في خصم" by default.
+**Done 22 September 2026, the second and third worked examples:** the products
+section (photos, codes, categories, details) and the offers section. Both feed
+`renderFacts`. Offers needed step 3 the same way the pricing stance did — a
+running offer writes the discount words into the facts, so the guard finds them
+— and photos needed a guard of their own, because the model promised photos
+that did not exist. `npm run replay` found both problems, not the unit tests.
+
+**Done 23 September 2026:** offers in the seller's own words, read and
+understood by the assistant rather than recited; and recognising a screenshot
+a customer sends against the catalog's thumbnails. Both measured against the
+real model.
 
 None of this widens Phase Two's goal. It is a rule about keeping the assistant
 in step with the product, not a licence to add features.

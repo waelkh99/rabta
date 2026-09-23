@@ -9,6 +9,7 @@
 
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
+import { readFileSync } from "node:fs";
 
 import {
   ask,
@@ -19,13 +20,22 @@ import {
   HAIKU,
   HANDOVER_LINE,
   isSpoken,
-  MAX_CONSECUTIVE_AI,
   MODEL,
   MONTHLY_CEILING,
+  DEFAULT_CURRENCY,
+  MAX_PHOTOS,
+  MAX_THUMBNAILS,
+  wordedOfferPrices,
+  mentionsPhoto,
   numbersAreGrounded,
+  photosMissing,
+  photosToSend,
   readDecision,
   readsAsArabic,
   nowInAmman,
+  salePrice,
+  todayInAmman,
+  type Offer,
   readUsage,
   renderCatalog,
   renderFacts,
@@ -182,7 +192,6 @@ const open = (overrides: Partial<ReplyContext> = {}): ReplyContext => ({
   enabled: true,
   windowExpiresAt: hoursAhead(12),
   lastSellerReplyAt: null,
-  consecutiveAiReplies: 0,
   aiRepliesThisMonth: 0,
   ...overrides,
 });
@@ -219,34 +228,24 @@ test("a photo on its own no longer stops the conversation before it starts", () 
   assert.equal(guard(open(), NOW), null);
 });
 
-test("the AI stops after answering enough times in a row", () => {
-  // A customer who keeps getting machine answers is being kept from a person.
-  assert.equal(guard(open({ consecutiveAiReplies: MAX_CONSECUTIVE_AI }), NOW), "ai_streak");
-  assert.equal(guard(open({ consecutiveAiReplies: MAX_CONSECUTIVE_AI + 5 }), NOW), "ai_streak");
-});
-
-test("the AI keeps answering below the streak limit", () => {
-  assert.equal(guard(open({ consecutiveAiReplies: MAX_CONSECUTIVE_AI - 1 }), NOW), null);
-});
-
-test("the streak limit leaves room for a real sale", () => {
-  // It was three, which killed the conversation at the point the customer was
-  // closest to buying. A sale runs eight to twelve turns.
-  assert.ok(MAX_CONSECUTIVE_AI >= 8, `cap is ${MAX_CONSECUTIVE_AI}`);
+test("there is no limit on replies in a row", () => {
+  // It was three, then eight, then twenty, and on 23 September it stopped a
+  // live customer mid-conversation. The product owner: "freezing is not an
+  // option". Nothing about the conversation's length can stop it now — only
+  // the window, the seller being present, and the monthly ceiling.
+  assert.equal(guard(open(), NOW), null);
+  assert.ok(!("consecutiveAiReplies" in open()), "the context no longer carries a count");
 });
 
 // ---------------------------------------------------------------------------
 // Telling the customer, rather than leaving them in silence
 // ---------------------------------------------------------------------------
 
-test("the customer is told once when the streak runs out, not on every message", () => {
+test("the customer is told once when the ceiling is reached, not on every message", () => {
   // The hand-over line is itself an AI reply, so sending it pushes the count
-  // one past the limit. That is the whole mechanism — there is no flag.
-  assert.equal(isSpoken("ai_streak", open({ consecutiveAiReplies: MAX_CONSECUTIVE_AI })), true);
-  assert.equal(
-    isSpoken("ai_streak", open({ consecutiveAiReplies: MAX_CONSECUTIVE_AI + 1 })),
-    false,
-  );
+  // one past the ceiling. That is the whole mechanism — there is no flag.
+  assert.equal(isSpoken("ceiling", open({ aiRepliesThisMonth: MONTHLY_CEILING })), true);
+  assert.equal(isSpoken("ceiling", open({ aiRepliesThisMonth: MONTHLY_CEILING + 1 })), false);
 });
 
 test("the customer is told once when the monthly ceiling is reached", () => {
@@ -309,12 +308,12 @@ test("the monthly ceiling stops the bill running away", () => {
   assert.equal(guard(open({ aiRepliesThisMonth: MONTHLY_CEILING }), NOW), "ceiling");
 });
 
-test("the window is checked before the streak, so an old conversation is cheap to refuse", () => {
+test("the window is checked before the ceiling, so an old conversation is cheap to refuse", () => {
   // Order matters only for which reason the seller is shown. The window is the
   // more honest explanation of the two.
   const doomed = open({
     windowExpiresAt: hoursAhead(-1),
-    consecutiveAiReplies: MAX_CONSECUTIVE_AI,
+    aiRepliesThisMonth: MONTHLY_CEILING,
   });
   assert.equal(guard(doomed, NOW), "window_closed");
 });
@@ -1348,7 +1347,7 @@ const answer = (payload: unknown, usage: Record<string, number> = {}) => ({
 
 test("a reply is read back", () => {
   const decision = readDecision(answer({ text: "25.500 دينار", handOver: false }));
-  assert.deepEqual(decision, { text: "25.500 دينار", handOver: false, reason: null });
+  assert.deepEqual(decision, { text: "25.500 دينار", handOver: false, reason: null, photos: [] });
 });
 
 test("a hand-over carries its reason AND still carries a reply", () => {
@@ -1362,6 +1361,7 @@ test("a hand-over carries its reason AND still carries a reply", () => {
     text: "الفستان 25.5، وصاحب المحل رح يرد عن الباقي",
     handOver: true,
     reason: "wants a discount",
+    photos: [],
   });
 });
 
@@ -1554,7 +1554,7 @@ test("a decision comes back with what it cost", async () => {
   assert.equal(outcome.status, "decided");
   assert.equal(sent.length, 1);
   if (outcome.status === "decided") {
-    assert.deepEqual(outcome.decision, { text: "25.500", handOver: false, reason: null });
+    assert.deepEqual(outcome.decision, { text: "25.500", handOver: false, reason: null, photos: [] });
     assert.equal(outcome.usage.cacheReadTokens, 8000);
   }
 });
@@ -1739,4 +1739,440 @@ test("the fixed price instructions are the same bytes for every shop", () => {
   }).system as Record<string, unknown>[];
 
   assert.equal(plain[0].text, strict[0].text);
+});
+
+// ---------------------------------------------------------------------------
+// Categories and photos, 22 September 2026
+//
+// The assistant has to read what the seller now writes down — a category and
+// a photo — and it sends a photo by naming a product, never by handling a URL.
+// ---------------------------------------------------------------------------
+
+const PHOTO = "https://example.supabase.co/storage/v1/object/public/product-photos/ws/abc.jpg";
+
+const BAG = {
+  name: "شنطة جلد",
+  price: 18,
+  description: "اللون: أسود، بيج\nالمقاسات: وسط",
+  inStock: true,
+  category: "شنط",
+  photo: PHOTO,
+};
+
+test("a product's category and photo reach the catalog, and the URL does not", () => {
+  const rendered = renderCatalog([BAG]);
+
+  assert.ok(rendered.includes("category: شنط"), rendered);
+  assert.ok(rendered.includes("has photo"), rendered);
+  // The model names products; it never needs the address, and could copy it
+  // into a reply if it had it.
+  assert.ok(!rendered.includes("http"), rendered);
+});
+
+test("details written over several lines stay on the product's one line", () => {
+  // Excel imports write one detail per line. Left as they are, a line reading
+  // "المقاسات: وسط" would sit in the list with no product in front of it.
+  const rendered = renderCatalog([BAG]);
+
+  assert.equal(rendered.split("\n").length, 1, rendered);
+  assert.ok(rendered.includes("اللون: أسود، بيج; المقاسات: وسط"), rendered);
+});
+
+test("a product with no photo says nothing about one", () => {
+  assert.ok(!renderCatalog([DRESS]).includes("photo"));
+});
+
+test("photos come back from the model's answer", () => {
+  const decision = readDecision(answer({ text: "هاي هي", handOver: false, photos: ["شنطة جلد"] }));
+  assert.deepEqual(decision?.photos, ["شنطة جلد"]);
+});
+
+test("a missing or malformed photos field is no photos, not an unusable answer", () => {
+  assert.deepEqual(readDecision(answer({ text: "هلا", handOver: false }))?.photos, []);
+  assert.deepEqual(
+    readDecision(answer({ text: "هلا", handOver: false, photos: "شنطة" }))?.photos,
+    [],
+  );
+  assert.deepEqual(
+    readDecision(answer({ text: "هلا", handOver: false, photos: [3, "شنطة جلد"] }))?.photos,
+    ["شنطة جلد"],
+  );
+});
+
+test("a photo is sent only for a product that has one, named exactly", () => {
+  const products = [BAG, { ...DRESS, photo: null }];
+
+  assert.deepEqual(photosToSend(["شنطة جلد"], products, []), [{ product: "شنطة جلد", url: PHOTO }]);
+  // Close is not the same product. The wrong photo under a price is worse
+  // than none.
+  assert.deepEqual(photosToSend(["شنطة"], products, []), []);
+  assert.deepEqual(photosToSend(["فستان أحمر"], products, []), []);
+  assert.deepEqual(photosToSend(["something invented"], products, []), []);
+});
+
+test("a photo already sent in this conversation is not sent again", () => {
+  const turns = [
+    { inbound: true, text: "بدي أشوف الشنطة" },
+    { inbound: false, text: attachmentTurn([{ type: "image", product: "شنطة جلد" }], false)! },
+  ];
+
+  assert.deepEqual(photosToSend(["شنطة جلد"], [BAG], turns), []);
+});
+
+test("no more than two photos go with one reply, and none twice", () => {
+  const products = ["a", "b", "c"].map((name) => ({ ...BAG, name, photo: `${PHOTO}?${name}` }));
+
+  const chosen = photosToSend(["a", "a", "b", "c"], products, []);
+  assert.deepEqual(chosen.map((c) => c.product), ["a", "b"]);
+  assert.equal(chosen.length, MAX_PHOTOS);
+});
+
+test("the shop's own photo is written as the shop's, with the product it showed", () => {
+  assert.equal(
+    attachmentTurn([{ type: "image", product: "شنطة جلد" }], false),
+    "[the shop sent a photo of شنطة جلد]",
+  );
+  assert.equal(attachmentTurn([{ type: "image" }], false), "[the shop sent a photo]");
+  // Inbound is unchanged.
+  assert.equal(attachmentTurn([{ type: "image" }]), "[the customer sent a photo]");
+});
+
+test("the model is told how to send a photo, and asked for the field", () => {
+  const body = buildRequest({
+    facts: renderFacts({ shop: SHOP, zones: [], products: [BAG] }),
+    now: new Date("2026-09-22T10:00:00Z"),
+    examples: [],
+    turns: [{ inbound: true, text: "بدي أشوف الشنطة" }],
+    customerName: null,
+  }) as { system: { text: string }[]; output_config?: unknown };
+
+  const instructions = body.system[0].text;
+  assert.ok(instructions.includes('"has photo"'), "the instructions explain the marker");
+
+  const schema = JSON.stringify(body);
+  assert.ok(schema.includes('"photos"'), "the schema asks for photos");
+});
+
+// ---------------------------------------------------------------------------
+// Offers, 22 September 2026
+//
+// The sale price is worked out in code and written into the facts, never
+// calculated by the model — the grounding check would refuse a number it
+// made up, and rightly.
+// ---------------------------------------------------------------------------
+
+const SHARED = JSON.parse(
+  readFileSync(new URL("../../test/fixtures/offers.json", import.meta.url), "utf8"),
+) as {
+  cases: {
+    name: string;
+    product: { id: string; price: number | null; categoryId: string | null };
+    offers: Offer[];
+    today: string;
+    expected: number | null;
+  }[];
+};
+
+for (const example of SHARED.cases) {
+  test(`sale price, shared with the client: ${example.name}`, () => {
+    const product = { ...example.product, name: "x", description: null, inStock: true };
+    assert.equal(salePrice(product, example.offers, example.today)?.price ?? null, example.expected);
+  });
+}
+
+test("today is Amman's date, not the server's", () => {
+  // 22:30 UTC on the 22nd is already the 23rd in Amman (UTC+3), which is the
+  // difference between an offer that ended yesterday and one still running.
+  assert.equal(todayInAmman(new Date("2026-09-22T22:30:00Z")), "2026-09-23");
+  assert.equal(todayInAmman(new Date("2026-09-22T12:00:00Z")), "2026-09-22");
+});
+
+const DRESS_ON_SALE = { ...DRESS, id: "p_dress", categoryId: "c_dresses", category: "فساتين" };
+const EID: Offer = {
+  name: "عرض العيد",
+  kind: "percent",
+  value: 20,
+  categoryIds: ["c_dresses"],
+  endsOn: "2026-09-30",
+};
+
+const withOffers = (offers: Offer[], today = "2026-09-22") =>
+  renderFacts({ shop: SHOP, zones: [], products: [DRESS_ON_SALE, SHOES], offers, today });
+
+test("a product on sale shows its sale price beside the listed one, and when it ends", () => {
+  const facts = withOffers([EID]);
+  const dress = facts.split("\n").find((line) => line.startsWith("- فستان أحمر"))!;
+
+  assert.ok(dress.includes("on sale: 20.4 د.ا instead of 25.5"), dress);
+  assert.ok(dress.includes("عرض العيد"), dress);
+  assert.ok(dress.includes("until 2026-09-30"), dress);
+  // The shoes are not in the category.
+  assert.ok(!facts.split("\n").find((line) => line.startsWith("- حذاء"))!.includes("on sale"));
+});
+
+test("the offers section says what each offer covers, by name", () => {
+  const facts = withOffers([
+    EID,
+    { kind: "buy_get", buy: 2, get: 1, productIds: ["p_dress"] },
+    { kind: "amount", value: 3 },
+  ]);
+
+  assert.ok(facts.includes("عرض العيد: 20% off (خصم 20%), on everything in فساتين, until 2026-09-30"), facts);
+  assert.ok(facts.includes("buy 2 get 1 free (اشتري 2 وخذ 1 مجاناً)"), facts);
+  assert.ok(facts.includes("on فستان أحمر"), facts);
+  assert.ok(facts.includes("3 د.ا off"), facts);
+  assert.ok(facts.includes("on everything in the shop"), facts);
+});
+
+test("an offer that has ended, not started, or been switched off is not written at all", () => {
+  for (const offer of [
+    { ...EID, endsOn: "2026-09-21" },
+    { ...EID, startsOn: "2026-09-23", endsOn: null },
+    { ...EID, enabled: false },
+  ]) {
+    const facts = withOffers([offer]);
+    assert.ok(!facts.includes("on sale"), facts);
+    assert.ok(!facts.includes("خصم"), facts);
+    assert.ok(!facts.includes("Offers"), facts);
+  }
+});
+
+test("an offer on products that no longer exist says nothing", () => {
+  const facts = withOffers([{ kind: "percent", value: 10, productIds: ["deleted"] }]);
+  assert.ok(!facts.includes("Offers"), facts);
+});
+
+test("with no offers the facts are what they were before offers existed", () => {
+  // Byte-identical, so every shop that has not made an offer keeps its cache
+  // and its behaviour exactly.
+  assert.equal(
+    withOffers([]),
+    renderFacts({ shop: SHOP, zones: [], products: [DRESS_ON_SALE, SHOES] }),
+  );
+});
+
+test("a running offer makes the discount true, and the guard lets it through", () => {
+  const reply = "الفستان عليه خصم 20% بعرض العيد، صار 20.4 بدل 25.5";
+
+  // No offer: an invented discount, refused — the guard is unchanged.
+  assert.equal(claimsAreGrounded(reply, withOffers([]), []), "خصم");
+  // An offer running: written in the facts, so it is true, and allowed.
+  assert.equal(claimsAreGrounded(reply, withOffers([EID]), []), null);
+  assert.equal(numbersAreGrounded(reply, withOffers([EID]), []), true);
+
+  // The same in English.
+  const english = "The dress is on sale: 20.4 instead of 25.5, a 20% discount";
+  assert.notEqual(claimsAreGrounded(english, withOffers([]), []), null);
+  assert.equal(claimsAreGrounded(english, withOffers([EID]), []), null);
+});
+
+test("a sale price the model worked out for itself is refused", () => {
+  // 25.5 at 30% off is 17.85 — a real number, and not one the shop wrote.
+  assert.equal(numbersAreGrounded("صار سعره 17.85", withOffers([EID]), []), false);
+});
+
+test("the instructions are the same for a shop with offers as without", () => {
+  const request = (offers: Offer[]) =>
+    (buildRequest({
+      facts: withOffers(offers),
+      now: new Date("2026-09-22T10:00:00Z"),
+      examples: [],
+      turns: [{ inbound: true, text: "في خصم؟" }],
+      customerName: null,
+    }) as { system: { text: string }[] }).system[0].text;
+
+  assert.equal(request([]), request([EID]));
+  assert.ok(request([]).includes("Do not work one out yourself"));
+});
+
+test("a product's code reaches the catalog, so a customer can quote it", () => {
+  const rendered = renderCatalog([{ ...DRESS, code: "FS-101" }]);
+  assert.ok(rendered.includes("code: FS-101"), rendered);
+  // A product without one says nothing about it.
+  assert.ok(!renderCatalog([DRESS]).includes("code"));
+});
+
+test("of two products with one name, the one with a photo is the one sent", () => {
+  const products = [
+    { ...BAG, name: "فستان سهرة", photo: null },
+    { ...BAG, name: "فستان سهرة", photo: PHOTO },
+  ];
+  assert.deepEqual(photosToSend(["فستان سهرة"], products, []), [{ product: "فستان سهرة", url: PHOTO }]);
+});
+
+test("a photo asked for that no product has is reported as missing", () => {
+  const products = [BAG, { ...DRESS, photo: null }];
+  assert.deepEqual(photosMissing(["شنطة جلد"], products), []);
+  assert.deepEqual(photosMissing(["فستان أحمر", "made up"], products), ["فستان أحمر", "made up"]);
+});
+
+test("a reply that talks about a photo is recognised, in either language", () => {
+  for (const text of ["تمام، هاي صورته", "رح أبعتلك الصورة", "Here's a photo", "sending you a picture", "pics coming"]) {
+    assert.equal(mentionsPhoto(text), true, text);
+  }
+  for (const text of ["الفستان الأحمر بـ 25.5 د.ا", "The red dress is 25.5", "topic"]) {
+    assert.equal(mentionsPhoto(text), false, text);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// 22 September, second round: currency, worded offers, customer photos
+// ---------------------------------------------------------------------------
+
+test("a shop that never set a currency is in Jordanian dinars", () => {
+  const facts = renderFacts({ shop: null, zones: [], products: [DRESS] });
+  assert.ok(facts.includes(`25.5 ${DEFAULT_CURRENCY}`), facts);
+  assert.equal(DEFAULT_CURRENCY, "دينار أردني");
+
+  const blank = renderFacts({ shop: { ...SHOP, currency: "  " }, zones: [], products: [DRESS] });
+  assert.ok(blank.includes(DEFAULT_CURRENCY), blank);
+  // A currency the shop did set is kept.
+  assert.ok(renderFacts({ shop: SHOP, zones: [], products: [DRESS] }).includes("25.5 د.ا"));
+});
+
+const WORDED: Offer = {
+  name: "عرض الخريف",
+  kind: "text",
+  description: "خصم 20% على كل الفساتين، والتوصيل مجاني",
+  endsOn: "2026-09-30",
+};
+
+test("an offer in the shop's own words is read as written, marked as such", () => {
+  const facts = withOffers([WORDED]);
+  assert.ok(
+    facts.includes("- عرض الخريف: خصم 20% على كل الفساتين، والتوصيل مجاني (in the shop's own words), until 2026-09-30"),
+    facts,
+  );
+  // It is not pretended to cover the whole shop, and it computes nothing.
+  assert.ok(!facts.includes("everything in the shop"), facts);
+  assert.ok(!facts.includes("on sale:"), facts);
+});
+
+test("a worded offer the seller also scoped says its limit", () => {
+  const facts = withOffers([{ ...WORDED, categoryIds: ["c_dresses"] }]);
+  assert.ok(facts.includes("and only on everything in فساتين"), facts);
+});
+
+test("a worded offer that has ended, or is empty, is not written", () => {
+  assert.ok(!withOffers([{ ...WORDED, endsOn: "2026-09-21" }]).includes("own words"));
+  assert.ok(!withOffers([{ ...WORDED, description: "  " }]).includes("own words"));
+});
+
+test("a worded offer lets the model apply its percentage to a listed price", () => {
+  const prices = wordedOfferPrices([DRESS, SHOES], [WORDED], "2026-09-22");
+  // 25.5 at 20% off is 20.4, a saving of 5.1; 40.75 is 32.6 and 8.15.
+  for (const value of [20.4, 5.1, 32.6, 8.15]) assert.ok(prices.includes(value), `${value} in ${prices}`);
+
+  const reply = "الفستان عليه خصم 20% صار 20.4 بدل 25.5";
+  const facts = withOffers([WORDED]);
+  assert.equal(numbersAreGrounded(reply, facts, []), false, "without the worded prices it is refused");
+  assert.equal(numbersAreGrounded(reply, facts, [], prices), true);
+});
+
+test("a worded offer allows one step, not any arithmetic", () => {
+  const prices = wordedOfferPrices([DRESS, SHOES], [WORDED], "2026-09-22");
+  // Two items together, after the discount: a basket total nobody wrote.
+  assert.equal(numbersAreGrounded("المجموع 53", withOffers([WORDED]), [], prices), false);
+});
+
+test("a worded offer's prices respect a scope the seller picked, and its dates", () => {
+  const scoped = wordedOfferPrices([DRESS_ON_SALE, SHOES], [{ ...WORDED, categoryIds: ["c_dresses"] }], "2026-09-22");
+  assert.ok(scoped.includes(20.4));
+  assert.ok(!scoped.includes(32.6), "the shoes are not in the category");
+
+  assert.deepEqual(wordedOfferPrices([DRESS], [{ ...WORDED, endsOn: "2026-09-21" }], "2026-09-22"), []);
+  assert.deepEqual(wordedOfferPrices([DRESS], [{ ...WORDED, enabled: false }], "2026-09-22"), []);
+});
+
+test("an amount written in the shop's words is applied the same way", () => {
+  const prices = wordedOfferPrices([DRESS], [{ kind: "text", description: "5 دنانير خصم على أي قطعة" }], "2026-09-22");
+  assert.ok(prices.includes(20.5), `${prices}`);
+});
+
+const THUMB = "https://example.supabase.co/storage/v1/object/public/product-photos/ws/abc_s.jpg";
+const SCREENSHOT = "https://scontent.xx.fbcdn.net/v/screenshot.jpg";
+
+const photoRequest = (turns: { inbound: boolean; text: string; image?: string }[], extra = {}) =>
+  buildRequest({
+    facts: "x",
+    now: new Date("2026-09-22T10:00:00Z"),
+    examples: [],
+    turns,
+    customerName: null,
+    products: [{ ...BAG, code: "P-004", thumb: THUMB }, { ...DRESS, thumb: null }],
+    ...extra,
+  }) as { messages: { role: string; content: unknown }[] };
+
+test("a photo the customer just sent is shown with the catalog's thumbnails", () => {
+  const body = photoRequest([{ inbound: true, text: "كم سعر هاد؟", image: SCREENSHOT }]);
+  const last = body.messages.at(-1)!;
+  const blocks = last.content as { type: string; text?: string; source?: { url: string } }[];
+
+  const images = blocks.filter((b) => b.type === "image").map((b) => b.source!.url);
+  assert.deepEqual(images, [THUMB, SCREENSHOT], "the thumbnail first, the customer's photo after");
+  assert.ok(blocks.some((b) => b.text === "P-004 — شنطة جلد"), "each thumbnail is labelled");
+  assert.equal(blocks.at(-1)!.text, "كم سعر هاد؟", "their words come last");
+  // A product with no photo has no thumbnail to show.
+  assert.ok(!blocks.some((b) => b.text?.includes("فستان أحمر")));
+});
+
+test("an older photo is not sent again, nor one when told to leave images out", () => {
+  const older = photoRequest([
+    { inbound: true, text: "[the customer sent a photo]", image: SCREENSHOT },
+    { inbound: false, text: "قصدك الشنطة؟" },
+    { inbound: true, text: "آه" },
+  ]);
+  assert.equal(typeof older.messages.at(-1)!.content, "string");
+
+  const without = photoRequest([{ inbound: true, text: "كم سعر هاد؟", image: SCREENSHOT }], { withImages: false });
+  assert.equal(typeof without.messages.at(-1)!.content, "string");
+});
+
+test("no more than MAX_THUMBNAILS products go with one photo", () => {
+  const many = Array.from({ length: MAX_THUMBNAILS + 10 }, (_, i) => ({ ...BAG, name: `p${i}`, thumb: `${THUMB}?${i}` }));
+  const body = buildRequest({
+    facts: "x", now: new Date(), examples: [], customerName: null, products: many,
+    turns: [{ inbound: true, text: "?", image: SCREENSHOT }],
+  }) as { messages: { content: { type: string }[] }[] };
+  const images = body.messages.at(-1)!.content.filter((b) => b.type === "image");
+  assert.equal(images.length, MAX_THUMBNAILS + 1);
+});
+
+test("a request refused over its images is asked again without them", async () => {
+  const bodies: string[] = [];
+  const fetcher = ((_url: string, init?: RequestInit) => {
+    bodies.push(String(init?.body));
+    const withImage = String(init?.body).includes(SCREENSHOT);
+    return Promise.resolve(
+      withImage
+        ? ({ ok: false, status: 400, json: () => Promise.resolve({}) } as Response)
+        : ({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve(answer({ text: "أي قطعة قصدك؟", handOver: false, photos: [] })),
+        } as Response),
+    );
+  }) as unknown as typeof fetch;
+
+  const outcome = await ask("key", {
+    facts: "x", now: new Date(), examples: [], customerName: null,
+    turns: [{ inbound: true, text: "[the customer sent a photo]", image: SCREENSHOT }],
+    products: [{ ...BAG, thumb: THUMB }],
+  }, fetcher);
+
+  assert.equal(outcome.status, "decided");
+  assert.equal(bodies.length, 2);
+  assert.ok(!bodies[1].includes(SCREENSHOT));
+});
+
+test("a failure with no images in the request is not retried", async () => {
+  let calls = 0;
+  const fetcher = (() => {
+    calls++;
+    return Promise.resolve({ ok: false, status: 400, json: () => Promise.resolve({}) } as Response);
+  }) as unknown as typeof fetch;
+
+  const outcome = await ask("key", { facts: "x", now: new Date(), examples: [], turns: [{ inbound: true, text: "hi" }] }, fetcher);
+  assert.equal(outcome.status, "failed");
+  assert.equal(calls, 1);
 });

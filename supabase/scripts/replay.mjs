@@ -10,7 +10,7 @@
 // sends nothing to Meta and writes nothing back.
 
 import { readFile } from "node:fs/promises";
-import { ask, renderFacts, tidyEmoji, claimsAreGrounded, numbersAreGrounded } from "../functions/meta-webhook/ai.ts";
+import { ask, renderFacts, tidyEmoji, claimsAreGrounded, numbersAreGrounded, mentionsPhoto, photosMissing, photosToSend, todayInAmman, wordedOfferPrices } from "../functions/meta-webhook/ai.ts";
 
 const env = {};
 for (const file of ["../.env", "../.env.local"]) {
@@ -28,17 +28,40 @@ const key = env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY;
 const headers = { apikey: key, Authorization: `Bearer ${key}` };
 const get = async (p) => (await fetch(`${url}/rest/v1/${p}`, { headers })).json();
 
-const products = await get("products?select=name,price,description,in_stock&order=name");
-const [shopRow] = await get("shop?select=currency,delivery_note,locations,hours,about,price_stance");
+// The same columns aiPrompt reads, so the replay sees what production sees:
+// codes, categories, photos and offers included.
+// One shop at a time. REPLAY_WORKSPACE names it; without it, the first
+// workspace that has a catalog. Unfiltered, a project with more than one
+// seller mixed their catalogs into one prompt.
+const workspace = process.env.REPLAY_WORKSPACE ??
+  (await get("products?select=workspace_id&limit=1"))[0]?.workspace_id;
+const ws = `workspace_id=eq.${workspace}`;
+
+const products = await get("products?" + ws + "&select=id,code,name,price,description,in_stock,category_id,photos,categories(name)&order=name");
+const offers = await get("offers?" + ws + "&select=name,kind,value,description,buy,get,category_ids,product_ids,starts_on,ends_on,enabled&order=created_at");
+const [shopRow] = await get("shop?" + ws + "&select=currency,delivery_note,locations,hours,about,price_stance");
 
 // Whatever Meta told us this customer is called, which is what decides how the
 // assistant addresses them in Arabic. Overridable so an ambiguous name can be
 // tried without touching the database.
 const nameArg = process.env.REPLAY_NAME;
-const [conv] = await get("conversations?select=customer_name&order=last_message_at.desc&limit=1");
+const [conv] = await get("conversations?" + ws + "&select=customer_name&order=last_message_at.desc&limit=1");
 const customerName = nameArg !== undefined ? nameArg : (conv?.customer_name ?? null);
 console.log(`--- customer name: ${customerName || "(none)"} ---`);
-const zones = await get("delivery_zones?select=name,fee&order=name");
+const zones = await get("delivery_zones?" + ws + "&select=name,fee&order=name");
+
+const catalog = products.map((p) => ({
+  id: p.id, code: p.code, categoryId: p.category_id, category: p.categories?.name ?? null,
+  name: p.name, price: p.price, description: p.description, inStock: p.in_stock !== false,
+  photo: p.photos?.length ? `${url}/storage/v1/object/public/product-photos/${p.photos[0]}` : null,
+  thumb: p.photos?.length ? `${url}/storage/v1/object/public/product-photos/${p.photos[0].replace(/\.jpg$/, "_s.jpg")}` : null,
+}));
+
+const offerRows = offers.map((o) => ({
+  name: o.name, kind: o.kind, value: o.value, buy: o.buy, get: o.get, description: o.description,
+  categoryIds: o.category_ids ?? [], productIds: o.product_ids ?? [],
+  startsOn: o.starts_on, endsOn: o.ends_on, enabled: o.enabled !== false,
+}));
 
 const facts = renderFacts({
   shop: shopRow ? {
@@ -47,16 +70,16 @@ const facts = renderFacts({
     priceStance: shopRow.price_stance === "strict" ? "strict" : "notify",
   } : null,
   zones: zones.map((z) => ({ name: z.name, fee: z.fee })),
-  products: products.map((p) => ({
-    name: p.name, price: p.price, description: p.description, inStock: p.in_stock !== false,
-  })),
+  products: catalog,
+  offers: offerRows,
+  today: todayInAmman(new Date()),
 });
 
 console.log(`--- the real shop: ${products.length} product(s) ---\n${facts}\n`);
 
 // The examples the assistant is really being given, same query as aiPrompt.
 const examples = (await get(
-  "messages?select=text&direction=eq.outbound&origin=eq.seller&text=not.is.null" +
+  "messages?" + ws + "&select=text&direction=eq.outbound&origin=eq.seller&text=not.is.null" +
   "&order=sent_at.desc&limit=40",
 )).map((m) => m.text).filter((t) => t && t.trim());
 
@@ -70,10 +93,12 @@ const lines = process.argv.slice(2).length
 const turns = [];
 console.log("\n--- replay ---");
 for (const line of lines) {
-  turns.push({ inbound: true, text: line });
-  console.log(`\n  customer > ${line}`);
+  const photo = line.startsWith("img:") ? line.slice(4).split("|") : null;
+  const text = photo ? (photo[1] || "[the customer sent a photo]") : line;
+  turns.push(photo ? { inbound: true, text, image: photo[0] } : { inbound: true, text });
+  console.log(`\n  customer > ${photo ? `[photo ${photo[0].split("/").pop()}] ` : ""}${photo ? (photo[1] ?? "") : line}`);
 
-  const out = await ask(env.ANTHROPIC_API_KEY, { facts, now: new Date(), examples, turns, customerName },
+  const out = await ask(env.ANTHROPIC_API_KEY, { facts, now: new Date(), examples, turns, customerName, products: catalog },
     fetch, env.ANTHROPIC_WORKSPACE_ID ?? "");
   if (out.status !== "decided") { console.log(`  !! ${out.status}`); break; }
 
@@ -81,10 +106,16 @@ for (const line of lines) {
   const said = turns.map((t) => t.text);
   const claim = claimsAreGrounded(reply, facts, said);
   console.log(`  shop     > ${reply}`);
+  // What production would send after the text: the photos it asked for that
+  // are real, not already sent, and at most two.
+  for (const photo of photosToSend(out.decision.photos, catalog, turns)) {
+    console.log(`  shop     > [photo of ${photo.product}] ${photo.url}`);
+  }
   const flags = [
     out.decision.handOver ? `hand over (${out.decision.reason})` : null,
     claim ? `!! HELD BACK: "${claim}"` : null,
-    numbersAreGrounded(reply, facts, said) ? null : "!! HELD BACK: number",
+    numbersAreGrounded(reply, facts, said, wordedOfferPrices(catalog, offerRows, todayInAmman(new Date()))) ? null : "!! HELD BACK: number",
+    photosMissing(out.decision.photos, catalog).length && mentionsPhoto(reply) ? `!! HELD BACK: no photo of ${photosMissing(out.decision.photos, catalog).join(", ")}` : null,
   ].filter(Boolean);
   if (flags.length) console.log(`             [${flags.join(" | ")}]`);
   turns.push({ inbound: false, text: reply });
