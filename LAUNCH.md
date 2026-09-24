@@ -12,7 +12,9 @@ are what is missing. Items 1–5 are blockers.
 
 ---
 
-## 0. Your admin account (do this first)
+## 0. Your admin account — done 25 September 2026
+
+Set up and signed in. Kept here for a forgotten password, until SMTP exists.
 
 Your account `wal.kh.saleh99@gmail.com` exists and is an admin. To set its
 password:

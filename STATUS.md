@@ -25,6 +25,16 @@ recognises a customer's screenshot, and understands offers written in the
 seller's own words. A hand-over is now impossible to miss, and there is no
 longer any limit on how many times in a row the assistant answers.**
 
+**Where it stands on 25 September 2026: code-complete for launch, waiting on
+the owner.** Since the paragraph above: search, taking a conversation over
+from the assistant, saving a hand-over answer, a warning when an account stops
+receiving, a retry for failed messages, how each conversation ended with a
+Results screen, and launch hardening — an Admin screen the owner runs the
+service from, logs and costs in the database, tighter permissions and password
+rules, and draft privacy and data-deletion pages. What remains is in
+`LAUNCH.md`: a production project (the current one is in Tokyo with no
+backups), hosting, SMTP, the legal pages, Meta review, and a pilot.
+
 ---
 
 ## Live right now
