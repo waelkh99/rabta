@@ -1866,6 +1866,204 @@ abstract class L {
   /// In ar, this message translates to:
   /// **'لم يُحفظ. حاول مرة أخرى.'**
   String get teachFailed;
+
+  /// No description provided for @outcomeOrdered.
+  ///
+  /// In ar, this message translates to:
+  /// **'طلب'**
+  String get outcomeOrdered;
+
+  /// No description provided for @outcomeNotBought.
+  ///
+  /// In ar, this message translates to:
+  /// **'لم يشترِ'**
+  String get outcomeNotBought;
+
+  /// No description provided for @outcomeJustAsking.
+  ///
+  /// In ar, this message translates to:
+  /// **'استفسار'**
+  String get outcomeJustAsking;
+
+  /// No description provided for @outcomeOpen.
+  ///
+  /// In ar, this message translates to:
+  /// **'لم تُحسم بعد'**
+  String get outcomeOpen;
+
+  /// No description provided for @outcomeQuestion.
+  ///
+  /// In ar, this message translates to:
+  /// **'كيف انتهت المحادثة؟'**
+  String get outcomeQuestion;
+
+  /// No description provided for @outcomeSet.
+  ///
+  /// In ar, this message translates to:
+  /// **'النتيجة'**
+  String get outcomeSet;
+
+  /// No description provided for @outcomeByAssistant.
+  ///
+  /// In ar, this message translates to:
+  /// **'حدّدها المساعد، ويمكنك تعديلها'**
+  String get outcomeByAssistant;
+
+  /// No description provided for @outcomeBySeller.
+  ///
+  /// In ar, this message translates to:
+  /// **'حدّدتها أنت'**
+  String get outcomeBySeller;
+
+  /// No description provided for @outcomeWhy.
+  ///
+  /// In ar, this message translates to:
+  /// **'السبب'**
+  String get outcomeWhy;
+
+  /// No description provided for @outcomeNoReason.
+  ///
+  /// In ar, this message translates to:
+  /// **'بدون سبب واضح'**
+  String get outcomeNoReason;
+
+  /// No description provided for @reason_price.
+  ///
+  /// In ar, this message translates to:
+  /// **'السعر'**
+  String get reason_price;
+
+  /// No description provided for @reason_delivery_fee.
+  ///
+  /// In ar, this message translates to:
+  /// **'رسوم التوصيل'**
+  String get reason_delivery_fee;
+
+  /// No description provided for @reason_delivery_time.
+  ///
+  /// In ar, this message translates to:
+  /// **'مدة التوصيل'**
+  String get reason_delivery_time;
+
+  /// No description provided for @reason_size_or_variant.
+  ///
+  /// In ar, this message translates to:
+  /// **'المقاس أو اللون غير متوفر'**
+  String get reason_size_or_variant;
+
+  /// No description provided for @reason_out_of_stock.
+  ///
+  /// In ar, this message translates to:
+  /// **'نفد من المخزون'**
+  String get reason_out_of_stock;
+
+  /// No description provided for @reason_not_sold.
+  ///
+  /// In ar, this message translates to:
+  /// **'منتج لا نبيعه'**
+  String get reason_not_sold;
+
+  /// No description provided for @reason_no_answer.
+  ///
+  /// In ar, this message translates to:
+  /// **'لم يُرَدّ عليه'**
+  String get reason_no_answer;
+
+  /// No description provided for @reason_unknown.
+  ///
+  /// In ar, this message translates to:
+  /// **'بدون سبب واضح'**
+  String get reason_unknown;
+
+  /// No description provided for @results.
+  ///
+  /// In ar, this message translates to:
+  /// **'النتائج'**
+  String get results;
+
+  /// No description provided for @resultsTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'آخر 7 أيام'**
+  String get resultsTitle;
+
+  /// No description provided for @resultsOrders.
+  ///
+  /// In ar, this message translates to:
+  /// **'محادثات انتهت بطلب: {ordered} من {total}'**
+  String resultsOrders(int ordered, int total);
+
+  /// No description provided for @resultsNone.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد محادثات في آخر 7 أيام.'**
+  String get resultsNone;
+
+  /// No description provided for @resultsPending.
+  ///
+  /// In ar, this message translates to:
+  /// **'تُقرأ المحادثة بعد أن تهدأ 12 ساعة، فقد لا تظهر محادثات اليوم بعد.'**
+  String get resultsPending;
+
+  /// No description provided for @resultsWhy.
+  ///
+  /// In ar, this message translates to:
+  /// **'لماذا لم يشترِ الزبائن'**
+  String get resultsWhy;
+
+  /// No description provided for @resultsProducts.
+  ///
+  /// In ar, this message translates to:
+  /// **'الأكثر سؤالاً عنه'**
+  String get resultsProducts;
+
+  /// No description provided for @resultsProductLine.
+  ///
+  /// In ar, this message translates to:
+  /// **'سُئل عنه {asked} · طلبات {ordered}'**
+  String resultsProductLine(int asked, int ordered);
+
+  /// No description provided for @resultsAreas.
+  ///
+  /// In ar, this message translates to:
+  /// **'من أين يكتب الزبائن'**
+  String get resultsAreas;
+
+  /// No description provided for @resultsUnanswered.
+  ///
+  /// In ar, this message translates to:
+  /// **'زبائن أُغلقت نافذة الرد قبل أن يُرَدّ عليهم: {count}'**
+  String resultsUnanswered(int count);
+
+  /// No description provided for @resultsHours.
+  ///
+  /// In ar, this message translates to:
+  /// **'متى يكتب الزبائن'**
+  String get resultsHours;
+
+  /// No description provided for @resultsBusiest.
+  ///
+  /// In ar, this message translates to:
+  /// **'أكثر الأوقات ازدحاماً من {from}:00 إلى {to}:00'**
+  String resultsBusiest(int from, int to);
+
+  /// No description provided for @resultsAccuracy.
+  ///
+  /// In ar, this message translates to:
+  /// **'محادثات قرأها المساعد: {read}، وعدّلتَ نتيجتها في: {corrected}'**
+  String resultsAccuracy(int read, int corrected);
+
+  /// No description provided for @resultsFailed.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعذّر تحميل النتائج. حاول مرة أخرى.'**
+  String get resultsFailed;
+
+  /// No description provided for @resultsRetry.
+  ///
+  /// In ar, this message translates to:
+  /// **'حاول مرة أخرى'**
+  String get resultsRetry;
 }
 
 class _LDelegate extends LocalizationsDelegate<L> {

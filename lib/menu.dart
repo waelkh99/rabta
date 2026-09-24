@@ -24,6 +24,7 @@ class AppMenu extends StatelessWidget {
     required this.onOffers,
     required this.onShop,
     required this.onAccounts,
+    required this.onResults,
   });
 
   final Inbox inbox;
@@ -31,6 +32,7 @@ class AppMenu extends StatelessWidget {
   final VoidCallback onOffers;
   final VoidCallback onShop;
   final VoidCallback onAccounts;
+  final VoidCallback onResults;
 
   @override
   Widget build(BuildContext context) {
@@ -58,6 +60,14 @@ class AppMenu extends StatelessWidget {
               label: l.inbox,
               selected: true,
               onTap: () => Navigator.pop(context),
+            ),
+            _MenuItem(
+              icon: Icons.insights_outlined,
+              label: l.results,
+              onTap: () {
+                Navigator.pop(context);
+                onResults();
+              },
             ),
             _MenuItem(
               icon: Icons.sell_outlined,

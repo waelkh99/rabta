@@ -1029,4 +1029,114 @@ class LEn extends L {
 
   @override
   String get teachFailed => 'Not saved. Try again.';
+
+  @override
+  String get outcomeOrdered => 'Ordered';
+
+  @override
+  String get outcomeNotBought => 'Didn\'t buy';
+
+  @override
+  String get outcomeJustAsking => 'Just asking';
+
+  @override
+  String get outcomeOpen => 'Still open';
+
+  @override
+  String get outcomeQuestion => 'How did it end?';
+
+  @override
+  String get outcomeSet => 'Outcome';
+
+  @override
+  String get outcomeByAssistant => 'Set by the assistant. You can change it.';
+
+  @override
+  String get outcomeBySeller => 'Set by you';
+
+  @override
+  String get outcomeWhy => 'Why';
+
+  @override
+  String get outcomeNoReason => 'No clear reason';
+
+  @override
+  String get reason_price => 'Price';
+
+  @override
+  String get reason_delivery_fee => 'Delivery fee';
+
+  @override
+  String get reason_delivery_time => 'Delivery time';
+
+  @override
+  String get reason_size_or_variant => 'Size or colour not available';
+
+  @override
+  String get reason_out_of_stock => 'Out of stock';
+
+  @override
+  String get reason_not_sold => 'Something we don\'t sell';
+
+  @override
+  String get reason_no_answer => 'Never answered';
+
+  @override
+  String get reason_unknown => 'No clear reason';
+
+  @override
+  String get results => 'Results';
+
+  @override
+  String get resultsTitle => 'Last 7 days';
+
+  @override
+  String resultsOrders(int ordered, int total) {
+    return '$ordered of $total conversations ended in an order';
+  }
+
+  @override
+  String get resultsNone => 'No conversations in the last 7 days.';
+
+  @override
+  String get resultsPending =>
+      'A conversation is read once it has been quiet for 12 hours, so today\'s may not show yet.';
+
+  @override
+  String get resultsWhy => 'Why customers didn\'t buy';
+
+  @override
+  String get resultsProducts => 'Most asked about';
+
+  @override
+  String resultsProductLine(int asked, int ordered) {
+    return 'Asked $asked · Ordered $ordered';
+  }
+
+  @override
+  String get resultsAreas => 'Where customers are';
+
+  @override
+  String resultsUnanswered(int count) {
+    return 'Customers whose reply window closed unanswered: $count';
+  }
+
+  @override
+  String get resultsHours => 'When customers write';
+
+  @override
+  String resultsBusiest(int from, int to) {
+    return 'Busiest from $from:00 to $to:00';
+  }
+
+  @override
+  String resultsAccuracy(int read, int corrected) {
+    return 'The assistant read $read conversations, and you changed $corrected of them.';
+  }
+
+  @override
+  String get resultsFailed => 'Couldn\'t load the results. Try again.';
+
+  @override
+  String get resultsRetry => 'Try again';
 }

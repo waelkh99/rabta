@@ -1,6 +1,6 @@
 # Where we are
 
-Updated 24 September 2026.
+Updated 25 September 2026.
 
 What is built, what is live, and what comes next. `CLAUDE.md` holds the product
 direction, `DECISIONS.md` the settled decisions and why, `CHECKLIST.md` the
@@ -29,7 +29,7 @@ longer any limit on how many times in a row the assistant answers.**
 
 ## Live right now
 
-Supabase project `xejtffbpfguwvybrwqqj`. Fourteen migrations applied, four Edge
+Supabase project `xejtffbpfguwvybrwqqj`. Sixteen migrations applied, four Edge
 Functions deployed.
 
 | Function | What it does | Auth |
@@ -51,9 +51,9 @@ against both the **Page** and **Instagram** objects with the same verify token.
 `META_APP_SECRET` and `META_VERIFY_TOKEN` are set on the functions. Public
 sign-up is off: `/auth/v1/settings` reports `disable_signup: true`.
 
-**429 backend tests** (`cd supabase && npm test`, which typechecks every Edge
+**462 backend tests** (`cd supabase && npm test`, which typechecks every Edge
 Function with `deno check` first; about ten seconds, no Docker and no network)
-and **225 client tests** (`flutter test`). Each new piece of
+and **234 client tests** (`flutter test`). Each new piece of
 logic is shown to fail when deliberately broken rather than assumed to be
 covered.
 
@@ -351,6 +351,11 @@ processing; a per-conversation "I'll handle this one" switch; and a card that
 saves the seller's answer to a hand-over into the shop's information.
 `DECISIONS.md` has the reasoning. Draft-on-open stays dropped.
 
+**Built 24–25 September, seen in a browser: how conversations end.** Each
+settled conversation is read by the assistant as ordered, didn't buy (with a
+reason), or just asking; the seller corrects it from the thread header; a
+Results screen shows the last seven days. See `CHECKLIST.md` section 13.
+
 **How to see what it did.** The Supabase CLI has no `functions logs`, and the
 rows are better evidence anyway. From `supabase/`: `npm run assistant` for what
 the assistant did and why, `npm run catalog` for everything it is allowed to
@@ -485,7 +490,11 @@ product-side work that is genuinely next, in the order it makes sense:
 8. **The screenshot quirk.** With no match for a customer's screenshot, the
    model offers the nearest item even when it is out of stock. Truthful, not
    ideal.
-9. **Decide what `notify` should mean.** It currently does what the assistant
+9. **Watch the first real week of outcomes.** Accuracy was measured on 32
+   scripted conversations and one real one. The Results screen says how often
+   the seller corrected the assistant; that number, on a real shop, is the
+   measurement that counts.
+10. **Decide what `notify` should mean.** It currently does what the assistant
    already did — answers, marks, hands over. Left open deliberately until
    there is a real case to watch.
 

@@ -23,6 +23,7 @@ class RabtaColors extends ThemeExtension<RabtaColors> {
     required this.accentSoft,
     required this.urgent,
     required this.assistant,
+    required this.won,
     required this.instagram,
     required this.messenger,
   });
@@ -79,6 +80,11 @@ class RabtaColors extends ThemeExtension<RabtaColors> {
   /// an assistant message also carries a word saying so.
   final Color assistant;
 
+  /// A conversation that ended in an order, and nothing else. Green because
+  /// every other hue here already means something; never used for the
+  /// assistant, so an order it marked still reads as an order.
+  final Color won;
+
   final Color instagram;
   final Color messenger;
 
@@ -105,6 +111,7 @@ class RabtaColors extends ThemeExtension<RabtaColors> {
     accentSoft: Color(0xFFEDE1FC),
     urgent: Color(0xFFD1365B),
     assistant: Color(0xFF0B7A6E),
+    won: Color(0xFF1C7C3A),
     instagram: Color(0xFFE1306C),
     messenger: Color(0xFF0866FF),
   );
@@ -126,6 +133,7 @@ class RabtaColors extends ThemeExtension<RabtaColors> {
     accentSoft: Color(0xFF2E2440),
     urgent: Color(0xFFFF8098),
     assistant: Color(0xFF58D5C9),
+    won: Color(0xFF74D38F),
     instagram: Color(0xFFF06595),
     messenger: Color(0xFF5B9DFF),
   );
@@ -146,6 +154,7 @@ class RabtaColors extends ThemeExtension<RabtaColors> {
     Color? accentSoft,
     Color? urgent,
     Color? assistant,
+    Color? won,
     Color? instagram,
     Color? messenger,
   }) =>
@@ -162,6 +171,7 @@ class RabtaColors extends ThemeExtension<RabtaColors> {
         accentSoft: accentSoft ?? this.accentSoft,
         urgent: urgent ?? this.urgent,
         assistant: assistant ?? this.assistant,
+        won: won ?? this.won,
         instagram: instagram ?? this.instagram,
         messenger: messenger ?? this.messenger,
       );
@@ -182,6 +192,7 @@ class RabtaColors extends ThemeExtension<RabtaColors> {
       accentSoft: Color.lerp(accentSoft, other.accentSoft, t)!,
       urgent: Color.lerp(urgent, other.urgent, t)!,
       assistant: Color.lerp(assistant, other.assistant, t)!,
+      won: Color.lerp(won, other.won, t)!,
       instagram: Color.lerp(instagram, other.instagram, t)!,
       messenger: Color.lerp(messenger, other.messenger, t)!,
     );

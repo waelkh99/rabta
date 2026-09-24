@@ -11,6 +11,7 @@
     "invite": "node scripts/invite.mjs",
     "admin": "node scripts/admin.mjs",
     "live": "node scripts/live-ai.ts",
+    "outcomes": "node scripts/outcomes-eval.ts",
     "assistant": "node scripts/assistant.mjs",
     "catalog": "node scripts/catalog.mjs",
     "replay": "node scripts/replay.mjs",

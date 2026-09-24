@@ -27,6 +27,9 @@ class Conversation {
     this.aiEscalationReason,
     this.aiEscalationCode,
     this.aiPaused = false,
+    this.outcome,
+    this.outcomeReason,
+    this.outcomeBy,
   });
 
   final String id;
@@ -64,6 +67,22 @@ class Conversation {
   /// The seller said "I'll handle this one": the assistant stays out of this
   /// conversation until they switch it back, whatever the shop setting is.
   final bool aiPaused;
+
+  /// How the conversation ended: `ordered`, `not_bought`, `just_asking`, or
+  /// `undecided` — and null before anyone has said. The database decides
+  /// between the seller's correction and the assistant's reading; see
+  /// 20260925000001_outcomes.sql.
+  final String? outcome;
+
+  /// Why a customer did not buy, as a code the interface names.
+  final String? outcomeReason;
+
+  /// `ai` or `seller`: whose label this is.
+  final String? outcomeBy;
+
+  /// The label worth drawing, or null. `undecided` is drawn as nothing.
+  String? get shownOutcome =>
+      outcome == null || outcome == 'undecided' ? null : outcome;
 
   bool get answeredByAssistant => aiState == 'answered';
 
@@ -120,11 +139,22 @@ class Conversation {
         aiEscalationReason: null,
         aiEscalationCode: null,
         aiPaused: aiPaused,
+        outcome: outcome,
+        outcomeReason: outcomeReason,
+        outcomeBy: outcomeBy,
       );
 
   /// The same conversation with only these changed. What opening it (nothing
   /// unread) and the pause switch need, without a reload.
-  Conversation copyWith({int? unreadCount, bool? aiPaused}) => Conversation(
+  Conversation copyWith({
+    int? unreadCount,
+    bool? aiPaused,
+    String? outcome,
+    String? outcomeReason,
+    String? outcomeBy,
+    bool clearReason = false,
+  }) =>
+      Conversation(
         id: id,
         platform: platform,
         customerName: customerName,
@@ -139,6 +169,9 @@ class Conversation {
         aiEscalationReason: aiEscalationReason,
         aiEscalationCode: aiEscalationCode,
         aiPaused: aiPaused ?? this.aiPaused,
+        outcome: outcome ?? this.outcome,
+        outcomeReason: clearReason ? null : (outcomeReason ?? this.outcomeReason),
+        outcomeBy: outcomeBy ?? this.outcomeBy,
       );
 
   static DateTime? _time(dynamic value) =>
@@ -159,6 +192,9 @@ class Conversation {
         aiEscalationReason: row['ai_escalation_reason'] as String?,
         aiEscalationCode: row['ai_escalation_code'] as String?,
         aiPaused: (row['ai_paused'] as bool?) ?? false,
+        outcome: row['outcome'] as String?,
+        outcomeReason: row['outcome_reason'] as String?,
+        outcomeBy: row['outcome_by'] as String?,
       );
 }
 
@@ -1266,6 +1302,100 @@ List<Conversation> inboxOrder(List<Conversation> all) {
 bool showGroupLabels({required int waiting, required int total}) =>
     waiting > 0 && waiting < total;
 
+/// The reasons a customer did not buy, in the order the seller reads them.
+const lostReasons = [
+  'price',
+  'delivery_fee',
+  'delivery_time',
+  'size_or_variant',
+  'out_of_stock',
+  'not_sold',
+  'no_answer',
+  'unknown',
+];
+
+/// One week of how conversations ended, as `outcome_summary` returns it.
+class WeekSummary {
+  const WeekSummary({
+    required this.conversations,
+    required this.ordered,
+    required this.notBought,
+    required this.justAsking,
+    required this.open,
+    required this.reasons,
+    required this.products,
+    required this.areas,
+    required this.unanswered,
+    required this.hours,
+    required this.readByAssistant,
+    required this.corrected,
+  });
+
+  final int conversations;
+  final int ordered;
+  final int notBought;
+  final int justAsking;
+  final int open;
+
+  /// Reason code to count, most common first.
+  final List<MapEntry<String, int>> reasons;
+  final List<({String name, int asked, int ordered})> products;
+  final List<({String name, int count})> areas;
+  final int unanswered;
+
+  /// 24 counts, midnight first, in Amman time.
+  final List<int> hours;
+  final int readByAssistant;
+  final int corrected;
+
+  static int _int(dynamic v) => (v as num?)?.toInt() ?? 0;
+
+  factory WeekSummary.fromJson(Map<String, dynamic> j) {
+    final reasons = Map<String, dynamic>.from((j['reasons'] as Map?) ?? {})
+        .entries
+        .map((e) => MapEntry(e.key, _int(e.value)))
+        .toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    return WeekSummary(
+      conversations: _int(j['conversations']),
+      ordered: _int(j['ordered']),
+      notBought: _int(j['not_bought']),
+      justAsking: _int(j['just_asking']),
+      open: _int(j['open']),
+      reasons: reasons,
+      products: [
+        for (final p in (j['products'] as List?) ?? const [])
+          (name: p['name'] as String, asked: _int(p['asked']), ordered: _int(p['ordered'])),
+      ],
+      areas: [
+        for (final a in (j['areas'] as List?) ?? const [])
+          (name: a['name'] as String, count: _int(a['count'])),
+      ],
+      unanswered: _int(j['unanswered']),
+      hours: [for (final h in (j['hours'] as List?) ?? List.filled(24, 0)) _int(h)],
+      readByAssistant: _int(j['read_by_assistant']),
+      corrected: _int(j['corrected']),
+    );
+  }
+
+  /// The busiest three hours of the day, as a start hour, or null on an empty
+  /// week. Three hours wide because "most messages at 21:00" is noise and
+  /// "21:00 to midnight" is a plan.
+  int? get busiestFrom {
+    if (hours.length != 24 || hours.every((h) => h == 0)) return null;
+    var best = 0, bestSum = -1;
+    for (var start = 0; start < 24; start++) {
+      final sum = hours[start] + hours[(start + 1) % 24] + hours[(start + 2) % 24];
+      if (sum > bestSum) {
+        best = start;
+        bestSum = sum;
+      }
+    }
+    return best;
+  }
+}
+
 /// The conversations matching what the seller typed into search.
 ///
 /// Name and latest preview are matched here, from what is already loaded;
@@ -1325,7 +1455,8 @@ class Inbox {
           'id, customer_name, customer_avatar_url, last_message_preview, '
           'last_message_type, last_message_at, last_inbound_at, '
           'window_expires_at, unread_count, ai_state, ai_escalation_reason, '
-          'ai_escalation_code, ai_paused, connected_accounts!inner(platform)',
+          'ai_escalation_code, ai_paused, outcome, outcome_reason, outcome_by, '
+          'connected_accounts!inner(platform)',
         )
         .order('last_message_at', ascending: false);
 
@@ -1759,6 +1890,27 @@ class Inbox {
     await _db
         .from('conversations')
         .update({'unread_count': 0}).eq('id', conversationId);
+  }
+
+  /// The seller's own word on how a conversation ended. Wins over the
+  /// assistant's reading until the customer writes again.
+  Future<void> setOutcome(String conversationId, String outcome, String? reason) async {
+    await _db.from('conversations').update({
+      'seller_outcome': outcome,
+      'seller_outcome_reason': outcome == 'not_bought' ? reason : null,
+      'seller_outcome_at': DateTime.now().toUtc().toIso8601String(),
+    }).eq('id', conversationId);
+  }
+
+  /// The last seven days, as the results screen shows them.
+  Future<WeekSummary> week({DateTime? now}) async {
+    final to = (now ?? DateTime.now()).toUtc();
+    final from = to.subtract(const Duration(days: 7));
+    final data = await _db.rpc('outcome_summary', params: {
+      'p_from': from.toIso8601String(),
+      'p_to': to.toIso8601String(),
+    });
+    return WeekSummary.fromJson(Map<String, dynamic>.from(data as Map));
   }
 
   /// "I'll handle this one." The assistant stays out of this conversation

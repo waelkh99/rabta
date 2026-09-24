@@ -9,7 +9,7 @@ code exists. Where something was verified, it says how.
 
 **The Phase Two checklist is at the end of this file.** Nothing in it is built.
 
-Updated 24 September 2026.
+Updated 25 September 2026.
 
 ---
 
@@ -912,3 +912,30 @@ rather than on effort.
 Sections 8 through 11 are closed. What remains in section 12 is reality
 refusing to cooperate yet: the Meta app is unpublished, so no Instagram message
 has ever reached the webhook, and there is nowhere to serve the site from.
+
+## 13. How conversations end
+
+Asked for on 24 September 2026. See `CLAUDE.md`, "How conversations end".
+
+- [x] Reading measured before anything was built — `scripts/outcomes-eval.ts`
+      against `claude-sonnet-5`: 98% outcome on 22 tuned cases, 100% on 10
+      held out, never a false "ordered", about $0.0015 a conversation
+- [x] `20260925000001_outcomes.sql`: the assistant's reading and the seller's
+      correction in separate columns, the label shown decided by one rule in
+      the database, a claim for settled conversations, and `outcome_summary`
+      for the week. 20 PGlite tests; the claim guard and the seller-wins rule
+      each broken on purpose and caught
+- [x] A changed reason counts as a correction (`20260925000002`) — seen in the
+      browser saying "0 corrected" after a correction, fixed and tested
+- [x] Read after each delivery, twelve hours after a conversation goes quiet.
+      **Proven live:** both real conversations read and stored by the deployed
+      function; the real test thread read "didn't buy, never answered"
+- [x] An area only the shop mentioned is dropped in code — the model put an
+      Amman customer on the map from the shop's own delivery line, live, after
+      being told not to. Re-read live afterwards: no area
+- [x] **Seen:** the label on the row, the header button and its menu, and the
+      results screen, in Arabic and English at 1440 and 390. Seeing it caught
+      a header too crowded at phone width, a submenu that opened off the edge
+      of a phone screen, an activity chart that read as cut off, Arabic number
+      agreement in two sentences, and a tooltip sitting on the open menu
+- [ ] Not yet seen on a real shop's week — there is no real shop yet

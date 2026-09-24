@@ -163,3 +163,24 @@ String attachmentLabel(BuildContext context, String? type) {
 /// every row around it. Seen in the Playwright pass of 22 September.
 String metaSeparator(BuildContext context) =>
     Directionality.of(context) == TextDirection.rtl ? '‏ · ‏' : ' · ';
+
+/// How a conversation ended, in the seller's language. An unfamiliar code
+/// reads as still open rather than as a token.
+String outcomeLabel(L l, String? outcome) => switch (outcome) {
+      'ordered' => l.outcomeOrdered,
+      'not_bought' => l.outcomeNotBought,
+      'just_asking' => l.outcomeJustAsking,
+      _ => l.outcomeOpen,
+    };
+
+/// Why a customer did not buy. An unfamiliar code reads as no clear reason.
+String reasonLabel(L l, String? reason) => switch (reason) {
+      'price' => l.reason_price,
+      'delivery_fee' => l.reason_delivery_fee,
+      'delivery_time' => l.reason_delivery_time,
+      'size_or_variant' => l.reason_size_or_variant,
+      'out_of_stock' => l.reason_out_of_stock,
+      'not_sold' => l.reason_not_sold,
+      'no_answer' => l.reason_no_answer,
+      _ => l.reason_unknown,
+    };

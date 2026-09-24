@@ -2594,6 +2594,53 @@ number guard because the shop had now written it. The box takes its direction
 from the seller's reply, not the question — seen in a browser, an Arabic
 question ahead of an English answer put the answer's full stop at its start.
 
+### How conversations end
+
+24–25 September 2026. Asked for by the product owner; the shape in `CLAUDE.md`.
+
+**Measured before it was built.** The whole feature rests on the assistant
+telling "ordered" from "just asking", so that was tested first, on its own:
+22 scripted Jordanian conversations with the answer written beside each, run
+twice against `claude-sonnet-5`, then 10 more written afterwards and never used
+to tune. 98% and 100% on the outcome; never once a false "ordered", the error
+that would make the view lie; about $0.0015 a conversation. The first run was
+91%, and every miss was the instructions' fault: "undecided" needed the
+customer to say so in words, and any interest in a product that ends without
+an order is "didn't buy", not "just asking".
+
+**The reading and the correction are separate columns.** `ai_outcome` is what
+the assistant said, `seller_outcome` what the seller said, and `outcome` is a
+generated column that picks between them by one rule: the seller wins for the
+conversation as it stood when they corrected it; once the customer writes
+again and the newer messages are read, the newer reading is shown. A "didn't
+buy" set on Monday should not hide Thursday's order. Keeping both is also what
+lets the view say how often the assistant was corrected — including a changed
+reason, which the first version did not count and the browser showed.
+
+**Read when settled, after each delivery.** Twelve hours quiet, claimed by a
+database function so two deliveries cannot pay to read one conversation, and
+stored against the newest message it covered rather than the time it ran — a
+message arriving mid-read makes the conversation due again. No schedule, for
+the same reason as the retry sweep. Only active accounts; every conversation,
+including those the assistant never touched.
+
+**An area only the shop mentioned is dropped in code.** Asked not to, the model
+still took "Amman" from the shop's own "delivery to Amman 2.5" on the live test
+conversation. The rule is "only in the shop's words", not "in the customer's
+words", because an area typed in Latin letters comes back in Arabic script.
+
+**No order value, by decision.** Not typed by the seller and not estimated from
+the catalog. Revenue needs real orders, which are still out of scope.
+
+**What the browser caught that no test could:** a header too crowded at phone
+width, a submenu opening off the edge of a phone screen so the reasons could
+not be reached, an activity chart that read as cut off (bars at full height, an
+axis stopping at 18:00), a tooltip sitting on the open menu, and two Arabic
+sentences that broke number agreement. The fixes: icon-only controls on a
+phone, one flat menu, headroom and counts on the chart with a 0–24 axis, the
+tooltip's sentence moved into the menu, and label-first wording ("محادثات
+انتهت بطلب: 1 من 4") that reads correctly at any count.
+
 ## Platform constraints
 
 These are not choices. They are limits Meta imposes, recorded here so they are

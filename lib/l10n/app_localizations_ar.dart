@@ -1030,4 +1030,114 @@ class LAr extends L {
 
   @override
   String get teachFailed => 'لم يُحفظ. حاول مرة أخرى.';
+
+  @override
+  String get outcomeOrdered => 'طلب';
+
+  @override
+  String get outcomeNotBought => 'لم يشترِ';
+
+  @override
+  String get outcomeJustAsking => 'استفسار';
+
+  @override
+  String get outcomeOpen => 'لم تُحسم بعد';
+
+  @override
+  String get outcomeQuestion => 'كيف انتهت المحادثة؟';
+
+  @override
+  String get outcomeSet => 'النتيجة';
+
+  @override
+  String get outcomeByAssistant => 'حدّدها المساعد، ويمكنك تعديلها';
+
+  @override
+  String get outcomeBySeller => 'حدّدتها أنت';
+
+  @override
+  String get outcomeWhy => 'السبب';
+
+  @override
+  String get outcomeNoReason => 'بدون سبب واضح';
+
+  @override
+  String get reason_price => 'السعر';
+
+  @override
+  String get reason_delivery_fee => 'رسوم التوصيل';
+
+  @override
+  String get reason_delivery_time => 'مدة التوصيل';
+
+  @override
+  String get reason_size_or_variant => 'المقاس أو اللون غير متوفر';
+
+  @override
+  String get reason_out_of_stock => 'نفد من المخزون';
+
+  @override
+  String get reason_not_sold => 'منتج لا نبيعه';
+
+  @override
+  String get reason_no_answer => 'لم يُرَدّ عليه';
+
+  @override
+  String get reason_unknown => 'بدون سبب واضح';
+
+  @override
+  String get results => 'النتائج';
+
+  @override
+  String get resultsTitle => 'آخر 7 أيام';
+
+  @override
+  String resultsOrders(int ordered, int total) {
+    return 'محادثات انتهت بطلب: $ordered من $total';
+  }
+
+  @override
+  String get resultsNone => 'لا توجد محادثات في آخر 7 أيام.';
+
+  @override
+  String get resultsPending =>
+      'تُقرأ المحادثة بعد أن تهدأ 12 ساعة، فقد لا تظهر محادثات اليوم بعد.';
+
+  @override
+  String get resultsWhy => 'لماذا لم يشترِ الزبائن';
+
+  @override
+  String get resultsProducts => 'الأكثر سؤالاً عنه';
+
+  @override
+  String resultsProductLine(int asked, int ordered) {
+    return 'سُئل عنه $asked · طلبات $ordered';
+  }
+
+  @override
+  String get resultsAreas => 'من أين يكتب الزبائن';
+
+  @override
+  String resultsUnanswered(int count) {
+    return 'زبائن أُغلقت نافذة الرد قبل أن يُرَدّ عليهم: $count';
+  }
+
+  @override
+  String get resultsHours => 'متى يكتب الزبائن';
+
+  @override
+  String resultsBusiest(int from, int to) {
+    return 'أكثر الأوقات ازدحاماً من $from:00 إلى $to:00';
+  }
+
+  @override
+  String resultsAccuracy(int read, int corrected) {
+    return 'محادثات قرأها المساعد: $read، وعدّلتَ نتيجتها في: $corrected';
+  }
+
+  @override
+  String get resultsFailed => 'تعذّر تحميل النتائج. حاول مرة أخرى.';
+
+  @override
+  String get resultsRetry => 'حاول مرة أخرى';
 }

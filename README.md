@@ -74,6 +74,21 @@ The model is the part that can be swapped. The guards are the design.
 - **Whatever it cannot verify, it hands over** — and the seller sees why, in
   plain words, on the conversation.
 
+### How conversations end
+
+Every conversation is read by the assistant once it has been quiet for twelve
+hours, and marked **ordered**, **didn't buy** — with the reason: price,
+delivery fee, size, stock, never answered — or **just asking**. The seller
+corrects any mark with one tap, and their word wins. From the same reading it
+notes the products discussed and where the customer is.
+
+A **Results** screen turns the last seven days into what a seller can act on:
+how many conversations became orders, why the rest did not, the most-asked
+products, customers whose reply window closed unanswered, and when customers
+write. It also says how often the seller had to correct the assistant, so its
+accuracy is visible rather than assumed. There are no order values or revenue:
+a mark is a label on a conversation, not an order record.
+
 ---
 
 ## How it is built
@@ -84,7 +99,7 @@ The model is the part that can be swapped. The guards are the design.
 | Backend | Supabase — Postgres, Auth, Edge Functions (Deno) |
 | Messaging | Meta Graph API, webhook-driven |
 | Assistant | `claude-sonnet-5`, prompt-cached, roughly $4–7 per seller per month |
-| Tests | 321 backend, 86 client, plus scripted conversations against the live model |
+| Tests | 462 backend, 234 client, plus scripted conversations against the live model |
 
 Row level security on every table, proven against a second seller rather than
 assumed. Signature verification on every webhook delivery. Secrets live as
@@ -103,10 +118,14 @@ their own password, so it never travels through a chat.
 Phase One is functionally complete. Phase Two is deployed and answering real
 messages.
 
-Not built yet: marking an AI-answered conversation in the list, browser
-notifications, and drafts for threads the assistant handed over. The product
-is not publicly launched — Meta app review and hosting are the remaining
-blockers, both tracked in `STATUS.md`.
+Built since: marking what the assistant answered or handed over, browser
+notifications in an open tab, search, a per-conversation switch to take over
+from the assistant, saving a hand-over answer for next time, a warning when an
+account stops receiving, and how conversations end with a Results screen.
+
+The product is not publicly launched — Meta app review, hosting and custom
+email are the remaining blockers, all tracked in `STATUS.md`. Notifications
+reach a closed browser only once there is hosting for Web Push.
 
 ---
 
@@ -139,6 +158,7 @@ cd supabase && npm run assistant   # what the assistant did, and why
 cd supabase && npm run catalog     # everything the assistant is allowed to know
 cd supabase && npm run replay      # replay a chat against the real shop
 cd supabase && npm run live        # scripted chats against the real model
+cd supabase && npm run outcomes    # how well it reads how chats ended (costs money)
 ```
 
 The last two spend real money. They exist because "does this read like a

@@ -244,6 +244,10 @@ revenue, follow-up lists, and campaign analytics. An outcome is a label on a
 conversation, not an order record, and should not grow into one without a
 decision that says so.
 
+**Built 24–25 September 2026**, seen in a browser in both languages at both
+widths, and reading live conversations on the deployed function. `CHECKLIST.md`
+section 13 and `DECISIONS.md` have the detail.
+
 The rule that anything the seller writes down reaches the assistant applies
 here in reverse as well: an outcome the seller corrects is the ground truth the
 assistant's marks are measured against, and the view says how often it was

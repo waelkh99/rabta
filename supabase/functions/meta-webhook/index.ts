@@ -19,6 +19,7 @@ import {
   refreshCustomerProfile,
 } from "./process.ts";
 import { createSweepStore, sweep } from "./sweep.ts";
+import { askOutcome, createOutcomeStore, readSettled } from "./outcome.ts";
 
 const APP_SECRET = Deno.env.get("META_APP_SECRET") ?? "";
 const VERIFY_TOKEN = Deno.env.get("META_VERIFY_TOKEN") ?? "";
@@ -40,6 +41,7 @@ const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
 
 const store = createSupabaseStore(supabase);
 const sweepStore = createSweepStore(supabase);
+const outcomeStore = createOutcomeStore(supabase);
 
 Deno.serve(async (request: Request) => {
   if (request.method === "GET") return handleVerification(request);
@@ -120,7 +122,7 @@ async function handleDelivery(request: Request): Promise<Response> {
   // will pick it up.
   // Then anything an earlier delivery failed to finish. After this one, so a
   // backlog never delays the customer who has just written.
-  const work = processStoredEvent(event.id, payload).then(retryFailed);
+  const work = processStoredEvent(event.id, payload).then(retryFailed).then(readOutcomes);
   if (typeof EdgeRuntime !== "undefined") {
     EdgeRuntime.waitUntil(work);
   } else {
@@ -144,6 +146,31 @@ async function retryFailed(): Promise<void> {
     if (retried.length > 0) console.log(`Sweep retried events ${retried.join(", ")}`);
   } catch (cause) {
     console.error("Sweep failed", cause);
+  }
+}
+
+/**
+ * Reads how settled conversations ended — see outcome.ts. Last, after the
+ * customer who just wrote and anything that failed, because nothing is
+ * waiting on it. Off without an API key, like the assistant.
+ *
+ * ponytail: runs only when a delivery arrives, like the sweep. A shop that
+ * goes quiet for a day has its last conversations read on the next message.
+ * A schedule is the upgrade if that ever leaves the weekly view stale.
+ */
+async function readOutcomes(): Promise<void> {
+  if (!ANTHROPIC_API_KEY) return;
+
+  try {
+    const { read, failed } = await readSettled(
+      outcomeStore,
+      (lines, catalog) => askOutcome(ANTHROPIC_API_KEY, lines, catalog, { workspaceId: ANTHROPIC_WORKSPACE_ID }),
+    );
+    if (read.length || failed.length) {
+      console.log(`Outcomes read ${read.length}, failed ${failed.length}`);
+    }
+  } catch (cause) {
+    console.error("Reading outcomes failed", cause);
   }
 }
 

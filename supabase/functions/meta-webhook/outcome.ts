@@ -81,7 +81,7 @@ For any other outcome, the reason is null.
 
 Also report:
 - "products": every product the customer asked about, including ones they decided against, written EXACTLY as they appear in the catalog list below. Leave out anything that is not in the list. Empty when none.
-- "area": a city, town or area the customer named for delivery or as where they are, written as they wrote it. Null when none.
+- "area": a city, town or area the CUSTOMER wrote, for delivery or as where they are, written as they wrote it. Never a place only the shop mentioned — the shop quoting its delivery fee to Amman does not put the customer in Amman. Null when the customer named none.
 - "topics": the kinds of question the customer asked, from the allowed list.
 - "evidence": the one short line from the conversation, quoted exactly, that decided the outcome.
 
@@ -217,4 +217,155 @@ export async function askOutcome(
   return reading
     ? { status: "read", reading, usage: readUsage(body) }
     : { status: "failed", detail: "unusable" };
+}
+
+// ---------------------------------------------------------------------------
+// Reading settled conversations
+// ---------------------------------------------------------------------------
+
+/**
+ * How long a conversation is quiet before it counts as settled. Long enough
+ * that an evening's back-and-forth is one conversation, not three readings;
+ * short enough that yesterday's conversations are in this morning's view.
+ */
+export const SETTLE_HOURS = 12;
+
+/** Per delivery, so a backlog never holds a fresh delivery up for long. */
+export const OUTCOME_BATCH = 3;
+
+/** The newest messages read. A conversation longer than this is rare. */
+export const OUTCOME_MESSAGES = 80;
+
+export interface Due {
+  id: string;
+  workspaceId: string;
+  /** The newest message this reading covers. */
+  readUpTo: string;
+}
+
+export interface OutcomeStore {
+  claimDue(now: Date, limit: number): Promise<Due[]>;
+  lines(conversationId: string): Promise<Line[]>;
+  catalog(workspaceId: string): Promise<string[]>;
+  save(conversationId: string, reading: Reading, readUpTo: string): Promise<void>;
+}
+
+/**
+ * Reads what is due and stores what the assistant made of it. A reading that
+ * fails is simply not stored: its claim goes stale in ten minutes and a later
+ * delivery tries again, which is backoff enough.
+ */
+export async function readSettled(
+  store: OutcomeStore,
+  ask: (lines: Line[], catalog: string[]) => Promise<ReadOutcome>,
+  now: Date = new Date(),
+): Promise<{ read: string[]; failed: string[] }> {
+  const due = await store.claimDue(now, OUTCOME_BATCH);
+  const read: string[] = [];
+  const failed: string[] = [];
+
+  for (const conversation of due) {
+    const lines = await store.lines(conversation.id);
+    const catalog = await store.catalog(conversation.workspaceId);
+    const result = await ask(lines, catalog);
+
+    if (result.status !== "read") {
+      failed.push(conversation.id);
+      continue;
+    }
+
+    await store.save(conversation.id, withCustomersArea(result.reading, lines), conversation.readUpTo);
+    read.push(conversation.id);
+  }
+
+  return { read, failed };
+}
+
+/**
+ * Drops an area only the shop mentioned. Asked of the model and it did it
+ * anyway on a real conversation: the shop quoting "delivery to Amman 2.5"
+ * put an Amman customer on the weekly map. An area the customer wrote in
+ * Latin letters comes back in Arabic and matches no line at all, so the rule
+ * is "only in the shop's words", not "in the customer's words".
+ */
+export function withCustomersArea(reading: Reading, lines: Line[]): Reading {
+  const area = reading.area;
+  if (!area) return reading;
+  const saidBy = (fromCustomer: boolean) =>
+    lines.some((line) => line.fromCustomer === fromCustomer && line.text.includes(area));
+  return saidBy(false) && !saidBy(true) ? { ...reading, area: null } : reading;
+}
+
+/** A stored message as a line to read. Photos are named, never shown. */
+export function toLine(row: { direction: string; text: string | null; attachments: unknown }): Line | null {
+  const text = row.text?.trim();
+  if (text) return { fromCustomer: row.direction === "inbound", text };
+
+  const first = Array.isArray(row.attachments) ? row.attachments[0] as { type?: string; product?: string } : undefined;
+  if (!first) return null;
+
+  const what = first.product ? `[photo of ${first.product}]` : `[${first.type ?? "attachment"}]`;
+  return { fromCustomer: row.direction === "inbound", text: what };
+}
+
+/** The slice of supabase-js this module uses. */
+interface SupabaseLike {
+  from(table: string): any;
+  rpc(name: string, args: Record<string, unknown>): any;
+}
+
+export function createOutcomeStore(client: SupabaseLike): OutcomeStore {
+  return {
+    async claimDue(now, limit) {
+      const { data, error } = await client.rpc("claim_outcomes_due", {
+        p_now: now.toISOString(),
+        p_settle: `${SETTLE_HOURS} hours`,
+        p_limit: limit,
+      });
+      if (error) throw new Error(`outcome claim failed: ${error.message}`);
+      return (data ?? []).map((row: { id: string; workspace_id: string; read_up_to: string }) => ({
+        id: row.id,
+        workspaceId: row.workspace_id,
+        readUpTo: row.read_up_to,
+      }));
+    },
+
+    async lines(conversationId) {
+      const { data, error } = await client
+        .from("messages")
+        .select("direction, text, attachments, sent_at")
+        .eq("conversation_id", conversationId)
+        .order("sent_at", { ascending: false })
+        .limit(OUTCOME_MESSAGES);
+      if (error) throw new Error(`outcome messages failed: ${error.message}`);
+      return (data ?? []).reverse().map(toLine).filter((line: Line | null): line is Line => line !== null);
+    },
+
+    async catalog(workspaceId) {
+      const { data, error } = await client
+        .from("products")
+        .select("name")
+        .eq("workspace_id", workspaceId)
+        .order("name");
+      if (error) throw new Error(`outcome catalog failed: ${error.message}`);
+      return (data ?? []).map((row: { name: string }) => row.name);
+    },
+
+    async save(conversationId, reading, readUpTo) {
+      const { error } = await client
+        .from("conversations")
+        .update({
+          ai_outcome: reading.outcome,
+          ai_outcome_reason: reading.reason,
+          outcome_products: reading.products,
+          outcome_area: reading.area,
+          outcome_topics: reading.topics,
+          outcome_evidence: reading.evidence,
+          ai_outcome_read_up_to: readUpTo,
+          outcome_claimed_at: null,
+        })
+        .eq("id", conversationId);
+      if (error) throw new Error(`outcome save failed: ${error.message}`);
+    },
+  };
 }

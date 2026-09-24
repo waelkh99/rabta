@@ -29,8 +29,10 @@ import 'invite_page.dart';
 import 'locale_switch.dart';
 import 'menu.dart';
 import 'offers_page.dart';
+import 'outcome.dart';
 import 'platform_icon.dart';
 import 'products_page.dart';
+import 'results_page.dart';
 import 'shop_page.dart';
 import 'strings.dart';
 import 'theme.dart';
@@ -183,6 +185,30 @@ class _InboxPageState extends State<InboxPage> {
       // Put back what is actually stored, rather than show a switch that lies.
       if (mounted) await _refresh();
     }
+  }
+
+  /// The seller's word on how a conversation ended. Shown at once, then
+  /// written; the list is read again either way, so what stays on screen is
+  /// what the database decided.
+  Future<void> _setOutcome(Conversation c, String outcome, String? reason) async {
+    final changed = c.copyWith(
+      outcome: outcome,
+      outcomeReason: reason,
+      outcomeBy: 'seller',
+      clearReason: reason == null,
+    );
+    setState(() {
+      if (_open?.id == c.id) _open = changed;
+      final live = _live;
+      if (live != null) _live = [for (final x in live) x.id == c.id ? changed : x];
+    });
+
+    try {
+      await _inbox.setOutcome(c.id, outcome, reason);
+    } catch (_) {
+      // Falls through to the refresh, which puts back what is stored.
+    }
+    if (mounted) await _refresh();
   }
 
   /// Subscribes to changes in this seller's own conversations.
@@ -354,6 +380,12 @@ class _InboxPageState extends State<InboxPage> {
     );
   }
 
+  Future<void> _openResults() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => ResultsPage(inbox: _inbox)),
+    );
+  }
+
   Future<void> _openAccounts() async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => AccountsPage(inbox: _inbox)),
@@ -404,6 +436,7 @@ class _InboxPageState extends State<InboxPage> {
         onOffers: _openOffers,
         onShop: _openShop,
         onAccounts: _openAccounts,
+        onResults: _openResults,
       ),
       body: SafeArea(
         child: FutureBuilder<List<Conversation>>(
@@ -485,6 +518,7 @@ class _InboxPageState extends State<InboxPage> {
                       revision: _revision,
                       assistantOn: _assistantOn,
                       onPaused: _setPaused,
+                      onOutcome: _setOutcome,
                     ),
                   );
                 }
@@ -508,6 +542,7 @@ class _InboxPageState extends State<InboxPage> {
                               revision: _revision,
                               assistantOn: _assistantOn,
                               onPaused: _setPaused,
+                              onOutcome: _setOutcome,
                             ),
                     ),
                     if (_open != null &&
@@ -1163,7 +1198,19 @@ class _ConversationRowState extends State<_ConversationRow> {
                       if (c.escalated)
                         const _NeedsYouPill()
                       else
-                        _AssistantMark(conversation: c),
+                        Row(
+                          children: [
+                            Expanded(child: _AssistantMark(conversation: c)),
+                            if (c.shownOutcome != null)
+                              Padding(
+                                padding: const EdgeInsetsDirectional.only(top: 4, start: 8),
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(maxWidth: 150),
+                                  child: OutcomeMark(conversation: c),
+                                ),
+                              ),
+                          ],
+                        ),
                     ],
                   ),
                 ),
@@ -1615,7 +1662,11 @@ class _Thread extends StatefulWidget {
     this.showAssistant = false,
     this.assistantOn = false,
     this.onPaused,
+    this.onOutcome,
   });
+
+  /// The seller set how this conversation ended.
+  final void Function(Conversation, String outcome, String? reason)? onOutcome;
 
   final Inbox inbox;
   final Conversation conversation;
@@ -1791,8 +1842,18 @@ class _ThreadState extends State<_Thread> {
                     ],
                   ),
                 ),
+                if (widget.onOutcome != null)
+                  Padding(
+                    padding: const EdgeInsetsDirectional.only(start: 8, end: 14),
+                    child: OutcomeButton(
+                      compact: MediaQuery.sizeOf(context).width < _twoPaneFrom,
+                      conversation: c,
+                      onChanged: (outcome, reason) => widget.onOutcome!(c, outcome, reason),
+                    ),
+                  ),
                 if (widget.assistantOn && widget.onPaused != null)
                   _AssistantHere(
+                    compact: MediaQuery.sizeOf(context).width < _twoPaneFrom,
                     on: !c.aiPaused,
                     onChanged: (on) => widget.onPaused!(c, !on),
                   ),
@@ -1888,8 +1949,10 @@ class _ThreadState extends State<_Thread> {
 /// In the thread header rather than the details pane, so it is reachable at
 /// every width — the pane exists only on a wide desktop.
 class _AssistantHere extends StatelessWidget {
-  const _AssistantHere({required this.on, required this.onChanged});
+  const _AssistantHere({required this.on, required this.onChanged, this.compact = false});
 
+  /// Without the word, at phone width. The icon and the tooltip remain.
+  final bool compact;
   final bool on;
   final ValueChanged<bool> onChanged;
 
@@ -1907,11 +1970,13 @@ class _AssistantHere extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.auto_awesome_outlined, size: 14, color: tint),
-            const SizedBox(width: 5),
-            Text(
-              l.assistantHere,
-              style: Style.meta.copyWith(color: tint, fontWeight: FontWeight.w700),
-            ),
+            if (!compact) ...[
+              const SizedBox(width: 5),
+              Text(
+                l.assistantHere,
+                style: Style.meta.copyWith(color: tint, fontWeight: FontWeight.w700),
+              ),
+            ],
             Transform.scale(
               scale: 0.75,
               child: Switch(
