@@ -39,7 +39,20 @@ Product context is in `CLAUDE.md`. Settled decisions are in `DECISIONS.md`.
   Two adds an AI that answers basic customer inquiries, and it runs inside this
   service — in the existing post-200 background task, beside the customer
   profile refresh. See `CLAUDE.md` for the product shape and `DECISIONS.md` for
-  how it is triggered and guarded. Not built yet.
+  how it is triggered and guarded. **Built and live since 19 September.**
+
+Also in the post-200 background task, since 24 September, in this order after
+the delivery's own messages:
+
+1. **Retrying failed events** (`sweep.ts`) — at most five, older than five
+   minutes, five attempts each, claimed on `attempts`. A retried event never
+   answers the customer.
+2. **Reading how settled conversations ended** (`outcome.ts`) — at most three
+   conversations quiet for twelve hours, claimed by `claim_outcomes_due`. Off
+   without an API key. See `CLAUDE.md`, "How conversations end".
+
+Both run only when a delivery arrives. There is no scheduler; `DECISIONS.md`
+records why and when that should change.
 
 ---
 
@@ -276,7 +289,8 @@ constraint makes that collision harmless.
 
 - Signature failure — reject with 401, do not store, do not process.
 - Processing failure — the raw event stays in `webhook_events` with `error` set
-  and `processed_at` null. A periodic sweep retries unprocessed rows.
+  and `processed_at` null. The next delivery retries it (`sweep.ts`), up to
+  five attempts.
 - Graph API failure on send — surface it to the client with enough detail to
   show a useful message. Expired tokens need to be distinguishable, since they
   require the seller to reconnect their account.
@@ -452,4 +466,5 @@ what is unproven is Meta's live behaviour against them.
 - Attachments: whether media is copied into our own storage or fetched on view.
   Meta's attachment URLs expire.
 - Whether to process delivery and read receipts, or continue ignoring them.
-- How the sweep for failed events is scheduled.
+- ~~How the sweep for failed events is scheduled.~~ **Settled 24 September:**
+  after each delivery, not on a schedule. See `DECISIONS.md`.

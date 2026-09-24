@@ -892,6 +892,11 @@ obvious idea that will be proposed again:
 Revisit it when the failed-event retry sweep is actually built and cron has two
 callers. Until then it is one mechanism serving one need.
 
+**24 September:** the retry sweep and the outcome reader are both built, and
+neither uses cron — they run after each delivery (see "Before launch" and "How
+conversations end" below). Cron still has no caller that needs it. The trigger
+to revisit is now a shop going quiet with events stuck or outcomes unread.
+
 **The claim asks whether a message has been considered, not whether a run
 happened recently.** *Corrected 19 September, after the first version dropped a
 real customer's message in production.*

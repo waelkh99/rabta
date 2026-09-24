@@ -35,7 +35,7 @@ Functions deployed.
 | Function | What it does | Auth |
 |---|---|---|
 | `meta-webhook` | receives deliveries from Meta | HMAC signature, no JWT |
-| `meta-oauth` | `/start`, `/callback`, `/disconnect` | seller's JWT, except the callback |
+| `meta-oauth` | `/start`, `/callback`, `/disconnect`, `/check` | seller's JWT, except the callback |
 | `send-message` | sends a reply | seller's JWT |
 | `admin-invite` | creates an account | seller's JWT, admins only |
 
@@ -93,8 +93,11 @@ message.
 invites someone; they choose their own password from the link, so it is never
 ours and never travels through a chat.
 
-**The interface.** Sign-in, the two-group conversation list, the thread, the
-composer, the details pane, the accounts screen, the invite screen. Arabic and
+**The interface.** Sign-in, the two-group conversation list with search, the
+thread, the composer, the details pane, the accounts screen, the invite
+screen, the products, offers and shop screens, and Results. In the thread
+header: how the conversation ended, and the switch that takes it over from the
+assistant. Arabic and
 English throughout, Arabic as the source language and the fallback. Verified in
 a browser in both languages, at desktop and phone width.
 
@@ -173,7 +176,8 @@ without setting anything up again.
   on 21 September. **Not inert:** `ANTHROPIC_API_KEY` is set on the functions,
   so this workspace answers messages sent to the test Page
 - one conversation with the customer `28847995138118550` ("Wael K. Saleh"), its
-  messages, and the raw events behind them
+  messages, and the raw events behind them. Read live by the outcome reader on
+  24 September as "didn't buy, never answered", which is right
 - **dummy catalog, seeded 23 September:** ten products with codes `T-001` to
   `T-010`, photos, four categories (فساتين، حقائب، عطور، إكسسوارات) and four
   offers. The assistant answers from it, so a message to the test Page gets
@@ -182,12 +186,15 @@ without setting anything up again.
   products, their photos, the four offers and any category left empty. The
   original `فستان أحمر` (`P-001`) is not touched
 - a second seller, **`playwright-seller@example.test`**, workspace
-  `b7e924a6-0f36-49ef-9cc7-9643a44a1ba8`, used to drive the products and offers
-  screens in Playwright without touching the Page's own shop. No password;
-  sign in with `npm run invite -- playwright-seller@example.test --link
-  --return http://localhost:5353`. It holds eight products, four offers and a
-  fake conversation with "سارة" whose photo links now fail to load. Nothing
-  connects to it
+  `b7e924a6-0f36-49ef-9cc7-9643a44a1ba8`, used to drive the screens in
+  Playwright without touching the Page's own shop. No password; sign in with
+  `cd supabase && npm run signin -- playwright-seller@example.test` and open
+  the link it prints (`npm run invite` refuses an account that already
+  exists). It holds eight products, four offers and a fake conversation with
+  "سارة" whose photo links now fail to load; the outcome reader has marked it
+  "didn't buy". Its Instagram account `playwright-placeholder-not-a-meta-id`
+  is fake but **active**, so the outcome reader does read its conversations —
+  a fraction of a cent each. Nothing from Meta reaches it
 
 None of it is real seller data. Clear it whenever it stops being useful — but
 removing a `connected_accounts` row sends later deliveries back to being stored

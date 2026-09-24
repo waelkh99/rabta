@@ -7,7 +7,8 @@ scope list in `CLAUDE.md`.
 A box is ticked only when the thing has been run and seen to work, not when the
 code exists. Where something was verified, it says how.
 
-**The Phase Two checklist is at the end of this file.** Nothing in it is built.
+**The Phase Two checklist is at the end of this file**, and section 13 — how
+conversations end — after it. Most of both is built; open boxes are open.
 
 Updated 25 September 2026.
 
@@ -249,7 +250,8 @@ though a seller with the tab open still needs to reload to get one.
 
 ## Decisions still open
 
-- Which Meta app type and use case Phase One needs
+- ~~Which Meta app type and use case Phase One needs~~ — settled: Facebook
+  Login for Business, Instagram through the linked Page
 - Multiple Instagram accounts or Pages per seller
 - Whether Phase One links the same customer across channels — proposed no, and
   close to settled, since Meta's customer ids are scoped to the account

@@ -159,6 +159,7 @@ cd supabase && npm run catalog     # everything the assistant is allowed to know
 cd supabase && npm run replay      # replay a chat against the real shop
 cd supabase && npm run live        # scripted chats against the real model
 cd supabase && npm run outcomes    # how well it reads how chats ended (costs money)
+cd supabase && npm run signin -- someone@example.test   # sign-in link for a browser test
 ```
 
 The last two spend real money. They exist because "does this read like a

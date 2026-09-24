@@ -11,9 +11,11 @@ Most of this is still not built. It is written down because it defines work
 that is otherwise in nobody's plan — failure states the connect screen has to
 handle, none of which are visible from the happy path.
 
-Two things described here **are** built, as of 22 September 2026: the empty
-inbox explains itself rather than looking broken, and accounts are created by
-invitation rather than by signing up.
+Three things described here **are** built: the empty inbox explains itself
+rather than looking broken, and accounts are created by invitation rather than
+by signing up (22 September 2026); and an account whose token Meta no longer
+accepts is found when the inbox opens and shown as a red banner leading to
+Accounts (24 September 2026).
 
 ---
 
@@ -224,8 +226,10 @@ sellers actually being targeted?**
   Meta's API distinguishes them cleanly enough to tell them apart.
 - Whether a seller can connect more than one Page or Instagram account — still
   open in `DECISIONS.md`, and it changes this screen from a button into a list.
-- What happens when a token expires or is revoked from Meta's side. The seller
-  must find out from Rabta rather than from messages quietly stopping.
+- ~~What happens when a token expires or is revoked from Meta's side.~~
+  **Built 24 September 2026:** `meta-oauth/check` runs as the inbox opens and a
+  red banner leads to Accounts. Still open: walking the seller through the
+  reconnect itself, which is the ordinary Connect flow today.
 - How a seller is walked through Add to Home Screen, and whether it is worth
   prompting for at all before notifications can reach a closed browser — which
   needs Web Push, which needs hosting.
