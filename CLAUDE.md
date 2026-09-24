@@ -52,7 +52,9 @@ Do not add these unless explicitly requested:
 - Inventory management.
 - Delivery company integrations.
 - Payments.
-- Sales analytics.
+- ~~Sales analytics.~~ **Partly requested 24 September 2026** — how each
+  conversation ended, and what the assistant learns from it. See "How
+  conversations end" below. Revenue reporting is still out.
 - Campaign analytics.
 - Advanced CRM functionality.
 - Other social media platforms.
@@ -105,7 +107,8 @@ has three parts:
 
 ### Still out of scope in Phase Two
 
-Insights and recommendations to the seller, analytics, order management, stock
+~~Insights and recommendations to the seller, analytics,~~ (**partly requested
+24 September 2026** — see "How conversations end"), order management, stock
 decrementing, product variants, SKUs, ~~and product images~~, and promo codes.
 
 **Asked for on 22 September 2026, and now in Phase Two:**
@@ -198,6 +201,53 @@ real model.
 
 None of this widens Phase Two's goal. It is a rule about keeping the assistant
 in step with the product, not a licence to add features.
+
+---
+
+## How conversations end
+
+Requested by the product owner on 24 September 2026. The product owner counts
+everything before launch as one phase, so this is not numbered; it is part of
+what ships.
+
+The problem: Rabta sees every conversation and does not know which ones became
+a sale. Without that, the seller cannot tell where customers are lost, and the
+assistant's work is invisible.
+
+**Every conversation gets an outcome**, one of:
+
+- **Ordered** (طلب)
+- **Didn't buy** (ما اشترى), with a reason where there is one — price,
+  delivery fee, size not available, out of stock, no reply in time
+- **Just asking** (استفسار فقط) — nothing was for sale, "where are you?"
+- no mark while it is still open
+
+**The assistant sets it; the seller corrects it with one tap; the seller always
+wins.** A tag the seller has to set by hand is a tag most sellers never set.
+The assistant's mark is shown as its suggestion, not as fact.
+
+**The same pass extracts what the assistant can read from the conversation:**
+the products discussed, matched to the catalog; why a customer did not buy;
+the customer's area; what kind of questions they asked. It runs once a
+conversation has settled, on every conversation — including ones the seller
+handled alone or the assistant never touched — not only when the assistant
+replies.
+
+**The seller sees it** as a label on the row and a short "this week" view:
+how many conversations became orders, the top reasons people did not buy, the
+most-asked products, customers lost to silence, and when customers write.
+Sentences and numbers first; a chart only where it says more than a number.
+
+**Still out:** an order's value (decided: no value, not even an estimate),
+items and quantities typed by the seller, order status, delivery tracking,
+revenue, follow-up lists, and campaign analytics. An outcome is a label on a
+conversation, not an order record, and should not grow into one without a
+decision that says so.
+
+The rule that anything the seller writes down reaches the assistant applies
+here in reverse as well: an outcome the seller corrects is the ground truth the
+assistant's marks are measured against, and the view says how often it was
+right.
 
 ---
 

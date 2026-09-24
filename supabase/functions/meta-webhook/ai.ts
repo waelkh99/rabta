@@ -19,6 +19,7 @@
 // Edge Functions and in the test harness.
 
 const ANTHROPIC = "https://api.anthropic.com/v1/messages";
+export const ANTHROPIC_URL = ANTHROPIC;
 
 /**
  * Sonnet 5, at $2/$10 per MTok. Measured against Haiku 4.5 on 20 September
