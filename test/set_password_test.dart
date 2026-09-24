@@ -48,7 +48,7 @@ void main() {
     final locale = ValueNotifier(const Locale('en'));
     await tester.pumpWidget(ValueListenableBuilder<Locale>(
       valueListenable: locale,
-      builder: (_, value, __) => MaterialApp(
+      builder: (_, value, _) => MaterialApp(
         theme: rabtaTheme(brightness: Brightness.light),
         locale: value,
         supportedLocales: L.supportedLocales,
