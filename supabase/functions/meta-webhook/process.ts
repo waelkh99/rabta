@@ -21,6 +21,9 @@ import {
   HANDOVER_LINE,
   isSpoken,
   mentionsPhoto,
+  MODEL,
+  type Usage,
+  usageCost,
   numbersAreGrounded,
   type Offer,
   photosMissing,
@@ -113,6 +116,9 @@ export interface Store {
     attachments?: unknown[],
   ): Promise<void>;
 
+  /** What a model call cost, for the admin screen. Optional: tests omit it. */
+  recordUsage?(workspaceId: string, kind: "reply" | "outcome", usage: Usage): Promise<void>;
+
   /** Records what the AI did, which is what the seller sees on the row. */
   finishAiRun(
     conversationId: string,
@@ -148,8 +154,8 @@ export interface AiPrompt {
 }
 
 export type Outcome =
-  | { status: "stored"; mid: string; conversationId: string; accountId: string }
-  | { status: "duplicate"; mid: string; conversationId: string; accountId: string }
+  | { status: "stored"; mid: string; conversationId: string; accountId: string; workspaceId: string }
+  | { status: "duplicate"; mid: string; conversationId: string; accountId: string; workspaceId: string }
   | { status: "unknown-account"; mid: string; accountExternalId: string };
 
 export async function processMessage(
@@ -185,6 +191,7 @@ export async function processMessage(
     mid: message.mid,
     conversationId,
     accountId: account.id,
+    workspaceId: account.workspaceId,
   };
 }
 
@@ -455,6 +462,7 @@ export async function autoReply(
   // the cached prefix is being invalidated — which would roughly ten times the
   // input cost, silently.
   if (answer.status !== "failed") {
+    await store.recordUsage?.(context.workspaceId, "reply", answer.usage);
     const u = answer.usage;
     console.log(
       `ai usage ${outcome.conversationId}: in ${u.inputTokens}, out ${u.outputTokens}, ` +
@@ -710,6 +718,20 @@ export function createSupabaseStore(client: SupabaseLike): Store {
 
       if (error) throw new Error(`token lookup failed: ${error.message}`);
       return data?.access_token ?? null;
+    },
+
+    async recordUsage(workspaceId, kind, usage) {
+      // Never allowed to fail the reply it describes.
+      await client.from("ai_usage").insert({
+        workspace_id: workspaceId,
+        kind,
+        model: MODEL,
+        input_tokens: usage.inputTokens,
+        output_tokens: usage.outputTokens,
+        cache_read: usage.cacheReadTokens,
+        cache_write: usage.cacheWriteTokens,
+        cost_usd: usageCost(MODEL, usage),
+      });
     },
 
     async markNeedsReconnect(accountId) {

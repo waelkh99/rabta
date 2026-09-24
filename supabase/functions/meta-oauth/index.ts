@@ -21,10 +21,11 @@
 // Deployed with verify_jwt = false: the browser arrives here straight from
 // Meta with no Supabase session. The signed state parameter is what protects it.
 
-import { createClient } from "jsr:@supabase/supabase-js@2";
+import { createClient } from "jsr:@supabase/supabase-js@2.116.0";
 
 import { corsHeaders } from "../_shared/origins.ts";
 import { tokenExpired } from "../send-message/send.ts";
+import { createLog, describe } from "../_shared/log.ts";
 
 import {
   isWorkspaceId,
@@ -53,6 +54,8 @@ const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { persistSession: false },
 });
+
+const log = createLog(supabase, "meta-oauth");
 
 Deno.serve(async (request: Request) => {
   const { pathname, searchParams } = new URL(request.url);
@@ -199,13 +202,10 @@ async function disconnect(
       ).then((r) => r.json());
 
       if (!answer?.success) {
-        console.warn("unsubscribe refused", { accountId: account.id, answer });
+        await log("warn", "unsubscribe_refused", { account: account.id, answer }, seller.workspaceId);
       }
     } catch (cause) {
-      console.warn("unsubscribe failed to reach Meta", {
-        accountId: account.id,
-        cause: String(cause),
-      });
+      await log("warn", "unsubscribe_unreachable", { account: account.id, error: describe(cause) }, seller.workspaceId);
     }
   }
 
@@ -217,9 +217,11 @@ async function disconnect(
     .eq("id", account.id);
 
   if (error) {
-    console.error("disconnect failed to record", { accountId: account.id, error });
+    await log("error", "disconnect_not_recorded", { account: account.id, error: describe(error) }, seller.workspaceId);
     return json({ reason: "failed" }, 500, cors);
   }
+
+  await log("info", "account_disconnected", { account: account.id }, seller.workspaceId);
 
   return json({ disconnected: account.id }, 200, cors);
 }
@@ -284,6 +286,7 @@ async function check(
       .eq("id", account.id)
       .eq("status", "active");
     expired.push(account.id);
+    await log("warn", "token_dead", { account: account.id }, seller.workspaceId);
   }
 
   return json({ expired }, 200, cors);
@@ -335,11 +338,7 @@ async function callback(params: URLSearchParams): Promise<Response> {
     // seller cannot. They were printed on this page while the flow was being
     // worked out, which also left a reference to a variable that no longer
     // existed — so the one path that most needed to explain itself crashed.
-    console.error("no page granted", {
-      workspaceId,
-      tokenKeys: Object.keys(token),
-      granted,
-    });
+    await log("error", "connect_no_page", { tokenKeys: Object.keys(token), granted }, workspaceId);
 
     return text(
       `Almost there.
@@ -410,7 +409,7 @@ Messenger conversations can reach Rabta.`,
   // Only on success. A seller whose connection did not work keeps the page
   // that says why, because dropping them back into an inbox that looks no
   // different is the one outcome they cannot act on.
-  console.log("connected", { workspaceId, report });
+  await log("info", "account_connected", { report }, workspaceId);
 
   return Response.redirect(`${returnOrigin}/?connected=1`, 302);
 }

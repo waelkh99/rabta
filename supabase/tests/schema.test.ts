@@ -584,7 +584,7 @@ describe("catalog and AI settings", () => {
             alice.workspaceId,
             conversation,
           ]),
-        /row-level security/i,
+        /row-level security|permission denied/i,
       );
     });
   });

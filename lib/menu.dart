@@ -25,6 +25,7 @@ class AppMenu extends StatelessWidget {
     required this.onShop,
     required this.onAccounts,
     required this.onResults,
+    this.onAdmin,
   });
 
   final Inbox inbox;
@@ -33,6 +34,9 @@ class AppMenu extends StatelessWidget {
   final VoidCallback onShop;
   final VoidCallback onAccounts;
   final VoidCallback onResults;
+
+  /// Only passed for an admin; the item is not drawn otherwise.
+  final VoidCallback? onAdmin;
 
   @override
   Widget build(BuildContext context) {
@@ -61,6 +65,15 @@ class AppMenu extends StatelessWidget {
               selected: true,
               onTap: () => Navigator.pop(context),
             ),
+            if (onAdmin != null)
+              _MenuItem(
+                icon: Icons.admin_panel_settings_outlined,
+                label: l.admin,
+                onTap: () {
+                  Navigator.pop(context);
+                  onAdmin!();
+                },
+              ),
             _MenuItem(
               icon: Icons.insights_outlined,
               label: l.results,

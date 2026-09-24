@@ -22,6 +22,7 @@ import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'accounts_page.dart';
+import 'admin_page.dart';
 import 'alerts.dart';
 import 'data.dart';
 import 'details_panel.dart';
@@ -380,6 +381,12 @@ class _InboxPageState extends State<InboxPage> {
     );
   }
 
+  Future<void> _openAdmin() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => AdminPage(inbox: _inbox)),
+    );
+  }
+
   Future<void> _openResults() async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => ResultsPage(inbox: _inbox)),
@@ -437,6 +444,7 @@ class _InboxPageState extends State<InboxPage> {
         onShop: _openShop,
         onAccounts: _openAccounts,
         onResults: _openResults,
+        onAdmin: signedInUserIsAdmin() ? _openAdmin : null,
       ),
       body: SafeArea(
         child: FutureBuilder<List<Conversation>>(

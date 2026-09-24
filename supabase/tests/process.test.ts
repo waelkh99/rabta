@@ -206,6 +206,7 @@ test("stores a message for a connected account", async () => {
     mid: "m_1",
     conversationId: "conv_1",
     accountId: "acct_messenger_1122334455",
+    workspaceId: "ws_1",
   });
   assert.equal(store.messages.size, 1);
   assert.equal(store.conversationsCreated, 1);

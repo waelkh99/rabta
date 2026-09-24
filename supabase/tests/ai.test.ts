@@ -2176,3 +2176,20 @@ test("a failure with no images in the request is not retried", async () => {
   assert.equal(outcome.status, "failed");
   assert.equal(calls, 1);
 });
+
+import { usageCost } from "../functions/meta-webhook/ai.ts";
+
+test("a call is priced from its tokens, cache reads at a tenth and writes at double", () => {
+  // 1M input at $2, 100k output at $10, 1M cache read at $0.20, 100k write at $4.
+  const cost = usageCost("claude-sonnet-5", {
+    inputTokens: 1_000_000,
+    outputTokens: 100_000,
+    cacheReadTokens: 1_000_000,
+    cacheWriteTokens: 100_000,
+  });
+  assert.equal(Math.round(cost * 100) / 100, 2 + 1 + 0.2 + 0.4);
+});
+
+test("an unknown model is priced, not free", () => {
+  assert.ok(usageCost("some-new-model", { inputTokens: 1000, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 }) > 0);
+});

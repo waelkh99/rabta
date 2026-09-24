@@ -9,7 +9,7 @@
 // Deployed with verify_jwt = false, because Meta does not send an auth token.
 // The signature check is what replaces that protection.
 
-import { createClient } from "jsr:@supabase/supabase-js@2";
+import { createClient } from "jsr:@supabase/supabase-js@2.116.0";
 import { verifyMetaSignature } from "./signature.ts";
 import { parseWebhookPayload } from "./parse.ts";
 import {
@@ -20,6 +20,7 @@ import {
 } from "./process.ts";
 import { createSweepStore, sweep } from "./sweep.ts";
 import { askOutcome, createOutcomeStore, readSettled } from "./outcome.ts";
+import { createLog, describe } from "../_shared/log.ts";
 
 const APP_SECRET = Deno.env.get("META_APP_SECRET") ?? "";
 const VERIFY_TOKEN = Deno.env.get("META_VERIFY_TOKEN") ?? "";
@@ -42,6 +43,7 @@ const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
 const store = createSupabaseStore(supabase);
 const sweepStore = createSweepStore(supabase);
 const outcomeStore = createOutcomeStore(supabase);
+const log = createLog(supabase, "meta-webhook");
 
 Deno.serve(async (request: Request) => {
   if (request.method === "GET") return handleVerification(request);
@@ -84,7 +86,7 @@ async function handleDelivery(request: Request): Promise<Response> {
   );
 
   if (!valid) {
-    console.warn("Rejected webhook with invalid signature");
+    await log("warn", "signature_invalid");
     return new Response("Invalid signature", { status: 401 });
   }
 
@@ -113,7 +115,7 @@ async function handleDelivery(request: Request): Promise<Response> {
 
   if (error) {
     // Storing failed, so returning 200 would lose the event. Let Meta retry.
-    console.error("Failed to store webhook event", error);
+    await log("error", "event_not_stored", { error: describe(error) });
     return new Response("Storage failed", { status: 500 });
   }
 
@@ -122,7 +124,7 @@ async function handleDelivery(request: Request): Promise<Response> {
   // will pick it up.
   // Then anything an earlier delivery failed to finish. After this one, so a
   // backlog never delays the customer who has just written.
-  const work = processStoredEvent(event.id, payload).then(retryFailed).then(readOutcomes);
+  const work = processStoredEvent(event.id, payload).then(retryFailed).then(readOutcomes).then(prune);
   if (typeof EdgeRuntime !== "undefined") {
     EdgeRuntime.waitUntil(work);
   } else {
@@ -143,9 +145,9 @@ async function retryFailed(): Promise<void> {
       sweepStore,
       (id, payload) => processStoredEvent(id, payload, { reply: false }),
     );
-    if (retried.length > 0) console.log(`Sweep retried events ${retried.join(", ")}`);
+    if (retried.length > 0) await log("warn", "events_retried", { events: retried });
   } catch (cause) {
-    console.error("Sweep failed", cause);
+    await log("error", "sweep_failed", { error: describe(cause) });
   }
 }
 
@@ -166,11 +168,22 @@ async function readOutcomes(): Promise<void> {
       outcomeStore,
       (lines, catalog) => askOutcome(ANTHROPIC_API_KEY, lines, catalog, { workspaceId: ANTHROPIC_WORKSPACE_ID }),
     );
-    if (read.length || failed.length) {
-      console.log(`Outcomes read ${read.length}, failed ${failed.length}`);
-    }
+    if (failed.length) await log("warn", "outcomes_failed", { read: read.length, failed });
+    else if (read.length) console.log(JSON.stringify({ event: "outcomes_read", read: read.length }));
   } catch (cause) {
-    console.error("Reading outcomes failed", cause);
+    await log("error", "outcomes_crashed", { error: describe(cause) });
+  }
+}
+
+/**
+ * Raw payloads older than a month, and logs older than three. Cheap enough to
+ * run after every delivery: the deletes are indexed and usually find nothing.
+ */
+async function prune(): Promise<void> {
+  const { data, error } = await supabase.rpc("prune_old_records", {});
+  if (error) await log("error", "prune_failed", { error: error.message });
+  else if (data && Object.values(data as Record<string, number>).some((n) => n > 0)) {
+    console.log(JSON.stringify({ event: "pruned", ...data }));
   }
 }
 
@@ -190,10 +203,7 @@ async function processStoredEvent(
       const outcome = await processMessage(store, message);
 
       if (outcome.status === "unknown-account") {
-        console.warn(
-          `Event ${eventId}: message ${outcome.mid} is for account ` +
-            `${outcome.accountExternalId}, which is not connected here`,
-        );
+        await log("info", "unknown_account", { event: eventId, account: outcome.accountExternalId });
         continue;
       }
 
@@ -205,11 +215,13 @@ async function processStoredEvent(
       // stored, and losing it over a missing name would be a poor trade.
       try {
         const profile = await refreshCustomerProfile(store, message, outcome);
-        if (profile !== "fresh") {
-          console.log(`Event ${eventId}: profile ${profile} for ${outcome.conversationId}`);
+        if (profile === "token-dead") {
+          await log("warn", "token_dead", { account: outcome.accountId }, outcome.workspaceId);
+        } else if (profile !== "fresh") {
+          console.log(JSON.stringify({ event: "profile", result: profile, conversation: outcome.conversationId }));
         }
       } catch (cause) {
-        console.error(`Event ${eventId}: profile lookup failed`, cause);
+        await log("error", "profile_failed", { event: eventId, error: describe(cause) }, outcome.workspaceId);
       }
 
       // Answering the customer, when the seller has switched that on. Waits
@@ -227,11 +239,15 @@ async function processStoredEvent(
         const replied = await autoReply(store, ANTHROPIC_API_KEY, message, outcome, {
           workspaceId: ANTHROPIC_WORKSPACE_ID,
         });
-        if (replied !== "off" && replied !== "not-applicable") {
-          console.log(`Event ${eventId}: ai ${replied} for ${outcome.conversationId}`);
+        if (replied === "failed") {
+          await log("warn", "ai_failed", { conversation: outcome.conversationId }, outcome.workspaceId);
+        } else if (replied === "escalated") {
+          await log("info", "ai_handed_over", { conversation: outcome.conversationId }, outcome.workspaceId);
+        } else if (replied !== "off" && replied !== "not-applicable") {
+          console.log(JSON.stringify({ event: "ai", result: replied, conversation: outcome.conversationId }));
         }
       } catch (cause) {
-        console.error(`Event ${eventId}: auto reply failed`, cause);
+        await log("error", "ai_crashed", { event: eventId, error: describe(cause) }, outcome.workspaceId);
       }
     }
 
@@ -240,8 +256,8 @@ async function processStoredEvent(
       .update({ processed_at: new Date().toISOString(), error: null })
       .eq("id", eventId);
   } catch (cause) {
-    const reason = cause instanceof Error ? cause.message : String(cause);
-    console.error(`Event ${eventId} failed to process: ${reason}`);
+    const reason = describe(cause);
+    await log("error", "event_failed", { event: eventId, error: reason });
 
     // Left unprocessed on purpose, so the sweep retries it — see sweep.ts.
     await supabase

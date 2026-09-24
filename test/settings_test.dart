@@ -129,8 +129,8 @@ void main() {
         () {
       // Reused rather than restated. A password accepted when the seller was
       // invited must not be refused when they come to change it.
-      expect(en.passwordTooShort, contains('8'));
-      expect(ar.passwordTooShort, contains('8'));
+      expect(en.passwordTooShort, contains('10'));
+      expect(ar.passwordTooShort, contains('10'));
     });
 
     test('a wrong current password is its own message', () {

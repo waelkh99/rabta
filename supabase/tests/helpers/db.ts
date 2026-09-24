@@ -31,8 +31,10 @@ const SUPABASE_SHIM = `
   create schema if not exists auth;
 
   create table auth.users (
-    id    uuid primary key default gen_random_uuid(),
-    email text unique
+    id                 uuid primary key default gen_random_uuid(),
+    email              text unique,
+    raw_app_meta_data  jsonb not null default '{}'::jsonb,
+    last_sign_in_at    timestamptz
   );
 
   -- Matches Supabase's definition: the signed-in user id comes from the JWT
@@ -88,6 +90,9 @@ const SUPABASE_SHIM = `
 // level security to restrict it. Mirroring that is what makes the policy tests
 // meaningful.
 const SUPABASE_GRANTS = `
+  alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
+  alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
+  alter default privileges in schema public grant all on functions to anon, authenticated, service_role;
   grant usage on schema public to anon, authenticated, service_role;
   grant all on all tables in schema public to anon, authenticated, service_role;
   grant all on all sequences in schema public to anon, authenticated, service_role;
@@ -106,9 +111,12 @@ export async function freshDb(): Promise<TestDb> {
   const db = new PGlite();
   await db.waitReady;
 
+  // Grants first, as Supabase does: its default privileges give these roles
+  // every new table, and a migration that revokes something runs after that.
+  // Granting after the migrations instead silently undid every revoke in them.
   await db.exec(SUPABASE_SHIM);
-  for (const sql of await migrations()) await db.exec(sql);
   await db.exec(SUPABASE_GRANTS);
+  for (const sql of await migrations()) await db.exec(sql);
 
   return {
     async sql(query, params = []) {

@@ -2,6 +2,10 @@
 //
 //   npm run signin -- playwright-seller@example.test
 //   npm run signin -- someone@example.test http://localhost:5353
+//   npm run signin -- someone@example.test --password
+//
+// --password sends them to "choose a new password" instead of straight in:
+// the recovery link, for a forgotten password until email sending exists.
 //
 // For driving the interface in a browser. `npm run invite` creates accounts and
 // refuses an email that already has one (email_exists), which is every test
@@ -32,7 +36,9 @@ for (const file of ["../.env", "../.env.local"]) {
 
 const url = env.SUPABASE_URL?.replace(/\/$/, "");
 const key = env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY;
-const [email, redirect = "http://localhost:5353"] = process.argv.slice(2);
+const args = process.argv.slice(2);
+const choosePassword = args.includes("--password");
+const [email, redirect = "http://localhost:5353"] = args.filter((a) => !a.startsWith("--"));
 
 if (!url || !key || !email) {
   console.error("Usage: npm run signin -- someone@example.test [return-url]");
@@ -42,7 +48,7 @@ if (!url || !key || !email) {
 const response = await fetch(`${url}/auth/v1/admin/generate_link`, {
   method: "POST",
   headers: { apikey: key, Authorization: `Bearer ${key}`, "content-type": "application/json" },
-  body: JSON.stringify({ type: "magiclink", email, redirect_to: redirect }),
+  body: JSON.stringify({ type: choosePassword ? "recovery" : "magiclink", email, redirect_to: redirect }),
 });
 
 const body = await response.json();

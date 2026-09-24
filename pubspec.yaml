@@ -24,6 +24,10 @@ dependencies:
   # disappearing.
   web: ^1.1.1
   excel: ^4.0.6
+  # Reads the deployed build's hash, to tell a seller with the tab open that a
+  # new version is out. Already in the tree through supabase_flutter; named
+  # because we import it.
+  http: ^1.2.0
 
 dev_dependencies:
   flutter_test:

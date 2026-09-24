@@ -518,7 +518,7 @@ class _PasswordDialogState extends State<_PasswordDialog> {
 
     // The same two rules the invitation screen applies, so a password that is
     // acceptable there cannot be refused here.
-    if (password.length < 8) {
+    if (!passwordStrongEnough(password)) {
       setState(() => _problem = l.passwordTooShort);
       return;
     }

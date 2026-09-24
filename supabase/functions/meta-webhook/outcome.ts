@@ -10,7 +10,7 @@
 // Pure apart from `readOutcome`'s caller, so every rule is testable without a
 // network. See CLAUDE.md, "How conversations end".
 
-import { ANTHROPIC_URL, MODEL, readUsage, type Usage } from "./ai.ts";
+import { ANTHROPIC_URL, MODEL, readUsage, type Usage, usageCost } from "./ai.ts";
 
 export const OUTCOMES = ["ordered", "not_bought", "just_asking", "undecided"] as const;
 export type Outcome = typeof OUTCOMES[number];
@@ -248,6 +248,8 @@ export interface OutcomeStore {
   lines(conversationId: string): Promise<Line[]>;
   catalog(workspaceId: string): Promise<string[]>;
   save(conversationId: string, reading: Reading, readUpTo: string): Promise<void>;
+  /** What the reading cost. Optional: tests omit it. */
+  recordUsage?(workspaceId: string, usage: Usage): Promise<void>;
 }
 
 /**
@@ -273,6 +275,8 @@ export async function readSettled(
       failed.push(conversation.id);
       continue;
     }
+
+    await store.recordUsage?.(conversation.workspaceId, result.usage);
 
     await store.save(conversation.id, withCustomersArea(result.reading, lines), conversation.readUpTo);
     read.push(conversation.id);
@@ -349,6 +353,19 @@ export function createOutcomeStore(client: SupabaseLike): OutcomeStore {
         .order("name");
       if (error) throw new Error(`outcome catalog failed: ${error.message}`);
       return (data ?? []).map((row: { name: string }) => row.name);
+    },
+
+    async recordUsage(workspaceId, usage) {
+      await client.from("ai_usage").insert({
+        workspace_id: workspaceId,
+        kind: "outcome",
+        model: MODEL,
+        input_tokens: usage.inputTokens,
+        output_tokens: usage.outputTokens,
+        cache_read: usage.cacheReadTokens,
+        cache_write: usage.cacheWriteTokens,
+        cost_usd: usageCost(MODEL, usage),
+      });
     },
 
     async save(conversationId, reading, readUpTo) {

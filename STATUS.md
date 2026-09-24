@@ -29,7 +29,7 @@ longer any limit on how many times in a row the assistant answers.**
 
 ## Live right now
 
-Supabase project `xejtffbpfguwvybrwqqj`. Sixteen migrations applied, four Edge
+Supabase project `xejtffbpfguwvybrwqqj`. Eighteen migrations applied, four Edge
 Functions deployed.
 
 | Function | What it does | Auth |
@@ -51,9 +51,9 @@ against both the **Page** and **Instagram** objects with the same verify token.
 `META_APP_SECRET` and `META_VERIFY_TOKEN` are set on the functions. Public
 sign-up is off: `/auth/v1/settings` reports `disable_signup: true`.
 
-**462 backend tests** (`cd supabase && npm test`, which typechecks every Edge
+**475 backend tests** (`cd supabase && npm test`, which typechecks every Edge
 Function with `deno check` first; about ten seconds, no Docker and no network)
-and **234 client tests** (`flutter test`). Each new piece of
+and **243 client tests** (`flutter test`). Each new piece of
 logic is shown to fail when deliberately broken rather than assumed to be
 covered.
 
@@ -141,11 +141,45 @@ a browser in both languages, at desktop and phone width.
 
 ## What needs you, not code
 
-1. **Business verification and App Review, then publish the app.** The blocking
-   item, and calendar time rather than development time.
-2. **Somewhere to host the site, and a domain.**
-3. **Custom SMTP**, before the first paying customer.
-4. **Set Site URL** to the real origin once it exists.
+**All of it is in `LAUNCH.md`**, in order, with why each matters and what to
+hand back. In short: a production Supabase project on Pro in Frankfurt (the
+current one is in Tokyo with no backups), a domain and hosting, SMTP, filling
+in and reviewing the privacy and data-deletion pages, Meta business
+verification and App Review, a spend-limited Anthropic key, and a pilot.
+
+## Running the service: the Admin screen
+
+Since 25 September 2026 the owner runs the service from inside the app, not a
+terminal. **Menu → Admin** (admins only, enforced in the database by
+`is_admin()` / `admin_overview()`) shows:
+
+- **Health** — last delivery from Meta, messages not yet processed, failing and
+  given-up events, accounts needing reconnection, errors and warnings in the
+  last 24 hours, errors on sellers' screens, and the assistant's cost and calls
+  this month. Green when nothing needs attention, red with a list when it does.
+- **Every seller** — email, admin badge, connected accounts and their status,
+  conversations, messages this week, last message and sign-in, products,
+  assistant on/off, assistant replies and cost this month, hand-overs waiting,
+  orders this month.
+- **Recent events** from `ops_log` and **errors on sellers' screens** from
+  `client_errors`.
+- **Invite a seller** from its top bar.
+
+Where it comes from: every function writes important events to `ops_log`
+(`functions/_shared/log.ts`), every model call's tokens and cost to `ai_usage`,
+and the app reports uncaught errors to `client_errors` (`lib/reporting.dart`).
+Processed raw deliveries are pruned after 30 days and logs after 90
+(`prune_old_records`, run after each delivery).
+
+**Admins:** `wal.kh.saleh99@gmail.com` (the product owner) only. Grant or
+revoke with `npm run admin -- email [--revoke]`. A forgotten password, until
+SMTP exists: `npm run signin -- email --password` prints a choose-a-password
+link.
+
+Supabase advisors on the live project are clean except three, all expected:
+`is_admin` and `admin_overview` are callable by signed-in users (each refuses
+non-admins inside, tested and proven live), and leaked-password protection
+needs the Pro plan.
 
 ---
 

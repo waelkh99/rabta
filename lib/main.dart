@@ -17,10 +17,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'inbox_page.dart';
 import 'l10n/app_localizations.dart';
 import 'locale_switch.dart';
+import 'reporting.dart';
 import 'set_password_page.dart';
 import 'sign_in_page.dart';
 import 'theme.dart';
@@ -80,6 +82,10 @@ Future<void> main() async {
 
   await Supabase.initialize(url: _url, publishableKey: _key);
 
+  // After Supabase, because a report is written through it.
+  reportUncaughtErrors();
+  watchForNewVersion();
+
   runApp(const RabtaApp());
 }
 
@@ -125,6 +131,12 @@ class RabtaApp extends StatelessWidget {
       },
 
       home: configured ? const _AuthGate() : const _MissingConfiguration(),
+      builder: (context, child) => Column(
+        children: [
+          Expanded(child: child ?? const SizedBox.shrink()),
+          const _NewVersionBar(),
+        ],
+      ),
     );
   }
 }
@@ -179,6 +191,48 @@ class _AuthGateState extends State<_AuthGate> {
 
 /// Running without configuration is a developer's mistake, not a seller's, so
 /// it names exactly what is missing rather than failing somewhere later.
+/// "A new version is ready — Reload", once the deployed build differs from
+/// the one this tab started with. At the bottom and quiet: the seller may be
+/// mid-reply, and nothing here should take the page from them.
+class _NewVersionBar extends StatelessWidget {
+  const _NewVersionBar();
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: newerVersion,
+      builder: (context, newer, _) {
+        if (!newer) return const SizedBox.shrink();
+        final colors = context.rabta;
+        final l = L.of(context)!;
+        return Material(
+          color: colors.ink,
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsetsDirectional.fromSTEB(18, 6, 8, 6),
+              child: Row(
+                children: [
+                  Icon(Icons.system_update_alt, size: 16, color: colors.surface),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(l.newVersion, style: Style.meta.copyWith(color: colors.surface)),
+                  ),
+                  TextButton(
+                    onPressed: () => launchUrl(Uri.base, webOnlyWindowName: '_self'),
+                    style: TextButton.styleFrom(foregroundColor: colors.surface),
+                    child: Text(l.reload, style: const TextStyle(fontWeight: FontWeight.w700)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _MissingConfiguration extends StatelessWidget {
   const _MissingConfiguration();
 

@@ -941,3 +941,38 @@ Asked for on 24 September 2026. See `CLAUDE.md`, "How conversations end".
       of a phone screen, an activity chart that read as cut off, Arabic number
       agreement in two sentences, and a tooltip sitting on the open menu
 - [ ] Not yet seen on a real shop's week — there is no real shop yet
+
+## 14. Launch hardening
+
+After a launch-readiness review on 25 September 2026. What needs the product
+owner is in `LAUNCH.md`.
+
+- [x] Sellers write only the five conversation fields the app writes — tested,
+      the revoke mutation caught, and **proven live**: a seller's token writing
+      `ai_state` got 403, writing `unread_count` 204
+- [x] Advisor findings fixed: fixed search paths, the signup trigger no longer
+      callable, every policy in Supabase's recommended `(select auth.uid())`
+      form (both `using` and `with check`), indexes on new foreign keys
+- [x] The PGlite harness grants before migrations, as Supabase does — granting
+      after had silently undone every revoke in a migration
+- [x] Password policy on the live project: 10 characters, upper + lower + digit.
+      Both password screens check the same rule first — **seen**: a 9-character
+      password refused in red before anything is sent, in both languages
+- [x] `ops_log`, `ai_usage`, `client_errors`, retention via `prune_old_records`
+      — 11 PGlite tests; the admin gate and the column revoke each broken on
+      purpose and caught. **Proven live:** a signed delivery logged
+      `unknown_account`; a seller reading `ops_log` got 403 and asking for the
+      overview got "not an admin"
+- [x] All four functions log important events to `ops_log`; model calls record
+      tokens and cost; supabase-js pinned to 2.116.0
+- [x] **Admin screen, seen** in Arabic and English at 1440 and 390: healthy
+      state, then a simulated failure, error and screen error turning it red
+      with each listed. Seeing it caught a cost that crashed the screen when
+      Postgres sent it as text, and an Arabic time reversed in the event log
+- [x] **"New version — Reload", seen:** a changed build hash raised the bar
+      after ten minutes (Playwright's clock), and Reload loaded the new build
+- [x] Draft privacy and data-deletion pages in `web/`, **seen** in both
+      languages at both widths. Placeholders for the legal details are
+      highlighted and listed in `LAUNCH.md`
+- [x] The owner's account exists and is the only admin
+- [ ] Everything in `LAUNCH.md`

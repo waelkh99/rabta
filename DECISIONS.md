@@ -2646,6 +2646,51 @@ phone, one flat menu, headroom and counts on the chart with a 0–24 axis, the
 tooltip's sentence moved into the menu, and label-first wording ("محادثات
 انتهت بطلب: 1 من 4") that reads correctly at any count.
 
+### Launch hardening
+
+25 September 2026, after a launch-readiness review scored the project about
+5.5 / 10: product and security strong, operations and compliance missing.
+
+**The owner runs the service from an Admin screen, not a terminal.** Asked for
+directly: "running npm commands won't cover for the long run." One database
+function, `admin_overview`, returns everything the screen shows across every
+seller; it is `security definer` so it can read past row level security, and
+its first line refuses anyone `is_admin()` does not recognise. `is_admin()`
+reads `auth.users`, not the token, so a grant or revoke takes effect at once —
+the same rule admin-invite follows. The client's own check only decides
+whether to draw the menu item.
+
+**Logs are written to a table as well as the console.** Function logs expire
+in a day or a week and cannot be searched by seller. Only events worth an
+admin's attention go to `ops_log`; routine traffic stays in the console.
+Logging never throws. Costs go to `ai_usage` per call, priced in code from the
+same token counts the console already logged.
+
+**Errors on sellers' screens are reported, capped at five per tab.** An error
+in a build method repeats every frame; the first few say everything.
+
+**A seller's writes are limited by column grants, not only by rows.** The
+update policy let a seller change any field of their own conversations. It
+could not reach another seller — send-message reads the account through the
+seller's own row level security — but a client has no business writing the
+assistant's state or a conversation's account.
+
+**The test harness now grants before migrations.** It had granted every table
+to every role after running them, which silently undid any revoke a migration
+made. Supabase grants first, through default privileges; the harness now does
+the same, which is what made the column restriction testable at all.
+
+**A new version is detected from Flutter's build hash.** `flutter_bootstrap.js`
+carries a hash that changes on every build; the app reads it at start and every
+ten minutes. `version.json` would have needed the version bumped by hand on
+every deploy. The hash comes from Flutter's deprecated service worker setting —
+marked `ponytail:` in `lib/reporting.dart`, with the upgrade path.
+
+**What was left for the owner, and why it could not be code:** the project's
+region (Tokyo; cannot be changed in place), backups (the plan), hosting and a
+domain, SMTP, the legal content of the privacy pages, Meta review, and a
+spend-limited API key. All in `LAUNCH.md`.
+
 ## Platform constraints
 
 These are not choices. They are limits Meta imposes, recorded here so they are

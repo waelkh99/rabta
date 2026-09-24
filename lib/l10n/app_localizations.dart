@@ -1132,7 +1132,7 @@ abstract class L {
   /// No description provided for @passwordBody.
   ///
   /// In ar, this message translates to:
-  /// **'8 أحرف على الأقل.'**
+  /// **'10 أحرف على الأقل، وفيها حرف كبير وحرف صغير ورقم.'**
   String get passwordBody;
 
   /// No description provided for @passwordNew.
@@ -1324,7 +1324,7 @@ abstract class L {
   /// No description provided for @passwordTooShort.
   ///
   /// In ar, this message translates to:
-  /// **'كلمة المرور من 8 أحرف على الأقل.'**
+  /// **'10 أحرف على الأقل، وفيها حرف كبير وحرف صغير ورقم.'**
   String get passwordTooShort;
 
   /// No description provided for @showPassword.
@@ -2064,6 +2064,258 @@ abstract class L {
   /// In ar, this message translates to:
   /// **'حاول مرة أخرى'**
   String get resultsRetry;
+
+  /// No description provided for @newVersion.
+  ///
+  /// In ar, this message translates to:
+  /// **'نسخة جديدة من ربطة جاهزة.'**
+  String get newVersion;
+
+  /// No description provided for @reload.
+  ///
+  /// In ar, this message translates to:
+  /// **'إعادة التحميل'**
+  String get reload;
+
+  /// No description provided for @admin.
+  ///
+  /// In ar, this message translates to:
+  /// **'الإدارة'**
+  String get admin;
+
+  /// No description provided for @adminTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'إدارة ربطة'**
+  String get adminTitle;
+
+  /// No description provided for @adminRefresh.
+  ///
+  /// In ar, this message translates to:
+  /// **'تحديث'**
+  String get adminRefresh;
+
+  /// No description provided for @adminFailed.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعذّر تحميل بيانات الإدارة.'**
+  String get adminFailed;
+
+  /// No description provided for @adminHealth.
+  ///
+  /// In ar, this message translates to:
+  /// **'حالة الخدمة'**
+  String get adminHealth;
+
+  /// No description provided for @adminAllGood.
+  ///
+  /// In ar, this message translates to:
+  /// **'كل شيء يعمل.'**
+  String get adminAllGood;
+
+  /// No description provided for @adminProblems.
+  ///
+  /// In ar, this message translates to:
+  /// **'هناك ما يحتاج انتباهك:'**
+  String get adminProblems;
+
+  /// No description provided for @adminLastDelivery.
+  ///
+  /// In ar, this message translates to:
+  /// **'آخر رسالة وصلت من ميتا'**
+  String get adminLastDelivery;
+
+  /// No description provided for @adminNever.
+  ///
+  /// In ar, this message translates to:
+  /// **'لم تصل أي رسالة بعد'**
+  String get adminNever;
+
+  /// No description provided for @adminUnprocessed.
+  ///
+  /// In ar, this message translates to:
+  /// **'رسائل لم تُعالَج بعد'**
+  String get adminUnprocessed;
+
+  /// No description provided for @adminFailing.
+  ///
+  /// In ar, this message translates to:
+  /// **'رسائل فشلت معالجتها وستُعاد'**
+  String get adminFailing;
+
+  /// No description provided for @adminStuck.
+  ///
+  /// In ar, this message translates to:
+  /// **'رسائل توقفت محاولات معالجتها'**
+  String get adminStuck;
+
+  /// No description provided for @adminReconnect.
+  ///
+  /// In ar, this message translates to:
+  /// **'حسابات تحتاج إعادة ربط'**
+  String get adminReconnect;
+
+  /// No description provided for @adminErrors.
+  ///
+  /// In ar, this message translates to:
+  /// **'أخطاء خلال 24 ساعة'**
+  String get adminErrors;
+
+  /// No description provided for @adminWarnings.
+  ///
+  /// In ar, this message translates to:
+  /// **'تحذيرات خلال 24 ساعة'**
+  String get adminWarnings;
+
+  /// No description provided for @adminClientErrors.
+  ///
+  /// In ar, this message translates to:
+  /// **'أخطاء على شاشات البائعين خلال 24 ساعة'**
+  String get adminClientErrors;
+
+  /// No description provided for @adminAiCost.
+  ///
+  /// In ar, this message translates to:
+  /// **'تكلفة المساعد هذا الشهر'**
+  String get adminAiCost;
+
+  /// No description provided for @adminAiCalls.
+  ///
+  /// In ar, this message translates to:
+  /// **'طلبات المساعد هذا الشهر'**
+  String get adminAiCalls;
+
+  /// No description provided for @adminSellers.
+  ///
+  /// In ar, this message translates to:
+  /// **'البائعون'**
+  String get adminSellers;
+
+  /// No description provided for @adminYou.
+  ///
+  /// In ar, this message translates to:
+  /// **'مدير'**
+  String get adminYou;
+
+  /// No description provided for @adminNoAccounts.
+  ///
+  /// In ar, this message translates to:
+  /// **'لم يربط أي حساب'**
+  String get adminNoAccounts;
+
+  /// No description provided for @adminConversations.
+  ///
+  /// In ar, this message translates to:
+  /// **'المحادثات'**
+  String get adminConversations;
+
+  /// No description provided for @adminMessages7d.
+  ///
+  /// In ar, this message translates to:
+  /// **'رسائل آخر 7 أيام'**
+  String get adminMessages7d;
+
+  /// No description provided for @adminLastMessage.
+  ///
+  /// In ar, this message translates to:
+  /// **'آخر رسالة'**
+  String get adminLastMessage;
+
+  /// No description provided for @adminLastSignIn.
+  ///
+  /// In ar, this message translates to:
+  /// **'آخر دخول'**
+  String get adminLastSignIn;
+
+  /// No description provided for @adminProducts.
+  ///
+  /// In ar, this message translates to:
+  /// **'المنتجات'**
+  String get adminProducts;
+
+  /// No description provided for @adminAssistant.
+  ///
+  /// In ar, this message translates to:
+  /// **'المساعد'**
+  String get adminAssistant;
+
+  /// No description provided for @adminOn.
+  ///
+  /// In ar, this message translates to:
+  /// **'يعمل'**
+  String get adminOn;
+
+  /// No description provided for @adminOff.
+  ///
+  /// In ar, this message translates to:
+  /// **'متوقف'**
+  String get adminOff;
+
+  /// No description provided for @adminAiReplies.
+  ///
+  /// In ar, this message translates to:
+  /// **'ردود المساعد هذا الشهر'**
+  String get adminAiReplies;
+
+  /// No description provided for @adminHandedOver.
+  ///
+  /// In ar, this message translates to:
+  /// **'محادثات بانتظار البائع'**
+  String get adminHandedOver;
+
+  /// No description provided for @adminOrdered.
+  ///
+  /// In ar, this message translates to:
+  /// **'طلبات هذا الشهر'**
+  String get adminOrdered;
+
+  /// No description provided for @adminEvents.
+  ///
+  /// In ar, this message translates to:
+  /// **'آخر الأحداث'**
+  String get adminEvents;
+
+  /// No description provided for @adminNoEvents.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد أحداث بعد.'**
+  String get adminNoEvents;
+
+  /// No description provided for @adminScreenErrors.
+  ///
+  /// In ar, this message translates to:
+  /// **'أخطاء على شاشات البائعين'**
+  String get adminScreenErrors;
+
+  /// No description provided for @adminNoScreenErrors.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد أخطاء.'**
+  String get adminNoScreenErrors;
+
+  /// No description provided for @adminInvite.
+  ///
+  /// In ar, this message translates to:
+  /// **'دعوة بائع'**
+  String get adminInvite;
+
+  /// No description provided for @adminStatusActive.
+  ///
+  /// In ar, this message translates to:
+  /// **'يعمل'**
+  String get adminStatusActive;
+
+  /// No description provided for @adminStatusReconnect.
+  ///
+  /// In ar, this message translates to:
+  /// **'يحتاج إعادة ربط'**
+  String get adminStatusReconnect;
+
+  /// No description provided for @adminStatusOff.
+  ///
+  /// In ar, this message translates to:
+  /// **'مفصول'**
+  String get adminStatusOff;
 }
 
 class _LDelegate extends LocalizationsDelegate<L> {

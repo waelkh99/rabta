@@ -1583,6 +1583,27 @@ export interface Usage {
 }
 
 /**
+ * Dollars per million tokens, from Anthropic's price list. Cache reads are a
+ * tenth of input; one-hour cache writes are double. Recorded per call in
+ * `ai_usage` so a seller's month can be priced without waiting for an invoice.
+ * An unknown model is priced as Sonnet rather than as free.
+ */
+const PRICES: Record<string, { input: number; output: number }> = {
+  [MODEL]: { input: 2, output: 10 },
+  [HAIKU]: { input: 1, output: 5 },
+};
+
+export function usageCost(model: string, usage: Usage): number {
+  const price = PRICES[model] ?? PRICES[MODEL];
+  return (
+    usage.inputTokens * price.input +
+    usage.outputTokens * price.output +
+    usage.cacheReadTokens * price.input * 0.1 +
+    usage.cacheWriteTokens * price.input * 2
+  ) / 1_000_000;
+}
+
+/**
  * What the call cost, for the log.
  *
  * `cacheReadTokens` staying at zero across repeated requests is the signal

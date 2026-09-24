@@ -16,9 +16,10 @@
 // Every refusal comes back as a code, never a sentence. The server does not
 // choose a language.
 
-import { createClient } from "jsr:@supabase/supabase-js@2";
+import { createClient } from "jsr:@supabase/supabase-js@2.116.0";
 
 import { corsHeaders } from "../_shared/origins.ts";
+import { createLog, describe } from "../_shared/log.ts";
 
 import {
   checkText,
@@ -35,6 +36,8 @@ const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 const service = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { persistSession: false },
 });
+
+const log = createLog(service, "send-message");
 
 Deno.serve(async (request: Request) => {
   // The page calls this from its own origin, so the browser asks permission
@@ -126,18 +129,19 @@ Deno.serve(async (request: Request) => {
   try {
     answer = await fetch(url, init).then((r) => r.json());
   } catch (error) {
-    console.error("send failed to reach Meta", { conversationId, error: String(error) });
+    await log("error", "meta_unreachable", { conversation: conversationId, error: describe(error) }, conversation.workspace_id);
     return refuse("unreachable", 502, cors);
   }
 
   const result = readSendResult(answer);
 
   if ("refusal" in result) {
-    console.error("Meta refused a reply", {
-      conversationId,
-      refusal: result.refusal,
-      detail: result.detail,
-    });
+    await log(
+      "warn",
+      "reply_refused",
+      { conversation: conversationId, refusal: result.refusal, detail: result.detail },
+      conversation.workspace_id,
+    );
 
     // The token has gone bad. Recorded on the account so that the seller can
     // be told to reconnect, rather than watching their inbox fall quiet and
@@ -169,7 +173,7 @@ Deno.serve(async (request: Request) => {
   // the seller to send it again, so this is logged and reported as sent — the
   // echo will store it a moment later in any case.
   if (error) {
-    console.error("reply sent but not stored", { conversationId, error });
+    await log("error", "reply_not_stored", { conversation: conversationId, error: describe(error) }, conversation.workspace_id);
   }
 
   return json({ mid: result.mid }, 200, cors);

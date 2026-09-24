@@ -11,6 +11,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'data.dart';
 import 'locale_switch.dart';
 import 'strings.dart';
 import 'theme.dart';
@@ -18,7 +19,6 @@ import 'wordmark.dart';
 
 /// Supabase accepts six. Eight is asked for here because this password opens
 /// other people's customer conversations.
-const _minimumLength = 8;
 
 class SetPasswordPage extends StatefulWidget {
   const SetPasswordPage({
@@ -52,7 +52,7 @@ class _SetPasswordPageState extends State<SetPasswordPage> {
   Future<void> _save() async {
     final password = _password.text;
 
-    if (password.length < _minimumLength) {
+    if (!passwordStrongEnough(password)) {
       setState(() => _problem = context.l.passwordTooShort);
       return;
     }

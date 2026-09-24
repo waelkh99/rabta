@@ -618,7 +618,8 @@ class LAr extends L {
   String get password => 'كلمة المرور';
 
   @override
-  String get passwordBody => '8 أحرف على الأقل.';
+  String get passwordBody =>
+      '10 أحرف على الأقل، وفيها حرف كبير وحرف صغير ورقم.';
 
   @override
   String get passwordNew => 'كلمة المرور الجديدة';
@@ -719,7 +720,8 @@ class LAr extends L {
   String get newPasswordLabel => 'كلمة المرور';
 
   @override
-  String get passwordTooShort => 'كلمة المرور من 8 أحرف على الأقل.';
+  String get passwordTooShort =>
+      '10 أحرف على الأقل، وفيها حرف كبير وحرف صغير ورقم.';
 
   @override
   String get showPassword => 'إظهار كلمة المرور';
@@ -1140,4 +1142,130 @@ class LAr extends L {
 
   @override
   String get resultsRetry => 'حاول مرة أخرى';
+
+  @override
+  String get newVersion => 'نسخة جديدة من ربطة جاهزة.';
+
+  @override
+  String get reload => 'إعادة التحميل';
+
+  @override
+  String get admin => 'الإدارة';
+
+  @override
+  String get adminTitle => 'إدارة ربطة';
+
+  @override
+  String get adminRefresh => 'تحديث';
+
+  @override
+  String get adminFailed => 'تعذّر تحميل بيانات الإدارة.';
+
+  @override
+  String get adminHealth => 'حالة الخدمة';
+
+  @override
+  String get adminAllGood => 'كل شيء يعمل.';
+
+  @override
+  String get adminProblems => 'هناك ما يحتاج انتباهك:';
+
+  @override
+  String get adminLastDelivery => 'آخر رسالة وصلت من ميتا';
+
+  @override
+  String get adminNever => 'لم تصل أي رسالة بعد';
+
+  @override
+  String get adminUnprocessed => 'رسائل لم تُعالَج بعد';
+
+  @override
+  String get adminFailing => 'رسائل فشلت معالجتها وستُعاد';
+
+  @override
+  String get adminStuck => 'رسائل توقفت محاولات معالجتها';
+
+  @override
+  String get adminReconnect => 'حسابات تحتاج إعادة ربط';
+
+  @override
+  String get adminErrors => 'أخطاء خلال 24 ساعة';
+
+  @override
+  String get adminWarnings => 'تحذيرات خلال 24 ساعة';
+
+  @override
+  String get adminClientErrors => 'أخطاء على شاشات البائعين خلال 24 ساعة';
+
+  @override
+  String get adminAiCost => 'تكلفة المساعد هذا الشهر';
+
+  @override
+  String get adminAiCalls => 'طلبات المساعد هذا الشهر';
+
+  @override
+  String get adminSellers => 'البائعون';
+
+  @override
+  String get adminYou => 'مدير';
+
+  @override
+  String get adminNoAccounts => 'لم يربط أي حساب';
+
+  @override
+  String get adminConversations => 'المحادثات';
+
+  @override
+  String get adminMessages7d => 'رسائل آخر 7 أيام';
+
+  @override
+  String get adminLastMessage => 'آخر رسالة';
+
+  @override
+  String get adminLastSignIn => 'آخر دخول';
+
+  @override
+  String get adminProducts => 'المنتجات';
+
+  @override
+  String get adminAssistant => 'المساعد';
+
+  @override
+  String get adminOn => 'يعمل';
+
+  @override
+  String get adminOff => 'متوقف';
+
+  @override
+  String get adminAiReplies => 'ردود المساعد هذا الشهر';
+
+  @override
+  String get adminHandedOver => 'محادثات بانتظار البائع';
+
+  @override
+  String get adminOrdered => 'طلبات هذا الشهر';
+
+  @override
+  String get adminEvents => 'آخر الأحداث';
+
+  @override
+  String get adminNoEvents => 'لا توجد أحداث بعد.';
+
+  @override
+  String get adminScreenErrors => 'أخطاء على شاشات البائعين';
+
+  @override
+  String get adminNoScreenErrors => 'لا توجد أخطاء.';
+
+  @override
+  String get adminInvite => 'دعوة بائع';
+
+  @override
+  String get adminStatusActive => 'يعمل';
+
+  @override
+  String get adminStatusReconnect => 'يحتاج إعادة ربط';
+
+  @override
+  String get adminStatusOff => 'مفصول';
 }

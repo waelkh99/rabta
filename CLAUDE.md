@@ -8,6 +8,10 @@ The long-term goal is to provide one place where sellers can manage customer int
 
 The product should be designed around real seller workflows, not around technical possibilities.
 
+**Before launch, read `LAUNCH.md`:** the steps that need the product owner
+(production project, hosting, SMTP, legal pages, Meta review), in order, with
+what each hands back.
+
 Decisions that have already been settled — supported platforms, backend, and
 known Meta limitations — are recorded in `DECISIONS.md`. Read it before making
 architectural choices.

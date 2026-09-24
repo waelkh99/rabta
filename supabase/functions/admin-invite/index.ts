@@ -12,7 +12,7 @@
 // and it means the client's own idea of who is an admin — which only decides
 // whether a button is drawn — is never what is trusted.
 
-import { createClient } from "jsr:@supabase/supabase-js@2";
+import { createClient } from "jsr:@supabase/supabase-js@2.116.0";
 
 import { corsHeaders } from "../_shared/origins.ts";
 import {
@@ -21,10 +21,16 @@ import {
   isAdmin,
   readInviteError,
 } from "./admin.ts";
+import { createLog } from "../_shared/log.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+
+const log = createLog(
+  createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { persistSession: false } }),
+  "admin-invite",
+);
 
 Deno.serve(async (request: Request) => {
   const cors = corsHeaders(request.headers.get("Origin"));
@@ -52,7 +58,7 @@ Deno.serve(async (request: Request) => {
   if (!isAdmin(identity.user)) {
     // Logged, because a seller's inbox reaching this endpoint is either a bug
     // in the interface or someone trying it by hand.
-    console.warn("non-admin tried to invite", { userId: identity.user.id });
+    await log("warn", "invite_not_admin", { user: identity.user.id });
     return refuse("not_admin", 403, cors);
   }
 
@@ -94,17 +100,17 @@ Deno.serve(async (request: Request) => {
   const answer = await response.json().catch(() => null);
 
   if (!response.ok) {
-    console.error("invite refused by gotrue", { status: response.status, answer });
+    await log("error", "invite_refused", { status: response.status, answer });
     return refuse(readInviteError(response.status, answer), 400, cors);
   }
 
   const link = (answer as { action_link?: string } | null)?.action_link;
   if (!link) {
-    console.error("invite produced no link", { answer });
+    await log("error", "invite_no_link", { answer });
     return refuse("failed", 502, cors);
   }
 
-  console.log("invited", { email, by: identity.user.id });
+  await log("info", "invited", { email, by: identity.user.id });
 
   // The link is returned rather than emailed. Supabase's built-in sender is
   // rate limited and not for production, so until custom SMTP exists the

@@ -99,7 +99,7 @@ a mark is a label on a conversation, not an order record.
 | Backend | Supabase — Postgres, Auth, Edge Functions (Deno) |
 | Messaging | Meta Graph API, webhook-driven |
 | Assistant | `claude-sonnet-5`, prompt-cached, roughly $4–7 per seller per month |
-| Tests | 462 backend, 234 client, plus scripted conversations against the live model |
+| Tests | 475 backend, 243 client, plus scripted conversations against the live model |
 
 Row level security on every table, proven against a second seller rather than
 assumed. Signature verification on every webhook delivery. Secrets live as
@@ -123,6 +123,9 @@ notifications in an open tab, search, a per-conversation switch to take over
 from the assistant, saving a hand-over answer for next time, a warning when an
 account stops receiving, and how conversations end with a Results screen.
 
+The service is run from an **Admin** screen inside the app: health, every
+seller, costs, events and errors on sellers' screens.
+
 The product is not publicly launched — Meta app review, hosting and custom
 email are the remaining blockers, all tracked in `STATUS.md`. Notifications
 reach a closed browser only once there is hosting for Web Push.
@@ -139,6 +142,7 @@ reach a closed browser only once there is hosting for Web Push.
 - `STATUS.md` — where the work stands right now
 - `WEBHOOKS.md` — the webhook service specification
 - `ONBOARDING.md` — the seller's first ten minutes
+- `LAUNCH.md` — the steps before launch that need the owner, not code
 
 `DECISIONS.md` is the one worth reading. It records the failures as carefully
 as the results — an assistant that answered an English customer in Arabic, one
@@ -160,6 +164,7 @@ cd supabase && npm run replay      # replay a chat against the real shop
 cd supabase && npm run live        # scripted chats against the real model
 cd supabase && npm run outcomes    # how well it reads how chats ended (costs money)
 cd supabase && npm run signin -- someone@example.test   # sign-in link for a browser test
+cd supabase && npm run signin -- someone@example.test --password   # choose-a-password link
 ```
 
 The last two spend real money. They exist because "does this read like a

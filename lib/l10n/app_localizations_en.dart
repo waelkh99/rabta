@@ -618,7 +618,8 @@ class LEn extends L {
   String get password => 'Password';
 
   @override
-  String get passwordBody => 'At least 8 characters.';
+  String get passwordBody =>
+      'At least 10 characters, with an upper-case letter, a lower-case letter and a digit.';
 
   @override
   String get passwordNew => 'New password';
@@ -719,7 +720,8 @@ class LEn extends L {
   String get newPasswordLabel => 'Password';
 
   @override
-  String get passwordTooShort => 'Use at least 8 characters.';
+  String get passwordTooShort =>
+      'At least 10 characters, with an upper-case letter, a lower-case letter and a digit.';
 
   @override
   String get showPassword => 'Show password';
@@ -1139,4 +1141,130 @@ class LEn extends L {
 
   @override
   String get resultsRetry => 'Try again';
+
+  @override
+  String get newVersion => 'A new version of Rabta is ready.';
+
+  @override
+  String get reload => 'Reload';
+
+  @override
+  String get admin => 'Admin';
+
+  @override
+  String get adminTitle => 'Rabta admin';
+
+  @override
+  String get adminRefresh => 'Refresh';
+
+  @override
+  String get adminFailed => 'Couldn\'t load the admin data.';
+
+  @override
+  String get adminHealth => 'Service health';
+
+  @override
+  String get adminAllGood => 'Everything is working.';
+
+  @override
+  String get adminProblems => 'Something needs your attention:';
+
+  @override
+  String get adminLastDelivery => 'Last message from Meta';
+
+  @override
+  String get adminNever => 'None yet';
+
+  @override
+  String get adminUnprocessed => 'Messages not processed yet';
+
+  @override
+  String get adminFailing => 'Messages that failed and will be retried';
+
+  @override
+  String get adminStuck => 'Messages that gave up after 5 tries';
+
+  @override
+  String get adminReconnect => 'Accounts that need reconnecting';
+
+  @override
+  String get adminErrors => 'Errors in the last 24 hours';
+
+  @override
+  String get adminWarnings => 'Warnings in the last 24 hours';
+
+  @override
+  String get adminClientErrors => 'Errors on sellers\' screens, last 24 hours';
+
+  @override
+  String get adminAiCost => 'Assistant cost this month';
+
+  @override
+  String get adminAiCalls => 'Assistant calls this month';
+
+  @override
+  String get adminSellers => 'Sellers';
+
+  @override
+  String get adminYou => 'Admin';
+
+  @override
+  String get adminNoAccounts => 'No accounts connected';
+
+  @override
+  String get adminConversations => 'Conversations';
+
+  @override
+  String get adminMessages7d => 'Messages, last 7 days';
+
+  @override
+  String get adminLastMessage => 'Last message';
+
+  @override
+  String get adminLastSignIn => 'Last sign-in';
+
+  @override
+  String get adminProducts => 'Products';
+
+  @override
+  String get adminAssistant => 'Assistant';
+
+  @override
+  String get adminOn => 'On';
+
+  @override
+  String get adminOff => 'Off';
+
+  @override
+  String get adminAiReplies => 'Assistant replies this month';
+
+  @override
+  String get adminHandedOver => 'Handed over, waiting';
+
+  @override
+  String get adminOrdered => 'Orders this month';
+
+  @override
+  String get adminEvents => 'Recent events';
+
+  @override
+  String get adminNoEvents => 'No events yet.';
+
+  @override
+  String get adminScreenErrors => 'Errors on sellers\' screens';
+
+  @override
+  String get adminNoScreenErrors => 'No errors.';
+
+  @override
+  String get adminInvite => 'Invite a seller';
+
+  @override
+  String get adminStatusActive => 'Active';
+
+  @override
+  String get adminStatusReconnect => 'Needs reconnect';
+
+  @override
+  String get adminStatusOff => 'Disconnected';
 }

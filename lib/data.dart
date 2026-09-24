@@ -1396,6 +1396,16 @@ class WeekSummary {
   }
 }
 
+/// Whether a password meets the rule the server enforces: ten characters,
+/// with a lower-case letter, an upper-case letter and a digit. Checked here
+/// first so the seller is told in words, rather than by a refusal from the
+/// server after they have typed it twice.
+bool passwordStrongEnough(String password) =>
+    password.length >= 10 &&
+    RegExp(r'[a-z]').hasMatch(password) &&
+    RegExp(r'[A-Z]').hasMatch(password) &&
+    RegExp(r'[0-9]').hasMatch(password);
+
 /// The conversations matching what the seller typed into search.
 ///
 /// Name and latest preview are matched here, from what is already loaded;
@@ -1890,6 +1900,13 @@ class Inbox {
     await _db
         .from('conversations')
         .update({'unread_count': 0}).eq('id', conversationId);
+  }
+
+  /// Everything the admin screen shows, across every seller. The database
+  /// refuses anyone who is not an admin; see admin_overview.
+  Future<Map<String, dynamic>> adminOverview() async {
+    final data = await _db.rpc('admin_overview');
+    return Map<String, dynamic>.from(data as Map);
   }
 
   /// The seller's own word on how a conversation ended. Wins over the
