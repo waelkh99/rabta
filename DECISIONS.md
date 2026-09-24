@@ -2686,6 +2686,18 @@ ten minutes. `version.json` would have needed the version bumped by hand on
 every deploy. The hash comes from Flutter's deprecated service worker setting —
 marked `ponytail:` in `lib/reporting.dart`, with the upgrade path.
 
+**The new password is typed twice — a reversal.** The invitation screen had
+one field with a reveal, reasoning that seeing the password does what a second
+box does. The product owner, setting up their own account on 25 September:
+"should include a re-enter password field, to cut down on misinputs." A
+mistyped password there is an account nobody can open, and a reveal only helps
+someone who uses it. The reveal stays and shows both.
+
+**An admin with no accounts lands on the Admin screen.** The owner runs the
+service and need not sell through it; the "connect your account" screen alone
+left them with nothing. As home it carries the language, sign-out and a link
+to Accounts, so connecting later is one tap.
+
 **What was left for the owner, and why it could not be code:** the project's
 region (Tokyo; cannot be changed in place), backups (the plan), hosting and a
 domain, SMTP, the legal content of the privacy pages, Meta review, and a

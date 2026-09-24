@@ -975,4 +975,13 @@ owner is in `LAUNCH.md`.
       languages at both widths. Placeholders for the legal details are
       highlighted and listed in `LAUNCH.md`
 - [x] The owner's account exists and is the only admin
+- [x] **The new password is typed twice** on the invitation and reset screen —
+      three widget tests, the mismatch check and the language fix each broken
+      on purpose and caught. **Seen** through a real reset link in both
+      languages at both widths. Seeing it caught the longer password rule cut
+      off on one line, and an error stored as finished text that stayed
+      English after switching to Arabic
+- [x] **An admin with no connected accounts lands on the Admin screen**, with
+      language, sign-out and a link to Accounts — **seen** in both languages at
+      both widths, with a throwaway admin created and deleted for the purpose
 - [ ] Everything in `LAUNCH.md`

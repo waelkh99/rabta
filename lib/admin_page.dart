@@ -10,8 +10,12 @@
 
 import 'package:flutter/material.dart';
 
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'accounts_page.dart';
 import 'data.dart';
 import 'invite_page.dart';
+import 'locale_switch.dart';
 import 'strings.dart';
 import 'theme.dart';
 
@@ -58,9 +62,17 @@ List<String> healthProblems(AdminOverview o) => [
     ];
 
 class AdminPage extends StatefulWidget {
-  const AdminPage({super.key, required this.inbox});
+  const AdminPage({super.key, required this.inbox, this.asHome = false});
 
   final Inbox inbox;
+
+  /// The first screen, for an admin who has connected no accounts of their
+  /// own. An owner running the service need not sell through it, and the
+  /// "connect your account" screen alone left them with nothing (reported by
+  /// the product owner, 25 September 2026). As home it has no back arrow, and
+  /// carries what the inbox header otherwise would: the language, a way to
+  /// connect an account after all, and signing out.
+  final bool asHome;
 
   @override
   State<AdminPage> createState() => _AdminPageState();
@@ -85,7 +97,18 @@ class _AdminPageState extends State<AdminPage> {
         title: Text(l.adminTitle, style: Style.heading.copyWith(color: colors.ink)),
         iconTheme: IconThemeData(color: colors.ink),
         shape: Border(bottom: BorderSide(color: colors.edge)),
+        automaticallyImplyLeading: !widget.asHome,
         actions: [
+          if (widget.asHome) ...[
+            const LocaleSwitch(compact: true),
+            IconButton(
+              tooltip: l.accounts,
+              icon: const Icon(Icons.link, size: 19),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => AccountsPage(inbox: widget.inbox)),
+              ),
+            ),
+          ],
           IconButton(
             tooltip: l.adminInvite,
             icon: const Icon(Icons.person_add_alt, size: 19),
@@ -98,6 +121,12 @@ class _AdminPageState extends State<AdminPage> {
             icon: const Icon(Icons.refresh, size: 19),
             onPressed: () => setState(() => _overview = _load()),
           ),
+          if (widget.asHome)
+            IconButton(
+              tooltip: l.signOut,
+              icon: const Icon(Icons.logout, size: 18),
+              onPressed: () => Supabase.instance.client.auth.signOut(),
+            ),
           const SizedBox(width: 8),
         ],
       ),

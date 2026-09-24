@@ -99,7 +99,7 @@ a mark is a label on a conversation, not an order record.
 | Backend | Supabase — Postgres, Auth, Edge Functions (Deno) |
 | Messaging | Meta Graph API, webhook-driven |
 | Assistant | `claude-sonnet-5`, prompt-cached, roughly $4–7 per seller per month |
-| Tests | 475 backend, 243 client, plus scripted conversations against the live model |
+| Tests | 475 backend, 247 client, plus scripted conversations against the live model |
 
 Row level security on every table, proven against a second seller rather than
 assumed. Signature verification on every webhook delivery. Secrets live as

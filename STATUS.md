@@ -53,7 +53,7 @@ sign-up is off: `/auth/v1/settings` reports `disable_signup: true`.
 
 **475 backend tests** (`cd supabase && npm test`, which typechecks every Edge
 Function with `deno check` first; about ten seconds, no Docker and no network)
-and **243 client tests** (`flutter test`). Each new piece of
+and **247 client tests** (`flutter test`). Each new piece of
 logic is shown to fail when deliberately broken rather than assumed to be
 covered.
 
@@ -170,6 +170,9 @@ Where it comes from: every function writes important events to `ops_log`
 and the app reports uncaught errors to `client_errors` (`lib/reporting.dart`).
 Processed raw deliveries are pruned after 30 days and logs after 90
 (`prune_old_records`, run after each delivery).
+
+An admin with no connected accounts of their own lands on this screen instead
+of the inbox, with the language, sign-out and a link to Accounts.
 
 **Admins:** `wal.kh.saleh99@gmail.com` (the product owner) only. Grant or
 revoke with `npm run admin -- email [--revoke]`. A forgotten password, until

@@ -476,6 +476,11 @@ class _InboxPageState extends State<InboxPage> {
             // until this is done, so it is the whole screen rather than a
             // panel inside one — and it is the same at every width.
             if (_accounts != null && _accounts!.isEmpty) {
+              // An admin need not sell through Rabta to run it. Connecting
+              // is one tap away in the admin screen's header.
+              if (signedInUserIsAdmin()) {
+                return AdminPage(inbox: _inbox, asHome: true);
+              }
               return _FirstRun(inbox: _inbox);
             }
 

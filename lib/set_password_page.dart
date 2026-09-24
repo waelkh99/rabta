@@ -12,13 +12,15 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'data.dart';
+import 'l10n/app_localizations.dart';
 import 'locale_switch.dart';
 import 'strings.dart';
 import 'theme.dart';
 import 'wordmark.dart';
 
-/// Supabase accepts six. Eight is asked for here because this password opens
-/// other people's customer conversations.
+/// Ten characters with mixed case and a digit, the rule the server enforces
+/// (see passwordStrongEnough), because this password opens other people's
+/// customer conversations.
 
 class SetPasswordPage extends StatefulWidget {
   const SetPasswordPage({
@@ -39,13 +41,21 @@ class SetPasswordPage extends StatefulWidget {
 
 class _SetPasswordPageState extends State<SetPasswordPage> {
   final _password = TextEditingController();
+  final _repeat = TextEditingController();
   bool _visible = false;
   bool _saving = false;
-  String? _problem;
+  /// What went wrong, as words to be chosen when drawn rather than when it
+  /// happened: stored as text, an error shown in English stayed English after
+  /// the seller switched to Arabic (seen in a browser, 25 September 2026).
+  String Function(L l)? _problem;
+
+  /// Said under the second box, where the mismatch is.
+  bool _mismatch = false;
 
   @override
   void dispose() {
     _password.dispose();
+    _repeat.dispose();
     super.dispose();
   }
 
@@ -53,13 +63,25 @@ class _SetPasswordPageState extends State<SetPasswordPage> {
     final password = _password.text;
 
     if (!passwordStrongEnough(password)) {
-      setState(() => _problem = context.l.passwordTooShort);
+      setState(() {
+        _problem = (l) => l.passwordTooShort;
+        _mismatch = false;
+      });
+      return;
+    }
+
+    if (password != _repeat.text) {
+      setState(() {
+        _problem = null;
+        _mismatch = true;
+      });
       return;
     }
 
     setState(() {
       _saving = true;
       _problem = null;
+      _mismatch = false;
     });
 
     try {
@@ -73,14 +95,13 @@ class _SetPasswordPageState extends State<SetPasswordPage> {
         setState(() {
           // An invitation that sat in an inbox too long. Saying so is the
           // difference between asking us for a new link and giving up.
-          _problem = error.statusCode == '401' || error.statusCode == '403'
-              ? context.l.inviteExpired
-              : context.l.setPasswordFailed(error.message);
+          final expired = error.statusCode == '401' || error.statusCode == '403';
+          _problem = (l) => expired ? l.inviteExpired : l.setPasswordFailed(error.message);
         });
       }
     } catch (error) {
       if (mounted) {
-        setState(() => _problem = context.l.setPasswordFailed('$error'));
+        setState(() => _problem = (l) => l.setPasswordFailed('$error'));
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -111,67 +132,118 @@ class _SetPasswordPageState extends State<SetPasswordPage> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    widget.returning ? l.setPasswordRenew : l.setPasswordWelcome,
-                    style:
-                        Style.preview.copyWith(color: colors.muted, height: 1.6),
+                    widget.returning
+                        ? l.setPasswordRenew
+                        : l.setPasswordWelcome,
+                    style: Style.preview.copyWith(
+                      color: colors.muted,
+                      height: 1.6,
+                    ),
                   ),
                   const SizedBox(height: 28),
 
-                  // One field with a reveal, rather than asking for it twice.
-                  // A seller can see what they typed, which is what a second
-                  // box is really for.
+                  // Asked twice, with a reveal that shows both. This was one
+                  // field with a reveal until 25 September 2026; the product
+                  // owner, setting up their own account: "should include a
+                  // re-enter password field, to cut down on misinputs". A
+                  // mistyped password here is an account nobody can open.
                   //
                   // In an AutofillGroup with newPassword, so the browser offers
                   // to save it — otherwise they set a password here and have
                   // nothing to autofill next time.
                   AutofillGroup(
-                    child: TextField(
-                      controller: _password,
-                      obscureText: !_visible,
-                      autofocus: true,
-                      autofillHints: const [AutofillHints.newPassword],
-                      onSubmitted: (_) => _save(),
-                      style: Style.message.copyWith(color: colors.ink),
-                      cursorColor: colors.accent,
-                      decoration: InputDecoration(
-                        labelText: l.newPasswordLabel,
-                        labelStyle:
-                            Style.preview.copyWith(color: colors.muted),
-                        floatingLabelStyle:
-                            Style.meta.copyWith(color: colors.accent),
-                        // The rule is stated up front, and the same slot
-                        // carries the complaint when it is broken. Shown as a
-                        // separate line instead, a rejected password printed
-                        // the identical sentence twice, which reads as a fault
-                        // in the screen rather than an answer to the seller.
-                        helperText: l.passwordTooShort,
-                        helperStyle: Style.meta.copyWith(color: colors.muted),
-                        errorText: _problem,
-                        errorStyle: Style.meta.copyWith(color: colors.urgent),
-                        errorMaxLines: 3,
-                        filled: true,
-                        fillColor: colors.surface,
-                        suffixIcon: IconButton(
-                          onPressed: () =>
-                              setState(() => _visible = !_visible),
-                          icon: Icon(
-                            _visible
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined,
-                            size: 19,
+                    child: Column(
+                      children: [
+                        TextField(
+                          controller: _password,
+                          obscureText: !_visible,
+                          autofocus: true,
+                          autofillHints: const [AutofillHints.newPassword],
+                          onSubmitted: (_) => _save(),
+                          style: Style.message.copyWith(color: colors.ink),
+                          cursorColor: colors.accent,
+                          decoration: InputDecoration(
+                            labelText: l.newPasswordLabel,
+                            labelStyle: Style.preview.copyWith(
+                              color: colors.muted,
+                            ),
+                            floatingLabelStyle: Style.meta.copyWith(
+                              color: colors.accent,
+                            ),
+                            // The rule is stated up front, and the same slot
+                            // carries the complaint when it is broken. Shown as a
+                            // separate line instead, a rejected password printed
+                            // the identical sentence twice, which reads as a fault
+                            // in the screen rather than an answer to the seller.
+                            helperText: l.passwordTooShort,
+                            helperStyle: Style.meta.copyWith(
+                              color: colors.muted,
+                            ),
+                            // The rule is a full sentence since passwords need
+                            // mixed case and a digit; on one line it was cut off.
+                            helperMaxLines: 3,
+                            errorText: _problem?.call(l),
+                            errorStyle: Style.meta.copyWith(
+                              color: colors.urgent,
+                            ),
+                            errorMaxLines: 3,
+                            filled: true,
+                            fillColor: colors.surface,
+                            suffixIcon: IconButton(
+                              onPressed: () =>
+                                  setState(() => _visible = !_visible),
+                              icon: Icon(
+                                _visible
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined,
+                                size: 19,
+                              ),
+                              color: colors.muted,
+                              tooltip: _visible
+                                  ? l.hidePassword
+                                  : l.showPassword,
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 18,
+                            ),
+                            border: _border(colors.line),
+                            enabledBorder: _border(colors.line),
+                            focusedBorder: _border(colors.accent, 1.5),
                           ),
-                          color: colors.muted,
-                          tooltip:
-                              _visible ? l.hidePassword : l.showPassword,
                         ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 18,
+                        const SizedBox(height: 14),
+                        TextField(
+                          controller: _repeat,
+                          obscureText: !_visible,
+                          autofillHints: const [AutofillHints.newPassword],
+                          onSubmitted: (_) => _save(),
+                          style: Style.message.copyWith(color: colors.ink),
+                          cursorColor: colors.accent,
+                          decoration: InputDecoration(
+                            labelText: l.passwordRepeat,
+                            labelStyle: Style.preview.copyWith(
+                              color: colors.muted,
+                            ),
+                            floatingLabelStyle: Style.meta.copyWith(
+                              color: colors.accent,
+                            ),
+                            errorText: _mismatch ? l.passwordMismatch : null,
+                            errorStyle: Style.meta.copyWith(
+                              color: colors.urgent,
+                            ),
+                            filled: true,
+                            fillColor: colors.surface,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 18,
+                            ),
+                            border: _border(colors.line),
+                            enabledBorder: _border(colors.line),
+                            focusedBorder: _border(colors.accent, 1.5),
+                          ),
                         ),
-                        border: _border(colors.line),
-                        enabledBorder: _border(colors.line),
-                        focusedBorder: _border(colors.accent, 1.5),
-                      ),
+                      ],
                     ),
                   ),
 
