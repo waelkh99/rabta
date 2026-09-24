@@ -18,7 +18,14 @@ Your account `wal.kh.saleh99@gmail.com` exists and is an admin. To set its
 password:
 
 1. Run the app locally: `flutter run -d chrome --dart-define-from-file=env.json --web-port=5353`
-2. In another terminal: `cd supabase && npm run signin -- wal.kh.saleh99@gmail.com --password`
+2. In another terminal, from the project folder — two commands, because
+   Windows PowerShell does not accept `&&`:
+   ```
+   cd supabase
+   npm run signin -- wal.kh.saleh99@gmail.com --password
+   ```
+   Every `npm run` command in this project runs from the `supabase` folder;
+   from the project root npm reports "Could not read package.json".
 3. Open the link it prints in that Chrome. It asks you to choose a password
    (at least 10 characters, with upper case, lower case and a digit).
 4. From then on, sign in normally. **Menu → الإدارة / Admin** is the whole
