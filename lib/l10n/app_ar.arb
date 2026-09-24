@@ -412,5 +412,19 @@
   "catalogFileChoose": "اختر ملف Excel",
   "catalogFileOr": "أو الصق الصفوف",
   "catalogFileOldExcel": "هذا ملف Excel بالصيغة القديمة XLS. افتحه واحفظه بصيغة XLSX، ثم اختره مرة أخرى.",
-  "catalogFileUnreadable": "تعذّرت قراءة هذا الملف. جرّب ملف XLSX أو CSV."
+  "catalogFileUnreadable": "تعذّرت قراءة هذا الملف. جرّب ملف XLSX أو CSV.",
+  "searchHint": "ابحث باسم الزبون أو بنص رسالة",
+  "searchNoResults": "لا توجد محادثات تطابق بحثك",
+  "clearSearch": "مسح البحث",
+  "reconnectBanner": "توقّف أحد حساباتك عن استقبال الرسائل. أعد ربطه حتى تصلك رسائل الزبائن.",
+  "reconnectAction": "أعد الربط",
+  "assistantHere": "المساعد",
+  "assistantHereOn": "المساعد يردّ في هذه المحادثة. أوقفه لتتولّاها بنفسك.",
+  "assistantHereOff": "أنت تتولّى هذه المحادثة، والمساعد لن يردّ فيها حتى تعيد تشغيله.",
+  "teachTitle": "هل تريد أن يعرف المساعد هذا الجواب في المرة القادمة؟",
+  "teachBody": "عدّل النص إن لزم. يُضاف إلى معلومات متجرك، ويستخدمه المساعد مع كل الزبائن.",
+  "teachSave": "احفظ",
+  "teachDismiss": "ليس الآن",
+  "teachSaved": "حُفظ. سيستخدمه المساعد من الآن.",
+  "teachFailed": "لم يُحفظ. حاول مرة أخرى."
 }

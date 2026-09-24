@@ -12,6 +12,7 @@ import {
   readSendResult,
   sendRequest,
   TEXT_LIMIT,
+  tokenExpired,
 } from "../functions/send-message/send.ts";
 
 const NOW = new Date("2026-09-18T12:00:00.000Z");
@@ -181,4 +182,13 @@ test("a response that is neither a success nor a recognisable error is a refusal
     const result = readSendResult(answer);
     assert.ok("refusal" in result, `treated ${JSON.stringify(answer)} as sent`);
   }
+});
+
+test("only Meta's code 190 means the token is dead", () => {
+  // A false positive tells a seller to reconnect an account that works.
+  assert.equal(tokenExpired({ error: { message: "Error validating access token", code: 190 } }), true);
+  assert.equal(tokenExpired({ error: { message: "Unsupported get request", code: 100 } }), false);
+  assert.equal(tokenExpired({ error: { code: "190" } }), false, "a string is not Meta's code");
+  assert.equal(tokenExpired({ id: "1427711713749572" }), false);
+  assert.equal(tokenExpired(null), false);
 });

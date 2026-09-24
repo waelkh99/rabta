@@ -310,5 +310,19 @@
   "catalogFileChoose": "Choose an Excel file",
   "catalogFileOr": "Or paste the rows",
   "catalogFileOldExcel": "This is an old-style Excel file (.xls). Open it, save it as .xlsx, and choose it again.",
-  "catalogFileUnreadable": "This file could not be read. Try an .xlsx or .csv file."
+  "catalogFileUnreadable": "This file could not be read. Try an .xlsx or .csv file.",
+  "searchHint": "Search by customer name or message",
+  "searchNoResults": "No conversations match your search",
+  "clearSearch": "Clear search",
+  "reconnectBanner": "One of your accounts has stopped receiving messages. Reconnect it so customers' messages reach you.",
+  "reconnectAction": "Reconnect",
+  "assistantHere": "Assistant",
+  "assistantHereOn": "The assistant replies in this conversation. Turn it off to handle it yourself.",
+  "assistantHereOff": "You're handling this conversation. The assistant won't reply here until you turn it back on.",
+  "teachTitle": "Should the assistant know this answer next time?",
+  "teachBody": "Edit it if needed. It's added to your shop's information and the assistant uses it with every customer.",
+  "teachSave": "Save",
+  "teachDismiss": "Not now",
+  "teachSaved": "Saved. The assistant will use it from now on.",
+  "teachFailed": "Not saved. Try again."
 }

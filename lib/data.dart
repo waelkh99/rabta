@@ -26,6 +26,7 @@ class Conversation {
     this.aiState,
     this.aiEscalationReason,
     this.aiEscalationCode,
+    this.aiPaused = false,
   });
 
   final String id;
@@ -59,6 +60,10 @@ class Conversation {
   /// column comment in `20260921000001_ai_visible.sql`. An unfamiliar value is
   /// read as a general hand-over rather than as an error.
   final String? aiEscalationCode;
+
+  /// The seller said "I'll handle this one": the assistant stays out of this
+  /// conversation until they switch it back, whatever the shop setting is.
+  final bool aiPaused;
 
   bool get answeredByAssistant => aiState == 'answered';
 
@@ -114,6 +119,26 @@ class Conversation {
         aiState: null,
         aiEscalationReason: null,
         aiEscalationCode: null,
+        aiPaused: aiPaused,
+      );
+
+  /// The same conversation with only these changed. What opening it (nothing
+  /// unread) and the pause switch need, without a reload.
+  Conversation copyWith({int? unreadCount, bool? aiPaused}) => Conversation(
+        id: id,
+        platform: platform,
+        customerName: customerName,
+        customerAvatarUrl: customerAvatarUrl,
+        preview: preview,
+        lastMessageType: lastMessageType,
+        lastMessageAt: lastMessageAt,
+        lastInboundAt: lastInboundAt,
+        windowExpiresAt: windowExpiresAt,
+        unreadCount: unreadCount ?? this.unreadCount,
+        aiState: aiState,
+        aiEscalationReason: aiEscalationReason,
+        aiEscalationCode: aiEscalationCode,
+        aiPaused: aiPaused ?? this.aiPaused,
       );
 
   static DateTime? _time(dynamic value) =>
@@ -133,6 +158,7 @@ class Conversation {
         aiState: row['ai_state'] as String?,
         aiEscalationReason: row['ai_escalation_reason'] as String?,
         aiEscalationCode: row['ai_escalation_code'] as String?,
+        aiPaused: (row['ai_paused'] as bool?) ?? false,
       );
 }
 
@@ -1240,6 +1266,43 @@ List<Conversation> inboxOrder(List<Conversation> all) {
 bool showGroupLabels({required int waiting, required int total}) =>
     waiting > 0 && waiting < total;
 
+/// The conversations matching what the seller typed into search.
+///
+/// Name and latest preview are matched here, from what is already loaded;
+/// [inHistory] carries the ids whose older messages matched on the server.
+/// Case-insensitive, and an empty query is no filter at all.
+List<Conversation> searchConversations(
+  List<Conversation> all,
+  String query, {
+  Set<String> inHistory = const {},
+}) {
+  final q = query.trim().toLowerCase();
+  if (q.isEmpty) return all;
+
+  return all
+      .where((c) =>
+          inHistory.contains(c.id) ||
+          (c.customerName ?? '').toLowerCase().contains(q) ||
+          (c.preview ?? '').toLowerCase().contains(q))
+      .toList();
+}
+
+/// What the "remember this" box starts with: the customer's question and the
+/// seller's answer, on one line the assistant can read as a fact.
+String answerDraft(String? question, String reply) {
+  final q = question?.trim() ?? '';
+  final a = reply.trim();
+  return q.isEmpty ? a : '$q — $a';
+}
+
+/// The shop's free-text field with one more answer on the end.
+String appendAnswer(String? about, String answer) {
+  final existing = about?.trim() ?? '';
+  final added = answer.trim();
+  if (added.isEmpty) return existing;
+  return existing.isEmpty ? added : '$existing\n$added';
+}
+
 class Inbox {
   Inbox(this._db);
 
@@ -1262,7 +1325,7 @@ class Inbox {
           'id, customer_name, customer_avatar_url, last_message_preview, '
           'last_message_type, last_message_at, last_inbound_at, '
           'window_expires_at, unread_count, ai_state, ai_escalation_reason, '
-          'ai_escalation_code, connected_accounts!inner(platform)',
+          'ai_escalation_code, ai_paused, connected_accounts!inner(platform)',
         )
         .order('last_message_at', ascending: false);
 
@@ -1687,6 +1750,67 @@ class Inbox {
 
   int waitingCount(List<Conversation> all) =>
       all.where((c) => c.awaitingReply).length;
+
+  /// Nothing unread here any more: the seller has opened it.
+  ///
+  /// Only the dot. Whether the conversation is still waiting on a reply is
+  /// decided by the timestamps, and opening a thread is not answering it.
+  Future<void> markRead(String conversationId) async {
+    await _db
+        .from('conversations')
+        .update({'unread_count': 0}).eq('id', conversationId);
+  }
+
+  /// "I'll handle this one." The assistant stays out of this conversation
+  /// while it is paused, whatever the shop-wide switch says.
+  Future<void> setAiPaused(String conversationId, bool paused) async {
+    await _db
+        .from('conversations')
+        .update({'ai_paused': paused}).eq('id', conversationId);
+  }
+
+  /// The conversations with a message containing [query] anywhere in their
+  /// history, not only in the preview the list already holds.
+  ///
+  /// ponytail: `ilike` over every message, capped at 200 hits. Fine for a small
+  /// shop's history; a trigram index is the upgrade if it ever feels slow.
+  Future<Set<String>> searchMessages(String query) async {
+    final escaped = query.replaceAll(RegExp(r'[%_\\]'), '');
+    if (escaped.trim().isEmpty) return {};
+
+    final rows = await _db
+        .from('messages')
+        .select('conversation_id')
+        .ilike('text', '%$escaped%')
+        .limit(200);
+
+    return {for (final row in rows) row['conversation_id'] as String};
+  }
+
+  /// Asks Meta whether each connected account's token still works, and marks
+  /// the ones that do not. Fire and forget: the answer arrives as a change to
+  /// the accounts, which [accounts] reads.
+  ///
+  /// This is the only way a dead token is noticed on the receiving side. Meta
+  /// simply stops delivering, so the webhook never gets a chance to see it.
+  Future<void> checkAccounts() async {
+    try {
+      await _db.functions.invoke('meta-oauth/check', body: const {});
+    } catch (_) {
+      // Nothing to tell the seller: an account we could not check is not one
+      // we know to be broken.
+    }
+  }
+
+  /// Adds one answer to what the shop has written down for the assistant.
+  ///
+  /// Kept in the shop's own free-text field rather than a table of its own:
+  /// that field already reaches the assistant and the checks that decide what
+  /// it may say, so a saved answer is usable the moment it is saved.
+  Future<void> rememberAnswer(String answer) async {
+    final current = (await shop()).about;
+    await updateShop({'about': appendAnswer(current, answer)});
+  }
 
   /// Sends a reply, and gives back the message to show for it.
   ///

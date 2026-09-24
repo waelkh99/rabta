@@ -1,12 +1,13 @@
 // Connecting a seller's Meta accounts.
 //
-// Three routes:
+// Four routes:
 //
 //   /meta-oauth/start        answers with the address of Meta's approval page
 //   /meta-oauth/callback     exchanges the code and stores what it finds
 //   /meta-oauth/disconnect   stops an account without losing its history
+//   /meta-oauth/check        marks accounts whose token Meta no longer accepts
 //
-// `start` and `disconnect` are called by the application and carry the
+// `start`, `disconnect` and `check` are called by the application and carry the
 // seller's own token; the workspace comes from that token and never from the
 // request. `callback` is the one Meta itself reaches, as a plain browser
 // navigation with no session, and the signed state is what protects it.
@@ -23,6 +24,7 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 import { corsHeaders } from "../_shared/origins.ts";
+import { tokenExpired } from "../send-message/send.ts";
 
 import {
   isWorkspaceId,
@@ -66,6 +68,7 @@ Deno.serve(async (request: Request) => {
   if (pathname.endsWith("/callback")) return await callback(searchParams);
   if (pathname.endsWith("/start")) return await start(request, cors);
   if (pathname.endsWith("/disconnect")) return await disconnect(request, cors);
+  if (pathname.endsWith("/check")) return await check(request, cors);
 
   return text("Not found", 404);
 });
@@ -219,6 +222,71 @@ async function disconnect(
   }
 
   return json({ disconnected: account.id }, 200, cors);
+}
+
+// ---------------------------------------------------------------------------
+// Noticing a dead token
+// ---------------------------------------------------------------------------
+
+/**
+ * Asks Meta whether each of the seller's active accounts still answers to its
+ * token, and marks the ones that do not.
+ *
+ * Called by the application when the inbox opens. The receiving side cannot
+ * find this out for itself: when a token dies Meta simply stops delivering,
+ * and a webhook that is never called notices nothing. The seller opening Rabta
+ * is exactly when they need to hear that their inbox has gone quiet for a
+ * reason.
+ *
+ * Only a definite 190 marks an account. Meta being unreachable, or answering
+ * with any other error, says nothing about the token, and a false "reconnect
+ * your account" is an alarm the seller learns to ignore.
+ */
+async function check(
+  request: Request,
+  cors: Record<string, string>,
+): Promise<Response> {
+  const seller = await sellerWorkspace(request);
+  if (!seller) return json({ reason: "not_signed_in" }, 401, cors);
+
+  const { data: accounts } = await supabase
+    .from("connected_accounts")
+    .select("id, external_id")
+    .eq("workspace_id", seller.workspaceId)
+    .eq("status", "active");
+
+  const expired: string[] = [];
+
+  for (const account of accounts ?? []) {
+    const { data: stored } = await supabase
+      .from("account_tokens")
+      .select("access_token")
+      .eq("account_id", account.id)
+      .maybeSingle();
+
+    if (!stored?.access_token) continue;
+
+    let answer: unknown;
+    try {
+      answer = await fetch(
+        `${GRAPH}/${account.external_id}?fields=id` +
+          `&access_token=${encodeURIComponent(stored.access_token)}`,
+      ).then((r) => r.json());
+    } catch {
+      continue;
+    }
+
+    if (!tokenExpired(answer)) continue;
+
+    await supabase
+      .from("connected_accounts")
+      .update({ status: "needs_reconnect" })
+      .eq("id", account.id)
+      .eq("status", "active");
+    expired.push(account.id);
+  }
+
+  return json({ expired }, 200, cors);
 }
 
 // ---------------------------------------------------------------------------

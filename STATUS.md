@@ -1,6 +1,6 @@
 # Where we are
 
-Updated 23 September 2026.
+Updated 24 September 2026.
 
 What is built, what is live, and what comes next. `CLAUDE.md` holds the product
 direction, `DECISIONS.md` the settled decisions and why, `CHECKLIST.md` the
@@ -29,7 +29,7 @@ longer any limit on how many times in a row the assistant answers.**
 
 ## Live right now
 
-Supabase project `xejtffbpfguwvybrwqqj`. Thirteen migrations applied, four Edge
+Supabase project `xejtffbpfguwvybrwqqj`. Fourteen migrations applied, four Edge
 Functions deployed.
 
 | Function | What it does | Auth |
@@ -51,9 +51,9 @@ against both the **Page** and **Instagram** objects with the same verify token.
 `META_APP_SECRET` and `META_VERIFY_TOKEN` are set on the functions. Public
 sign-up is off: `/auth/v1/settings` reports `disable_signup: true`.
 
-**419 backend tests** (`cd supabase && npm test`, which typechecks every Edge
+**429 backend tests** (`cd supabase && npm test`, which typechecks every Edge
 Function with `deno check` first; about ten seconds, no Docker and no network)
-and **213 client tests** (`flutter test`). Each new piece of
+and **225 client tests** (`flutter test`). Each new piece of
 logic is shown to fail when deliberately broken rather than assumed to be
 covered.
 
@@ -121,11 +121,6 @@ a browser in both languages, at desktop and phone width.
   get in needs a link sent to them: the screen it lands on is built and the
   routing handles `type=recovery`, but the button that sends the email is not,
   and is useless until SMTP exists.
-- **A sweep that retries events which failed processing.**
-- **Token expiry on the receiving side.** A send that fails with Meta's code
-  190 marks the account `needs_reconnect`; nothing detects it on the receive
-  path, where messages simply stop arriving and the seller thinks business is
-  quiet.
 - **Attachments are shown from Meta's URLs**, which expire after about 30 days.
   Whether to copy them into storage is still open.
 - **The font is fetched, not bundled.** Almarai renders through `google_fonts`,
@@ -137,9 +132,6 @@ a browser in both languages, at desktop and phone width.
   closed browser is not, and on an iPhone a Safari tab cannot show one at all
   until the seller adds Rabta to their home screen. `DECISIONS.md`, "Telling
   the seller something happened", has the whole picture.
-- **Marking a conversation read.** The title badge and the system
-  notification were built on 22 September; opening a conversation still does
-  not clear its unread dot.
 - **Instagram, verified against a real delivery.** See below.
 
 ---
@@ -352,8 +344,12 @@ languages and at desktop and phone width, and looked at.
   when a customer writes or the assistant hands a conversation back, with a
   switch in the menu that goes both ways.
 
-**Still not built:** draft-on-open for escalated threads, and marking a
-conversation read.
+**Built 24 September, seen in a browser:** opening a conversation marks it
+read; search; a banner when an account stops receiving (found by
+`meta-oauth/check` as the inbox opens); a retry for events that failed
+processing; a per-conversation "I'll handle this one" switch; and a card that
+saves the seller's answer to a hand-over into the shop's information.
+`DECISIONS.md` has the reasoning. Draft-on-open stays dropped.
 
 **How to see what it did.** The Supabase CLI has no `functions logs`, and the
 rows are better evidence anyway. From `supabase/`: `npm run assistant` for what

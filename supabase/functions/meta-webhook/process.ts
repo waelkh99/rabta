@@ -38,7 +38,7 @@ import {
 // Imported across function directories rather than copied. The CLI bundles the
 // entrypoint's whole module graph, which is why send-message can already
 // import ../_shared/origins.ts. These are pure and already tested.
-import { checkText, readSendResult, sendRequest } from "../send-message/send.ts";
+import { checkText, readSendResult, sendRequest, tokenExpired } from "../send-message/send.ts";
 
 export interface AccountRef {
   id: string;
@@ -76,6 +76,12 @@ export interface Store {
    * whose name is withheld is not looked up again on every message.
    */
   saveProfile(conversationId: string, profile: CustomerProfile): Promise<void>;
+
+  /**
+   * Meta says this account's token is dead. Marked so the seller is told to
+   * reconnect, rather than left wondering why nobody writes any more.
+   */
+  markNeedsReconnect(accountId: string): Promise<void>;
 
   /** Everything the guards need, in one read. Null when the row has gone. */
   aiContext(conversationId: string): Promise<AiContext | null>;
@@ -187,6 +193,7 @@ export type ProfileOutcome =
   | "fresh" // what we hold is recent enough
   | "saved" // asked, and recorded the answer
   | "no-token" // the account has no usable token
+  | "token-dead" // Meta says the token no longer works; the account is marked
   | "no-answer"; // Meta errored, or could not be reached
 
 /**
@@ -225,6 +232,13 @@ export async function refreshCustomerProfile(
     return "no-answer";
   }
 
+  // The one place the receiving side talks to Meta with the seller's token, so
+  // the one place it can notice the token has died.
+  if (tokenExpired(answer)) {
+    await store.markNeedsReconnect(outcome.accountId);
+    return "token-dead";
+  }
+
   const profile = readProfile(answer);
   if (!profile) return "no-answer";
 
@@ -251,6 +265,15 @@ export async function refreshCustomerProfile(
  * way for this to fail.
  */
 export const DEBOUNCE_MS = 30_000;
+
+/**
+ * Whether the assistant may answer in this conversation: the shop has it on,
+ * and the seller has not taken this one over. A missing value is off, never
+ * on — every workspace starts with the assistant switched off.
+ */
+export function assistantOn(shopEnabled: unknown, paused: unknown): boolean {
+  return shopEnabled === true && paused !== true;
+}
 
 /** What the AI did, for the log. */
 export type AutoReplyOutcome =
@@ -689,6 +712,18 @@ export function createSupabaseStore(client: SupabaseLike): Store {
       return data?.access_token ?? null;
     },
 
+    async markNeedsReconnect(accountId) {
+      // Only an active account. One the seller turned off stays off, rather
+      // than being brought back as something that needs their attention.
+      const { error } = await client
+        .from("connected_accounts")
+        .update({ status: "needs_reconnect" })
+        .eq("id", accountId)
+        .eq("status", "active");
+
+      if (error) throw new Error(`reconnect mark failed: ${error.message}`);
+    },
+
     async saveProfile(conversationId, profile) {
       const { error } = await client
         .from("conversations")
@@ -708,7 +743,7 @@ export function createSupabaseStore(client: SupabaseLike): Store {
       // before it gets there.
       const { data, error } = await client
         .from("conversations")
-        .select("workspace_id, window_expires_at, last_message_at, customer_name")
+        .select("workspace_id, window_expires_at, last_message_at, customer_name, ai_paused")
         .eq("id", conversationId)
         .maybeSingle();
 
@@ -727,7 +762,7 @@ export function createSupabaseStore(client: SupabaseLike): Store {
 
       // No row means the assistant has never been switched on for this
       // workspace, which is the state every workspace starts in.
-      const enabled = settings.data?.assistant_enabled === true;
+      const enabled = assistantOn(settings.data?.assistant_enabled, data.ai_paused);
 
       // The seller's own latest message, for the seller-present guard.
       const recent = await client

@@ -1782,6 +1782,90 @@ abstract class L {
   /// In ar, this message translates to:
   /// **'تعذّرت قراءة هذا الملف. جرّب ملف XLSX أو CSV.'**
   String get catalogFileUnreadable;
+
+  /// No description provided for @searchHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'ابحث باسم الزبون أو بنص رسالة'**
+  String get searchHint;
+
+  /// No description provided for @searchNoResults.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد محادثات تطابق بحثك'**
+  String get searchNoResults;
+
+  /// No description provided for @clearSearch.
+  ///
+  /// In ar, this message translates to:
+  /// **'مسح البحث'**
+  String get clearSearch;
+
+  /// No description provided for @reconnectBanner.
+  ///
+  /// In ar, this message translates to:
+  /// **'توقّف أحد حساباتك عن استقبال الرسائل. أعد ربطه حتى تصلك رسائل الزبائن.'**
+  String get reconnectBanner;
+
+  /// No description provided for @reconnectAction.
+  ///
+  /// In ar, this message translates to:
+  /// **'أعد الربط'**
+  String get reconnectAction;
+
+  /// No description provided for @assistantHere.
+  ///
+  /// In ar, this message translates to:
+  /// **'المساعد'**
+  String get assistantHere;
+
+  /// No description provided for @assistantHereOn.
+  ///
+  /// In ar, this message translates to:
+  /// **'المساعد يردّ في هذه المحادثة. أوقفه لتتولّاها بنفسك.'**
+  String get assistantHereOn;
+
+  /// No description provided for @assistantHereOff.
+  ///
+  /// In ar, this message translates to:
+  /// **'أنت تتولّى هذه المحادثة، والمساعد لن يردّ فيها حتى تعيد تشغيله.'**
+  String get assistantHereOff;
+
+  /// No description provided for @teachTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'هل تريد أن يعرف المساعد هذا الجواب في المرة القادمة؟'**
+  String get teachTitle;
+
+  /// No description provided for @teachBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'عدّل النص إن لزم. يُضاف إلى معلومات متجرك، ويستخدمه المساعد مع كل الزبائن.'**
+  String get teachBody;
+
+  /// No description provided for @teachSave.
+  ///
+  /// In ar, this message translates to:
+  /// **'احفظ'**
+  String get teachSave;
+
+  /// No description provided for @teachDismiss.
+  ///
+  /// In ar, this message translates to:
+  /// **'ليس الآن'**
+  String get teachDismiss;
+
+  /// No description provided for @teachSaved.
+  ///
+  /// In ar, this message translates to:
+  /// **'حُفظ. سيستخدمه المساعد من الآن.'**
+  String get teachSaved;
+
+  /// No description provided for @teachFailed.
+  ///
+  /// In ar, this message translates to:
+  /// **'لم يُحفظ. حاول مرة أخرى.'**
+  String get teachFailed;
 }
 
 class _LDelegate extends LocalizationsDelegate<L> {

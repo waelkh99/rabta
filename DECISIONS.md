@@ -2544,6 +2544,56 @@ The bell counts **hand-overs only**, not every unanswered message. The waiting
 count under the wordmark already says how many are unanswered, and a bell that
 rings for everything is one nobody looks at.
 
+### Before launch: read, reconnect, retry, search, pause, and teach
+
+24 September 2026, chosen by the product owner from a status review.
+
+**Opening a conversation marks it read.** Only the unread dot. Whether it is
+still waiting on a reply is decided by the timestamps, and reading is not
+answering. Written through the `conversations_owner_update` policy that had
+existed since 14 September for exactly this and was never used.
+
+**A dead token is found by asking, when the seller opens Rabta.** Meta stops
+delivering when a token dies, so the webhook never gets a chance to notice.
+`meta-oauth/check` asks Graph about each active account and marks a code 190
+as `needs_reconnect`; the inbox shows a red banner leading to Accounts. The
+webhook also marks it when the one Graph call it makes with the token — the
+customer profile — comes back 190. Only 190: Meta unreachable or any other
+error says nothing about the token, and a false "reconnect" is an alarm the
+seller learns to ignore.
+
+**Failed events are retried after each delivery, not on a schedule.** No
+pg_cron, which the PGlite harness cannot load. At most five per delivery, only
+events older than five minutes, at most five attempts each, taken with a
+conditional update on `attempts` so two deliveries arriving together cannot
+both retry one event. **A retried event never answers the customer**: a reply
+minutes late to a message the seller may already have read is worse than none.
+The ceiling: an account that goes quiet leaves its stuck events stuck until
+something arrives. Move it to a schedule if that is ever seen.
+
+**Search** matches name and latest message from what is already loaded, and
+older messages with one `ilike` on the server after the seller stops typing.
+Group labels are hidden while searching.
+
+**"I'll handle this one" is `conversations.ai_paused`, and it stays set** until
+the seller turns it back on. Not cleared by their reply: the point is that
+this customer is theirs, not that they are at the desk right now, which the
+seller-present guard already covers. It makes the assistant behave exactly as
+if the shop had it off — nothing sent, marked or spent — so it needed no new
+guard reason. The switch is in the thread header, the one place reachable at
+every width, and is drawn only when the shop has the assistant on.
+
+**Teaching from a hand-over saves into `shop.about`, not a table of its own.**
+After the seller answers a conversation the assistant handed them, a card
+offers to save the question and their answer, editable first, saved only on the
+tap. `about` already reaches `renderFacts` and the guards, so the standing rule
+in `CLAUDE.md` is met by construction: measured with `npm run replay` on the
+real shop, "طيب امتى بيوصل؟" was handed over before and answered after,
+including a follow-up about إربد, with the "3" in the saved answer passing the
+number guard because the shop had now written it. The box takes its direction
+from the seller's reply, not the question — seen in a browser, an Arabic
+question ahead of an English answer put the answer's full stop at its start.
+
 ## Platform constraints
 
 These are not choices. They are limits Meta imposes, recorded here so they are

@@ -3,6 +3,7 @@ import { test } from "node:test";
 
 import { parseWebhookPayload } from "../functions/meta-webhook/parse.ts";
 import {
+  assistantOn,
   autoReply,
   lastSellerReply,
   processMessage,
@@ -83,6 +84,14 @@ class FakeStore implements Store {
       ...profile,
       fetchedAt: new Date().toISOString(),
     });
+    return Promise.resolve();
+  }
+
+  /** Accounts marked as needing the seller to reconnect them. */
+  needsReconnect = new Set<string>();
+
+  markNeedsReconnect(accountId: string): Promise<void> {
+    this.needsReconnect.add(accountId);
     return Promise.resolve();
   }
 
@@ -401,6 +410,49 @@ test("a new customer is looked up and their name stored", async () => {
   assert.ok(asked[0].includes(CUSTOMER_ID), "asked about the wrong customer");
   assert.ok(asked[0].includes("page-token"), "did not use the account's token");
   assert.equal(store.profiles.get("conv_1")?.name, "Wael K. Saleh");
+});
+
+test("a dead token found while asking about a customer marks the account", async () => {
+  // Meta stops delivering when a token dies, so the receiving side rarely gets
+  // to see it. When it does, the seller has to hear about it.
+  const store = new FakeStore();
+  store.connect("messenger", PAGE_ID);
+  store.tokens.set("acct_messenger_1122334455", "dead-token");
+
+  const { message, outcome } = await storeInbound(store);
+  const { fetcher } = graph({
+    error: { message: "Error validating access token", code: 190 },
+  });
+
+  const result = await refreshCustomerProfile(store, message, outcome, new Date(), fetcher);
+
+  assert.equal(result, "token-dead");
+  assert.deepEqual([...store.needsReconnect], ["acct_messenger_1122334455"]);
+  assert.equal(store.profiles.size, 0, "recorded a profile from an error");
+});
+
+test("any other Graph error does not mark the account", async () => {
+  // A customer Meta will not describe is normal. Telling the seller their
+  // account is broken over it would be a false alarm they learn to ignore.
+  const store = new FakeStore();
+  store.connect("messenger", PAGE_ID);
+  store.tokens.set("acct_messenger_1122334455", "page-token");
+
+  const { message, outcome } = await storeInbound(store);
+  const { fetcher } = graph({ error: { message: "Unsupported get request", code: 100 } });
+
+  const result = await refreshCustomerProfile(store, message, outcome, new Date(), fetcher);
+
+  assert.equal(result, "no-answer");
+  assert.equal(store.needsReconnect.size, 0);
+});
+
+test("the assistant answers only when the shop has it on and the seller has not taken over", () => {
+  assert.equal(assistantOn(true, false), true);
+  assert.equal(assistantOn(true, null), true, "a row from before the column existed");
+  assert.equal(assistantOn(true, true), false, "answered a conversation the seller took over");
+  assert.equal(assistantOn(false, false), false);
+  assert.equal(assistantOn(undefined, false), false, "no shop row means off");
 });
 
 test("a second message from the same customer does not ask again", async () => {

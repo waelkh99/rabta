@@ -983,4 +983,50 @@ class LEn extends L {
   @override
   String get catalogFileUnreadable =>
       'This file could not be read. Try an .xlsx or .csv file.';
+
+  @override
+  String get searchHint => 'Search by customer name or message';
+
+  @override
+  String get searchNoResults => 'No conversations match your search';
+
+  @override
+  String get clearSearch => 'Clear search';
+
+  @override
+  String get reconnectBanner =>
+      'One of your accounts has stopped receiving messages. Reconnect it so customers\' messages reach you.';
+
+  @override
+  String get reconnectAction => 'Reconnect';
+
+  @override
+  String get assistantHere => 'Assistant';
+
+  @override
+  String get assistantHereOn =>
+      'The assistant replies in this conversation. Turn it off to handle it yourself.';
+
+  @override
+  String get assistantHereOff =>
+      'You\'re handling this conversation. The assistant won\'t reply here until you turn it back on.';
+
+  @override
+  String get teachTitle => 'Should the assistant know this answer next time?';
+
+  @override
+  String get teachBody =>
+      'Edit it if needed. It\'s added to your shop\'s information and the assistant uses it with every customer.';
+
+  @override
+  String get teachSave => 'Save';
+
+  @override
+  String get teachDismiss => 'Not now';
+
+  @override
+  String get teachSaved => 'Saved. The assistant will use it from now on.';
+
+  @override
+  String get teachFailed => 'Not saved. Try again.';
 }

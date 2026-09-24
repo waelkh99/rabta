@@ -983,4 +983,51 @@ class LAr extends L {
   @override
   String get catalogFileUnreadable =>
       'تعذّرت قراءة هذا الملف. جرّب ملف XLSX أو CSV.';
+
+  @override
+  String get searchHint => 'ابحث باسم الزبون أو بنص رسالة';
+
+  @override
+  String get searchNoResults => 'لا توجد محادثات تطابق بحثك';
+
+  @override
+  String get clearSearch => 'مسح البحث';
+
+  @override
+  String get reconnectBanner =>
+      'توقّف أحد حساباتك عن استقبال الرسائل. أعد ربطه حتى تصلك رسائل الزبائن.';
+
+  @override
+  String get reconnectAction => 'أعد الربط';
+
+  @override
+  String get assistantHere => 'المساعد';
+
+  @override
+  String get assistantHereOn =>
+      'المساعد يردّ في هذه المحادثة. أوقفه لتتولّاها بنفسك.';
+
+  @override
+  String get assistantHereOff =>
+      'أنت تتولّى هذه المحادثة، والمساعد لن يردّ فيها حتى تعيد تشغيله.';
+
+  @override
+  String get teachTitle =>
+      'هل تريد أن يعرف المساعد هذا الجواب في المرة القادمة؟';
+
+  @override
+  String get teachBody =>
+      'عدّل النص إن لزم. يُضاف إلى معلومات متجرك، ويستخدمه المساعد مع كل الزبائن.';
+
+  @override
+  String get teachSave => 'احفظ';
+
+  @override
+  String get teachDismiss => 'ليس الآن';
+
+  @override
+  String get teachSaved => 'حُفظ. سيستخدمه المساعد من الآن.';
+
+  @override
+  String get teachFailed => 'لم يُحفظ. حاول مرة أخرى.';
 }

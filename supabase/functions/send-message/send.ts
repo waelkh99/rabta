@@ -138,6 +138,18 @@ export function readSendResult(
  * guessing at. Meta adds codes without warning and a wrong explanation is worse
  * than an honest "this did not send".
  */
+/**
+ * Whether a Graph answer says the access token itself is dead.
+ *
+ * Shared by every caller that holds a token, because on the receiving side a
+ * dead token is otherwise invisible: Meta simply stops delivering, and the
+ * seller thinks business is quiet.
+ */
+export function tokenExpired(body: unknown): boolean {
+  const error = (body as { error?: { code?: unknown } } | null)?.error;
+  return error?.code === 190;
+}
+
 function refusalFor(code?: number, subcode?: number): Refusal {
   // 190 is an expired or invalidated access token. This is the failure that
   // otherwise looks like nothing at all — messages simply stop — so it is

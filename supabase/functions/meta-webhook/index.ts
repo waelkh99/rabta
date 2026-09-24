@@ -18,6 +18,7 @@ import {
   processMessage,
   refreshCustomerProfile,
 } from "./process.ts";
+import { createSweepStore, sweep } from "./sweep.ts";
 
 const APP_SECRET = Deno.env.get("META_APP_SECRET") ?? "";
 const VERIFY_TOKEN = Deno.env.get("META_VERIFY_TOKEN") ?? "";
@@ -38,6 +39,7 @@ const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
 });
 
 const store = createSupabaseStore(supabase);
+const sweepStore = createSweepStore(supabase);
 
 Deno.serve(async (request: Request) => {
   if (request.method === "GET") return handleVerification(request);
@@ -116,7 +118,9 @@ async function handleDelivery(request: Request): Promise<Response> {
   // Answer Meta now; do the work afterwards. If this process dies mid-way the
   // raw event is already stored with processed_at still null, and the sweep
   // will pick it up.
-  const work = processStoredEvent(event.id, payload);
+  // Then anything an earlier delivery failed to finish. After this one, so a
+  // backlog never delays the customer who has just written.
+  const work = processStoredEvent(event.id, payload).then(retryFailed);
   if (typeof EdgeRuntime !== "undefined") {
     EdgeRuntime.waitUntil(work);
   } else {
@@ -126,7 +130,28 @@ async function handleDelivery(request: Request): Promise<Response> {
   return new Response("OK", { status: 200 });
 }
 
-async function processStoredEvent(eventId: number, payload: unknown): Promise<void> {
+/**
+ * Processes events an earlier run left unfinished. Never answers the customer:
+ * a reply minutes late to a message the seller may already have seen is worse
+ * than none, and the conversation is in their waiting group either way.
+ */
+async function retryFailed(): Promise<void> {
+  try {
+    const retried = await sweep(
+      sweepStore,
+      (id, payload) => processStoredEvent(id, payload, { reply: false }),
+    );
+    if (retried.length > 0) console.log(`Sweep retried events ${retried.join(", ")}`);
+  } catch (cause) {
+    console.error("Sweep failed", cause);
+  }
+}
+
+async function processStoredEvent(
+  eventId: number,
+  payload: unknown,
+  { reply = true }: { reply?: boolean } = {},
+): Promise<void> {
   try {
     const { messages, skipped } = parseWebhookPayload(payload);
 
@@ -169,6 +194,8 @@ async function processStoredEvent(eventId: number, payload: unknown): Promise<vo
       // is not a reason to lose it. Worst case the conversation simply stays
       // in the seller's waiting group, which is where it would have been
       // without any of this.
+      if (!reply) continue;
+
       try {
         const replied = await autoReply(store, ANTHROPIC_API_KEY, message, outcome, {
           workspaceId: ANTHROPIC_WORKSPACE_ID,
@@ -189,7 +216,7 @@ async function processStoredEvent(eventId: number, payload: unknown): Promise<vo
     const reason = cause instanceof Error ? cause.message : String(cause);
     console.error(`Event ${eventId} failed to process: ${reason}`);
 
-    // Left unprocessed on purpose, so the sweep retries it.
+    // Left unprocessed on purpose, so the sweep retries it — see sweep.ts.
     await supabase
       .from("webhook_events")
       .update({ error: reason })

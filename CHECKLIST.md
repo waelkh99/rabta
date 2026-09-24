@@ -9,7 +9,7 @@ code exists. Where something was verified, it says how.
 
 **The Phase Two checklist is at the end of this file.** Nothing in it is built.
 
-Updated 22 September 2026.
+Updated 24 September 2026.
 
 ---
 
@@ -40,8 +40,16 @@ data first so the security checks proved something.
 - [x] Echoes stored as outbound and clear unread state
 - [x] Events for unconnected accounts handled without failing
 - [x] Deployed, with secrets configured
-- [ ] Sweep that retries events which failed processing
-- [ ] Token expiry detected and the account flagged for reconnection
+- [x] Sweep that retries events which failed processing — after each
+      delivery, at most five events older than five minutes, five attempts
+      each, never answering the customer. Six tests, the claim mutation caught.
+      **Proven live:** a stale unprocessed event planted in the live table was
+      processed by the next signed delivery, attempts 0 → 1, error cleared
+- [x] Token expiry detected and the account flagged for reconnection —
+      `meta-oauth/check`, called as the inbox opens, and the webhook's profile
+      lookup on a 190. **Proven live:** the real Page's two accounts came back
+      healthy; a junk token on the Playwright seller's placeholder account was
+      marked `needs_reconnect`. Tests for both, the marking mutation caught
 - [x] A message with no text no longer renders as a blank row —
       `last_message_type` on `conversations`, set by the trigger, client renders
       the label. Six tests, each shown to fail against the old trigger.
@@ -204,6 +212,13 @@ only; the receiving path in section 2 is still uncovered.
       webhook moved the conversation into the waiting group, with the unread
       dot, the wait rail and the countdown, without a reload
 - [x] Customers are named, not all called "Customer"
+- [x] Opening a conversation marks it read — **seen**: the dot went on open
+      and the live row read `unread_count: 0`
+- [x] Search by customer name or message, including older messages — **seen**
+      in both languages: "إربد" found a conversation only through an older
+      message; a query with no match says so
+- [x] A red banner when an account has stopped receiving, leading to Accounts
+      — **seen** in Arabic and English at 1440 and 390
 
 - [x] Attachments displayed — verified against the real image delivered by Meta
 - [x] In-page notification and title badge while the tab is open — the title
@@ -782,6 +797,20 @@ places to guess between.
       already knowing why, which is what the pane was for. Worth revisiting as
       its own decision rather than as the leftover box in a finished section
 
+- [x] **"I'll handle this one"** — a switch in the thread header pauses the
+      assistant for one conversation, and it stays paused through the seller's
+      reply and a reload. **Seen** in both languages at 1440 and 390; the live
+      row read `ai_paused: true`. The webhook side is tested and the mutation
+      caught. **Not yet seen with a real customer message** to a paused
+      conversation — needs someone to write to the test Page
+- [x] **Teach from a hand-over** — after the seller answers a handed-over
+      conversation, a card offers to save the question and answer to the
+      shop's information. **Seen** in both languages at 1440 and 390, with the
+      send intercepted by Playwright so nothing reached Meta: saved into
+      `shop.about`, confirmation shown, "Not now" closes it. Seeing it caught a
+      bidi defect, fixed. `npm run replay` on the real shop: the delivery
+      question handed over before and answered after
+
 **Seen in a browser, not only tested**, under the rule added to `CLAUDE.md` on
 21 September. Driven with Playwright against the live database in both
 languages and at desktop and phone width: an escalation written by the
@@ -861,7 +890,7 @@ These are not optional, and none of them may be inferred from the code.
       called the model, and was escalated when **Meta refused the send with
       `window_closed`** — no message row written for something the customer
       never received. The designed failure path, seen working in production
-- [ ] Token expiry on the receiving path. (The seller notification for an
+- [x] Token expiry on the receiving path — see section 2. (The seller notification for an
       escalated conversation is done inside an open tab — the bell, 23
       September; a closed browser waits on Web Push, below)
 

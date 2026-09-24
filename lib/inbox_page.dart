@@ -85,11 +85,30 @@ class _InboxPageState extends State<InboxPage> {
   /// no inbox to show — only the one thing worth doing.
   List<Account>? _accounts;
 
+  /// Whether the shop has the assistant on at all. The per-conversation switch
+  /// is only drawn when it is: turning off something that is already off
+  /// would be a control that does nothing.
+  bool _assistantOn = false;
+
+  /// What the seller typed into search, and the conversations whose older
+  /// messages matched it on the server.
+  String _query = '';
+  Set<String> _historyHits = const {};
+  Timer? _searchWait;
+
   @override
   void initState() {
     super.initState();
     _listen();
     _loadAccounts();
+    _loadShop();
+
+    // A dead token is invisible from the receiving side: Meta just stops
+    // delivering. Asking once as the inbox opens is when the seller needs to
+    // know, and the accounts are read again to pick up what it found.
+    _inbox.checkAccounts().then((_) {
+      if (mounted) _loadAccounts();
+    });
 
     // Registration used to happen only inside the permission prompt, so a
     // seller who had turned alerts on and then reloaded the page kept a menu
@@ -116,6 +135,53 @@ class _InboxPageState extends State<InboxPage> {
     } catch (_) {
       // Leaves it null, which shows the inbox rather than wrongly claiming
       // nothing is connected.
+    }
+  }
+
+  Future<void> _loadShop() async {
+    try {
+      final shop = await _inbox.shop();
+      if (mounted) setState(() => _assistantOn = shop.assistantEnabled);
+    } catch (_) {
+      // Leaves the switch hidden, which is the safe way round.
+    }
+  }
+
+  /// Filters as the seller types, and asks the server about older messages
+  /// once they pause, so every keystroke is not a query.
+  void _search(String query) {
+    setState(() => _query = query);
+    _searchWait?.cancel();
+
+    if (query.trim().isEmpty) {
+      setState(() => _historyHits = const {});
+      return;
+    }
+
+    _searchWait = Timer(const Duration(milliseconds: 300), () async {
+      try {
+        final hits = await _inbox.searchMessages(query);
+        if (mounted && _query == query) setState(() => _historyHits = hits);
+      } catch (_) {
+        // Name and preview matches still show; only older messages are missed.
+      }
+    });
+  }
+
+  /// "I'll handle this one", or hand it back. Shown at once, then written.
+  Future<void> _setPaused(Conversation c, bool paused) async {
+    final changed = c.copyWith(aiPaused: paused);
+    setState(() {
+      if (_open?.id == c.id) _open = changed;
+      final live = _live;
+      if (live != null) _live = [for (final x in live) x.id == c.id ? changed : x];
+    });
+
+    try {
+      await _inbox.setAiPaused(c.id, paused);
+    } catch (_) {
+      // Put back what is actually stored, rather than show a switch that lies.
+      if (mounted) await _refresh();
     }
   }
 
@@ -190,6 +256,7 @@ class _InboxPageState extends State<InboxPage> {
     // Otherwise a seller who signs out is left looking at a tab still counting
     // customers they can no longer see.
     showWaitingCount('Rabta', 0);
+    _searchWait?.cancel();
     _authChanges?.cancel();
     final channel = _channel;
     if (channel != null) Supabase.instance.client.removeChannel(channel);
@@ -227,6 +294,30 @@ class _InboxPageState extends State<InboxPage> {
         }
       }
     });
+
+    // A message that arrives while its thread is open has been seen.
+    final open = _open;
+    if (open != null && open.unreadCount > 0) _markRead(open);
+  }
+
+  /// Opening a conversation is reading it. Cleared here at once, so the dot
+  /// goes the moment the thread opens, and in the database for every other
+  /// tab and the next reload.
+  void _markRead(Conversation c) {
+    if (c.unreadCount == 0) return;
+
+    final read = c.copyWith(unreadCount: 0);
+    setState(() {
+      if (_open?.id == c.id) _open = read;
+      final live = _live;
+      if (live != null) {
+        _live = [for (final x in live) x.id == c.id ? read : x];
+      }
+    });
+
+    // A failure leaves the dot for the next refresh to bring back. Nothing is
+    // lost by it, so nothing is said.
+    _inbox.markRead(c.id).catchError((_) {});
   }
 
   /// Needed because the button that opens the menu is inside the same Scaffold
@@ -240,6 +331,8 @@ class _InboxPageState extends State<InboxPage> {
       MaterialPageRoute<void>(builder: (_) => ShopPage(inbox: _inbox)),
     );
 
+    if (!mounted) return;
+    await _loadShop();
     if (mounted) await _refresh();
   }
 
@@ -250,6 +343,8 @@ class _InboxPageState extends State<InboxPage> {
 
     // The catalog may have changed, and with it whether the assistant is
     // answering at all. The list shows what it did, so it is read again.
+    if (!mounted) return;
+    await _loadShop();
     if (mounted) await _refresh();
   }
 
@@ -345,12 +440,21 @@ class _InboxPageState extends State<InboxPage> {
 
             final list = _ConversationList(
               conversations: all,
+              shown: searchConversations(all, _query, inHistory: _historyHits),
+              searching: _query.trim().isNotEmpty,
+              onSearch: _search,
+              reconnect: _accounts?.any((a) => a.status == 'needs_reconnect') ??
+                  false,
               waiting: _inbox.waitingCount(all),
               openId: _open?.id,
-              onOpen: (c) => setState(() {
-                _open = c;
-                _messages = null;
-              }),
+              onOpen: (c) {
+                _live ??= all;
+                setState(() {
+                  _open = c;
+                  _messages = null;
+                });
+                _markRead(c);
+              },
               onSignOut: () => Supabase.instance.client.auth.signOut(),
               onAccounts: _openAccounts,
               onMenu: _openMenu,
@@ -379,6 +483,8 @@ class _InboxPageState extends State<InboxPage> {
                       onMessages: (m) => setState(() => _messages = m),
                       onSent: (m) => _sent(all, m),
                       revision: _revision,
+                      assistantOn: _assistantOn,
+                      onPaused: _setPaused,
                     ),
                   );
                 }
@@ -400,6 +506,8 @@ class _InboxPageState extends State<InboxPage> {
                               onMessages: (m) => setState(() => _messages = m),
                               onSent: (m) => _sent(all, m),
                               revision: _revision,
+                              assistantOn: _assistantOn,
+                              onPaused: _setPaused,
                             ),
                     ),
                     if (_open != null &&
@@ -471,6 +579,10 @@ class _FirstRun extends StatelessWidget {
 class _ConversationList extends StatelessWidget {
   const _ConversationList({
     required this.conversations,
+    required this.shown,
+    required this.searching,
+    required this.onSearch,
+    required this.reconnect,
     required this.waiting,
     required this.openId,
     required this.onOpen,
@@ -482,6 +594,17 @@ class _ConversationList extends StatelessWidget {
 
   final Inbox inbox;
   final List<Conversation> conversations;
+
+  /// What the list draws: all of [conversations], or the ones matching search.
+  /// The header counts and the bell keep reading the whole inbox.
+  final List<Conversation> shown;
+  final bool searching;
+  final ValueChanged<String> onSearch;
+
+  /// An account has stopped receiving. Said above everything else, because an
+  /// inbox that has gone quiet for this reason looks exactly like a quiet day.
+  final bool reconnect;
+
   final int waiting;
   final String? openId;
   final ValueChanged<Conversation> onOpen;
@@ -492,7 +615,9 @@ class _ConversationList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.rabta;
-    final showGroups =
+    // Search results are one list in the usual order. Group labels over a
+    // filtered handful would count the wrong things.
+    final showGroups = !searching &&
         showGroupLabels(waiting: waiting, total: conversations.length);
 
     return Container(
@@ -509,11 +634,22 @@ class _ConversationList extends StatelessWidget {
             onMenu: onMenu,
             inbox: inbox,
           ),
+          if (reconnect) _ReconnectBanner(onReconnect: onAccounts),
+          if (conversations.isNotEmpty) _SearchField(onChanged: onSearch),
           Expanded(
             child: conversations.isEmpty
                 ? _Notice(
                     title: context.l.noConversationsTitle,
                     body: context.l.noConversationsBody,
+                  )
+                : shown.isEmpty
+                ? Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Text(
+                      context.l.searchNoResults,
+                      textAlign: TextAlign.center,
+                      style: Style.preview.copyWith(color: context.rabta.muted),
+                    ),
                   )
                 : ListView(
                     padding: const EdgeInsets.only(bottom: 28),
@@ -531,6 +667,8 @@ class _ConversationList extends StatelessWidget {
     if (showGroups) {
       items.add(_GroupHeading(context.l.waitingForReply, count: waiting));
     }
+
+    final conversations = shown;
 
     for (var i = 0; i < conversations.length; i++) {
       if (showGroups && i == waiting) {
@@ -557,6 +695,115 @@ class _ConversationList extends StatelessWidget {
     }
 
     return items;
+  }
+}
+
+/// An account whose token Meta no longer accepts. Red, because the cost of
+/// missing it is every message that account would have brought in.
+class _ReconnectBanner extends StatelessWidget {
+  const _ReconnectBanner({required this.onReconnect});
+
+  final VoidCallback onReconnect;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.rabta;
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+      padding: const EdgeInsetsDirectional.fromSTEB(14, 12, 8, 12),
+      decoration: BoxDecoration(
+        color: colors.urgent.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(10),
+        border: BorderDirectional(start: BorderSide(color: colors.urgent, width: 4)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.link_off, size: 18, color: colors.urgent),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              context.l.reconnectBanner,
+              style: Style.meta.copyWith(color: colors.ink, height: 1.5),
+            ),
+          ),
+          const SizedBox(width: 6),
+          TextButton(
+            onPressed: onReconnect,
+            style: TextButton.styleFrom(foregroundColor: colors.urgent),
+            child: Text(
+              context.l.reconnectAction,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SearchField extends StatefulWidget {
+  const _SearchField({required this.onChanged});
+
+  final ValueChanged<String> onChanged;
+
+  @override
+  State<_SearchField> createState() => _SearchFieldState();
+}
+
+class _SearchFieldState extends State<_SearchField> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.rabta;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      child: TextField(
+        controller: _controller,
+        onChanged: (value) {
+          setState(() {});
+          widget.onChanged(value);
+        },
+        style: Style.preview.copyWith(color: colors.ink),
+        decoration: InputDecoration(
+          isDense: true,
+          hintText: context.l.searchHint,
+          hintStyle: Style.preview.copyWith(color: colors.muted),
+          prefixIcon: Icon(Icons.search, size: 18, color: colors.muted),
+          suffixIcon: _controller.text.isEmpty
+              ? null
+              : IconButton(
+                  icon: const Icon(Icons.close, size: 16),
+                  color: colors.muted,
+                  tooltip: context.l.clearSearch,
+                  onPressed: () {
+                    _controller.clear();
+                    setState(() {});
+                    widget.onChanged('');
+                  },
+                ),
+          filled: true,
+          fillColor: colors.ground,
+          contentPadding: const EdgeInsets.symmetric(vertical: 10),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: colors.edge),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: colors.edge),
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -1366,10 +1613,19 @@ class _Thread extends StatefulWidget {
     this.onSent,
     this.revision = 0,
     this.showAssistant = false,
+    this.assistantOn = false,
+    this.onPaused,
   });
 
   final Inbox inbox;
   final Conversation conversation;
+
+  /// Whether the shop has the assistant on. The switch for this conversation
+  /// is drawn only when it is.
+  final bool assistantOn;
+
+  /// The seller took this conversation over, or handed it back.
+  final void Function(Conversation, bool paused)? onPaused;
 
   /// Changes when the database says something happened. The thread reloads,
   /// which is how a customer's reply appears without the seller reloading.
@@ -1433,8 +1689,31 @@ class _ThreadState extends State<_Thread> {
     widget.onMessages?.call(_all);
   }
 
+  /// What to offer to save after the seller answers a hand-over, or null.
+  ///
+  /// Only after a hand-over: that is the moment the assistant has shown it did
+  /// not know something, and the seller has just written the answer to it.
+  String? _teach;
+
+  /// The seller's own reply, which decides the box's direction: the question
+  /// before it may be in another language, and a draft that takes its
+  /// direction from the question puts the reply's full stop at the wrong end.
+  String _teachReply = '';
+
   void _handleSent(Message message) {
-    setState(() => _sent.add(message));
+    // Read before the parent is told: it takes the hand-over mark off as soon
+    // as it hears of the reply, exactly as the database trigger does.
+    final wasHandedOver = widget.conversation.escalated;
+    final asked = _all.where((m) => m.inbound && (m.text ?? '').trim().isNotEmpty);
+    final reply = message.text ?? '';
+
+    setState(() {
+      _sent.add(message);
+      if (wasHandedOver && reply.trim().isNotEmpty) {
+        _teach = answerDraft(asked.isEmpty ? null : asked.last.text, reply);
+        _teachReply = reply;
+      }
+    });
     widget.onMessages?.call(_all);
     widget.onSent?.call(message);
   }
@@ -1512,6 +1791,11 @@ class _ThreadState extends State<_Thread> {
                     ],
                   ),
                 ),
+                if (widget.assistantOn && widget.onPaused != null)
+                  _AssistantHere(
+                    on: !c.aiPaused,
+                    onChanged: (on) => widget.onPaused!(c, !on),
+                  ),
               ],
             ),
           ),
@@ -1580,10 +1864,186 @@ class _ThreadState extends State<_Thread> {
               },
             ),
           ),
+          if (_teach != null)
+            _TeachCard(
+              key: ValueKey(_teach),
+              draft: _teach!,
+              reply: _teachReply,
+              inbox: widget.inbox,
+              onDone: () => setState(() => _teach = null),
+            ),
           _Composer(
             conversation: c,
             inbox: widget.inbox,
             onSent: _handleSent,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The assistant, on or off for this one conversation.
+///
+/// In the thread header rather than the details pane, so it is reachable at
+/// every width — the pane exists only on a wide desktop.
+class _AssistantHere extends StatelessWidget {
+  const _AssistantHere({required this.on, required this.onChanged});
+
+  final bool on;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.rabta;
+    final l = context.l;
+    final tint = on ? colors.assistant : colors.muted;
+
+    return Tooltip(
+      message: on ? l.assistantHereOn : l.assistantHereOff,
+      child: Semantics(
+        label: on ? l.assistantHereOn : l.assistantHereOff,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.auto_awesome_outlined, size: 14, color: tint),
+            const SizedBox(width: 5),
+            Text(
+              l.assistantHere,
+              style: Style.meta.copyWith(color: tint, fontWeight: FontWeight.w700),
+            ),
+            Transform.scale(
+              scale: 0.75,
+              child: Switch(
+                value: on,
+                onChanged: onChanged,
+                activeTrackColor: colors.assistant,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// "Should the assistant know this next time?" — offered once, after the
+/// seller answers something the assistant handed them.
+///
+/// Editable before it is saved, because an answer to one customer is not
+/// always a rule for all of them. Nothing is saved without the tap.
+class _TeachCard extends StatefulWidget {
+  const _TeachCard({
+    super.key,
+    required this.draft,
+    required this.reply,
+    required this.inbox,
+    required this.onDone,
+  });
+
+  final String draft;
+  final String reply;
+  final Inbox inbox;
+  final VoidCallback onDone;
+
+  @override
+  State<_TeachCard> createState() => _TeachCardState();
+}
+
+class _TeachCardState extends State<_TeachCard> {
+  late final _controller = TextEditingController(text: widget.draft);
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    setState(() => _saving = true);
+    final messenger = ScaffoldMessenger.of(context);
+    final l = context.l;
+
+    try {
+      await widget.inbox.rememberAnswer(_controller.text);
+      messenger.showSnackBar(SnackBar(content: Text(l.teachSaved)));
+      widget.onDone();
+    } catch (_) {
+      messenger.showSnackBar(SnackBar(content: Text(l.teachFailed)));
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.rabta;
+    final l = context.l;
+    final gutter = _gutter(context);
+
+    return Container(
+      margin: EdgeInsets.fromLTRB(gutter, 0, gutter, 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: colors.assistant.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colors.assistant.withValues(alpha: 0.35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.auto_awesome_outlined, size: 15, color: colors.assistant),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(l.teachTitle, style: Style.name.copyWith(color: colors.ink)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            l.teachBody,
+            style: Style.meta.copyWith(color: colors.muted, height: 1.5),
+          ),
+          const SizedBox(height: 10),
+          // The seller's own reply decides, not the interface and not the
+          // customer's question — seen in a browser, an Arabic question ahead
+          // of an English answer moved the answer's full stop to its start.
+          Directionality(
+            textDirection: directionOf(widget.reply),
+            child: TextField(
+              controller: _controller,
+              minLines: 1,
+              maxLines: 4,
+              style: Style.preview.copyWith(color: colors.ink),
+              decoration: InputDecoration(
+                isDense: true,
+                filled: true,
+                fillColor: colors.surface,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: colors.edge),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            alignment: WrapAlignment.end,
+            spacing: 8,
+            children: [
+              TextButton(
+                onPressed: _saving ? null : widget.onDone,
+                child: Text(l.teachDismiss),
+              ),
+              FilledButton(
+                onPressed: _saving ? null : _save,
+                style: FilledButton.styleFrom(backgroundColor: colors.assistant),
+                child: Text(l.teachSave),
+              ),
+            ],
           ),
         ],
       ),
