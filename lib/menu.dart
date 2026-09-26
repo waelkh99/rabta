@@ -15,6 +15,7 @@ import 'data.dart';
 import 'invite_page.dart';
 import 'strings.dart';
 import 'theme.dart';
+import 'wordmark.dart';
 
 class AppMenu extends StatelessWidget {
   const AppMenu({
@@ -43,8 +44,10 @@ class AppMenu extends StatelessWidget {
     final colors = context.rabta;
     final l = context.l;
 
+    // Night rather than surface: the one dark panel inside the app, so opening
+    // the menu is unmistakably going somewhere else.
     return Drawer(
-      backgroundColor: colors.surface,
+      backgroundColor: colors.night,
       // A square panel rather than a floating card with rounded corners: it
       // reads as part of the window, which is what it is.
       shape: const RoundedRectangleBorder(),
@@ -52,11 +55,20 @@ class AppMenu extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            const Padding(
+              padding: EdgeInsetsDirectional.fromSTEB(24, 26, 24, 22),
+              child: Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: Wordmark(onDark: true),
+              ),
+            ),
             Padding(
-              padding: const EdgeInsetsDirectional.fromSTEB(24, 22, 24, 18),
+              padding: const EdgeInsetsDirectional.fromSTEB(24, 0, 24, 8),
               child: Text(
                 l.menu,
-                style: Style.groupLabel.copyWith(color: colors.muted),
+                style: Style.groupLabel.copyWith(
+                  color: colors.onNight.withValues(alpha: 0.55),
+                ),
               ),
             ),
             _MenuItem(
@@ -115,10 +127,10 @@ class AppMenu extends StatelessWidget {
               },
             ),
             const Spacer(),
-            Divider(height: 1, color: colors.line),
+            Divider(height: 1, color: colors.onNight.withValues(alpha: 0.12)),
             Padding(
               padding: const EdgeInsetsDirectional.fromSTEB(16, 8, 16, 8),
-              child: InviteButton(inbox: inbox),
+              child: InviteButton(inbox: inbox, onDark: true),
             ),
             _MenuItem(
               icon: Icons.logout,
@@ -158,26 +170,40 @@ class _MenuItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.rabta;
 
-    return InkWell(
+    final text = selected ? colors.ink : colors.onNight;
+
+    // The current place is a saffron pill: the same colour that marks the open
+    // row in the list, so "where am I" has one answer everywhere.
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+      child: Material(
+        color: selected ? colors.saffron : Colors.transparent,
+        borderRadius: BorderRadius.circular(Radii.control),
+        child: InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(Radii.control),
+      hoverColor: colors.onNight.withValues(alpha: 0.06),
       child: Container(
-        color: selected ? colors.raised : null,
-        padding: const EdgeInsetsDirectional.fromSTEB(24, 14, 24, 14),
+        padding: const EdgeInsetsDirectional.fromSTEB(14, 13, 14, 13),
         child: Row(
           children: [
-            Icon(icon, size: 18, color: selected ? colors.accent : colors.muted),
+            Icon(
+              icon,
+              size: 19,
+              color: selected ? colors.ink : colors.onNight.withValues(alpha: 0.7),
+            ),
             const SizedBox(width: 14),
             Expanded(
               child: Text(
                 label,
-                style: Style.name.copyWith(
-                  color: selected ? colors.accent : colors.ink,
-                ),
+                style: Style.name.copyWith(color: text),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
+        ),
+      ),
         ),
       ),
     );

@@ -35,6 +35,9 @@ void main() {
 
     await tester.enterText(find.byType(TextField).at(0), 'Rabta2026ok');
     await tester.enterText(find.byType(TextField).at(1), 'Rabta2026oK');
+    // Below the fold in the test window since the screen gained its brand
+    // band; a seller scrolls to it, and so does the test.
+    await tester.ensureVisible(find.byType(FilledButton));
     await tester.tap(find.byType(FilledButton));
     await tester.pumpAndSettle();
 
@@ -60,6 +63,9 @@ void main() {
 
     await tester.enterText(find.byType(TextField).at(0), 'Rabta2026ok');
     await tester.enterText(find.byType(TextField).at(1), 'different1A');
+    // Below the fold in the test window since the screen gained its brand
+    // band; a seller scrolls to it, and so does the test.
+    await tester.ensureVisible(find.byType(FilledButton));
     await tester.tap(find.byType(FilledButton));
     await tester.pumpAndSettle();
     expect(find.text(en.passwordMismatch), findsOneWidget);
@@ -76,6 +82,9 @@ void main() {
 
     await tester.enterText(find.byType(TextField).at(0), 'short');
     await tester.enterText(find.byType(TextField).at(1), 'short');
+    // Below the fold in the test window since the screen gained its brand
+    // band; a seller scrolls to it, and so does the test.
+    await tester.ensureVisible(find.byType(FilledButton));
     await tester.tap(find.byType(FilledButton));
     await tester.pumpAndSettle();
 

@@ -60,7 +60,9 @@ class DetailsPanel extends StatelessWidget {
           const SizedBox(height: 18),
           Text(
             c.customerName ?? l.customer,
-            style: Style.heading.copyWith(color: colors.ink),
+            textDirection: nameLayout(context, c.customerName ?? l.customer).direction,
+            textAlign: nameLayout(context, c.customerName ?? l.customer).align,
+            style: display(Style.title.copyWith(color: colors.ink, fontSize: 20)),
           ),
           const SizedBox(height: 24),
 

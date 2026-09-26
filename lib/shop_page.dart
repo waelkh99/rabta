@@ -112,11 +112,7 @@ class _ShopPageState extends State<ShopPage> {
     return Scaffold(
       backgroundColor: colors.ground,
       appBar: AppBar(
-        backgroundColor: colors.surface,
-        surfaceTintColor: colors.surface,
-        elevation: 0,
-        title: Text(l.shop, style: Style.heading.copyWith(color: colors.ink)),
-        iconTheme: IconThemeData(color: colors.ink),
+        title: Text(l.shop),
         shape: Border(bottom: BorderSide(color: colors.edge)),
       ),
       body: FutureBuilder<_ShopView>(
@@ -144,9 +140,9 @@ class _ShopPageState extends State<ShopPage> {
             padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
             children: [
               Align(
-                alignment: AlignmentDirectional.topStart,
+                alignment: Alignment.topCenter,
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 560),
+                  constraints: const BoxConstraints(maxWidth: 640),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -722,8 +718,6 @@ class _AssistantCard extends StatelessWidget {
               ),
               Switch(
                 value: shop.assistantEnabled,
-                activeThumbColor: colors.onAccent,
-                activeTrackColor: colors.assistant,
                 onChanged: busy || blocked
                     ? null
                     : (on) => onChanged({"assistant_enabled": on}),
@@ -1002,15 +996,15 @@ class _Field extends StatelessWidget {
           filled: true,
           fillColor: colors.ground,
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(Radii.control),
             borderSide: BorderSide(color: colors.line),
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(Radii.control),
             borderSide: BorderSide(color: colors.line),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(Radii.control),
             borderSide: BorderSide(color: colors.accent),
           ),
         ),

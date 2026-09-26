@@ -171,11 +171,7 @@ class _OffersPageState extends State<OffersPage> {
     return Scaffold(
       backgroundColor: colors.ground,
       appBar: AppBar(
-        backgroundColor: colors.surface,
-        surfaceTintColor: colors.surface,
-        elevation: 0,
-        title: Text(l.offers, style: Style.heading.copyWith(color: colors.ink)),
-        iconTheme: IconThemeData(color: colors.ink),
+        title: Text(l.offers),
         shape: Border(bottom: BorderSide(color: colors.edge)),
       ),
       body: FutureBuilder<_Loaded>(
@@ -216,9 +212,9 @@ class _OffersPageState extends State<OffersPage> {
             padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
             children: [
               Align(
-                alignment: AlignmentDirectional.topStart,
+                alignment: Alignment.topCenter,
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 560),
+                  constraints: const BoxConstraints(maxWidth: 640),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -235,6 +231,8 @@ class _OffersPageState extends State<OffersPage> {
                             style: Style.preview.copyWith(color: colors.muted),
                           ),
                         ),
+                      if (loaded.offers.isNotEmpty)
+                        Panel(children: [
                       for (final offer in loaded.offers)
                         _OfferRow(
                           offer: offer,
@@ -250,23 +248,22 @@ class _OffersPageState extends State<OffersPage> {
                           onEdit: () => _edit(offer, loaded),
                           onDelete: () => _delete(offer),
                         ),
-                      const SizedBox(height: 12),
+                        ]),
+                      const SizedBox(height: 20),
                       Align(
                         alignment: AlignmentDirectional.centerStart,
-                        child: FilledButton(
-                          onPressed: _working != null
-                              ? null
-                              : () => _edit(null, loaded),
-                          style: FilledButton.styleFrom(
-                            backgroundColor: colors.accent,
-                            foregroundColor: colors.onAccent,
-                            disabledBackgroundColor: colors.accentSoft,
-                            disabledForegroundColor: colors.muted,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
+                        child: Stamp(
+                          enabled: _working == null,
+                          child: FilledButton.icon(
+                            onPressed: _working != null
+                                ? null
+                                : () => _edit(null, loaded),
+                            style: FilledButton.styleFrom(
+                              shape: const RoundedRectangleBorder(),
                             ),
+                            icon: const Icon(Icons.add, size: 18),
+                            label: Text(l.offerAdd),
                           ),
-                          child: Text(l.offerAdd, style: Style.name),
                         ),
                       ),
                     ],
@@ -347,7 +344,7 @@ class _OfferRow extends StatelessWidget {
     final showCovers = !(offer.kind == OfferKind.text && offer.wholeShop);
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsetsDirectional.fromSTEB(16, 14, 10, 10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -426,7 +423,6 @@ class _OfferRow extends StatelessWidget {
           Switch(
             value: offer.enabled,
             onChanged: busy ? null : onToggle,
-            activeThumbColor: colors.accent,
           ),
         ],
       ),
@@ -791,18 +787,13 @@ class _OfferDialogState extends State<_OfferDialog> {
         child: Scaffold(
           backgroundColor: colors.surface,
           appBar: AppBar(
-            backgroundColor: colors.surface,
-            surfaceTintColor: colors.surface,
-            elevation: 0,
             leading: IconButton(
               icon: const Icon(Icons.close),
               tooltip: l.cancel,
               onPressed: () => Navigator.pop(context),
             ),
-            iconTheme: IconThemeData(color: colors.ink),
             title: Text(
               title,
-              style: Style.heading.copyWith(color: colors.ink),
             ),
             actions: [save, const SizedBox(width: 8)],
             shape: Border(bottom: BorderSide(color: colors.edge)),
@@ -856,7 +847,7 @@ class _Field extends StatelessWidget {
     final colors = context.rabta;
 
     OutlineInputBorder border(Color color) => OutlineInputBorder(
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(Radii.control),
       borderSide: BorderSide(color: color),
     );
 

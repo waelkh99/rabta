@@ -934,7 +934,8 @@ class LEn extends L {
   String get pitchTwo => 'Whoever waited longest comes first.';
 
   @override
-  String get pitchThree => 'See how long you have left before you type.';
+  String get pitchThree =>
+      'The assistant answers price and stock while you are busy, and leaves you the rest.';
 
   @override
   String get aboutCustomer => 'About this customer';
@@ -1267,4 +1268,13 @@ class LEn extends L {
 
   @override
   String get adminStatusOff => 'Disconnected';
+
+  @override
+  String get signInHero => 'No customer waits until morning.';
+
+  @override
+  String get signInWelcome => 'Welcome back';
+
+  @override
+  String get signInWelcomeBody => 'Sign in to see who is waiting for you.';
 }

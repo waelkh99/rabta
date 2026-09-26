@@ -91,11 +91,7 @@ class _AdminPageState extends State<AdminPage> {
     return Scaffold(
       backgroundColor: colors.ground,
       appBar: AppBar(
-        backgroundColor: colors.surface,
-        surfaceTintColor: colors.surface,
-        elevation: 0,
-        title: Text(l.adminTitle, style: Style.heading.copyWith(color: colors.ink)),
-        iconTheme: IconThemeData(color: colors.ink),
+        title: Text(l.adminTitle),
         shape: Border(bottom: BorderSide(color: colors.edge)),
         automaticallyImplyLeading: !widget.asHome,
         actions: [
@@ -358,7 +354,7 @@ class _Seller extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
                     color: colors.accentSoft,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(Radii.control),
                   ),
                   child: Text(l.adminYou, style: Style.meta.copyWith(color: colors.accent)),
                 ),
@@ -374,7 +370,7 @@ class _Seller extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(Radii.control),
                     border: Border.all(
                       color: a['status'] == 'active' ? colors.line : colors.urgent,
                     ),

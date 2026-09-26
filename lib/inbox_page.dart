@@ -762,7 +762,7 @@ class _ReconnectBanner extends StatelessWidget {
       padding: const EdgeInsetsDirectional.fromSTEB(14, 12, 8, 12),
       decoration: BoxDecoration(
         color: colors.urgent.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(Radii.control),
         border: BorderDirectional(start: BorderSide(color: colors.urgent, width: 4)),
       ),
       child: Row(
@@ -840,14 +840,18 @@ class _SearchFieldState extends State<_SearchField> {
                 ),
           filled: true,
           fillColor: colors.ground,
-          contentPadding: const EdgeInsets.symmetric(vertical: 10),
+          contentPadding: const EdgeInsets.symmetric(vertical: 12),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: colors.edge),
+            borderRadius: BorderRadius.circular(999),
+            borderSide: BorderSide.none,
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: colors.edge),
+            borderRadius: BorderRadius.circular(999),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(999),
+            borderSide: BorderSide(color: colors.accent, width: 2),
           ),
         ),
       ),
@@ -879,7 +883,7 @@ class _ListHeader extends StatelessWidget {
     final colors = context.rabta;
 
     return Container(
-      padding: const EdgeInsetsDirectional.fromSTEB(24, 20, 12, 18),
+      padding: const EdgeInsetsDirectional.fromSTEB(20, 18, 10, 16),
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: colors.edge)),
       ),
@@ -891,17 +895,25 @@ class _ListHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Wordmark(),
-                const SizedBox(height: 5),
-                Text(
-                  // The count a seller acts on. A total conversation count is a
-                  // number nobody does anything with.
-                  waiting == 0
-                      ? context.l.everyoneAnswered
-                      : context.l.customersWaiting(waiting),
-                  style: Style.meta.copyWith(
-                    color: waiting == 0 ? colors.muted : colors.accent,
-                    fontWeight:
-                        waiting == 0 ? FontWeight.w300 : FontWeight.w700,
+                const SizedBox(height: 10),
+                // The count a seller acts on. A total conversation count is a
+                // number nobody does anything with. Saffron while somebody is
+                // waiting, so it reads from across the room; plain once
+                // nobody is.
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: waiting == 0 ? colors.ground : colors.saffron,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    waiting == 0
+                        ? context.l.everyoneAnswered
+                        : context.l.customersWaiting(waiting),
+                    style: Style.meta.copyWith(
+                      color: waiting == 0 ? colors.muted : colors.ink,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ],
@@ -984,6 +996,8 @@ class _NeedsYouBell extends StatelessWidget {
                       Flexible(
                         child: Text(
                           c.customerName ?? l.customer,
+                          textDirection: nameLayout(context, c.customerName ?? l.customer).direction,
+                          textAlign: nameLayout(context, c.customerName ?? l.customer).align,
                           style: Style.name.copyWith(color: colors.ink),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -1037,7 +1051,7 @@ class _RowDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsetsDirectional.only(start: 65, end: 20),
+        padding: const EdgeInsetsDirectional.only(start: 69, end: 20),
         child: Divider(height: 1, color: context.rabta.line),
       );
 }
@@ -1053,13 +1067,26 @@ class _GroupHeading extends StatelessWidget {
     final colors = context.rabta;
 
     return Padding(
-      padding: const EdgeInsetsDirectional.fromSTEB(24, 24, 24, 10),
+      padding: const EdgeInsetsDirectional.fromSTEB(20, 20, 20, 8),
       child: Row(
         children: [
-          Text(label, style: Style.groupLabel.copyWith(color: colors.muted)),
+          Text(
+            label,
+            style: display(Style.groupLabel.copyWith(color: colors.ink, fontSize: 13)),
+          ),
           const SizedBox(width: 8),
-          Text('$count', style: Style.meta.copyWith(color: colors.muted)),
-          const SizedBox(width: 14),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: colors.ink, width: 1.2),
+            ),
+            child: Text(
+              '$count',
+              style: display(Style.meta.copyWith(color: colors.ink, fontWeight: FontWeight.w700)),
+            ),
+          ),
+          const SizedBox(width: 12),
           Expanded(child: Divider(height: 1, color: colors.edge)),
         ],
       ),
@@ -1120,7 +1147,7 @@ class _ConversationRowState extends State<_ConversationRow> {
                 : c.escalated
                     ? colors.urgent.withValues(alpha: _hovered ? 0.12 : 0.07)
                     : _hovered
-                        ? colors.raised.withValues(alpha: 0.5)
+                        ? colors.ground
                         : colors.surface,
             padding: EdgeInsetsDirectional.only(
               // The bar is drawn inside the row's own start padding rather than
@@ -1172,6 +1199,8 @@ class _ConversationRowState extends State<_ConversationRow> {
                           Expanded(
                             child: Text(
                               name,
+                              textDirection: nameLayout(context, name).direction,
+                              textAlign: nameLayout(context, name).align,
                               style: Style.name.copyWith(
                                 color: colors.ink,
                                 fontWeight: unread
@@ -1197,9 +1226,9 @@ class _ConversationRowState extends State<_ConversationRow> {
                           if (unread) ...[
                             const SizedBox(width: 10),
                             Container(
-                              margin: const EdgeInsets.only(top: 5),
-                              width: 7,
-                              height: 7,
+                              margin: const EdgeInsets.only(top: 4),
+                              width: 9,
+                              height: 9,
                               decoration: BoxDecoration(
                                 color: colors.accent,
                                 shape: BoxShape.circle,
@@ -1416,35 +1445,38 @@ class _Monogram extends StatelessWidget {
     final initial =
         trimmed.isEmpty ? '·' : String.fromCharCode(trimmed.runes.first);
 
+    // A rounded square rather than a circle: every chat product draws circles,
+    // and the shape is the cheapest place to stop looking like one.
     final monogram = Container(
-      width: 36,
-      height: 36,
+      width: 40,
+      height: 40,
       decoration: BoxDecoration(
-        color: colors.accentSoft,
-        shape: BoxShape.circle,
+        color: colors.saffronSoft,
+        borderRadius: BorderRadius.circular(13),
       ),
       alignment: Alignment.center,
       child: Text(
         initial.toUpperCase(),
-        style: Style.monogram.copyWith(color: colors.accent),
+        style: display(Style.monogram.copyWith(color: colors.ink)),
         textAlign: TextAlign.center,
       ),
     );
 
     return SizedBox(
-      width: 36,
-      height: 36,
+      width: 40,
+      height: 40,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
           if (avatarUrl == null)
             monogram
           else
-            ClipOval(
+            ClipRRect(
+              borderRadius: BorderRadius.circular(13),
               child: Image.network(
                 avatarUrl!,
-                width: 36,
-                height: 36,
+                width: 40,
+                height: 40,
                 fit: BoxFit.cover,
                 // An expired URL, a blocked request, or no network. The
                 // monogram is the answer in all three, and it is the same
@@ -1544,20 +1576,37 @@ class _NothingOpen extends StatelessWidget {
     // window the longest wait is also the one closest to closing.
     final urgent = waiting.isEmpty ? null : waiting.first;
 
-    return Container(
-      color: colors.ground,
+    return CustomPaint(
+      painter: DotGrid(colors.ink, 0.07),
+      child: Container(
       alignment: Alignment.center,
       padding: const EdgeInsets.all(40),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 430),
-        child: Column(
+        constraints: const BoxConstraints(maxWidth: 460),
+        child: Stamp(
+          radius: Radii.card,
+          depth: 6,
+          color: colors.surface,
+          child: Padding(
+          padding: const EdgeInsets.all(30),
+          child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: urgent == null
               ? [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: colors.saffron,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Icon(Icons.done_all, color: colors.ink),
+                  ),
+                  const SizedBox(height: 18),
                   Text(
                     l.everyoneAnswered,
-                    style: Style.heading.copyWith(color: colors.ink),
+                    style: display(Style.title.copyWith(color: colors.ink)),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -1568,7 +1617,7 @@ class _NothingOpen extends StatelessWidget {
               : [
                   Text(
                     l.customersWaiting(waiting.length),
-                    style: Style.heading.copyWith(color: colors.ink),
+                    style: display(Style.title.copyWith(color: colors.ink, fontSize: 26)),
                   ),
                   const SizedBox(height: 24),
                   Row(
@@ -1591,7 +1640,9 @@ class _NothingOpen extends StatelessWidget {
                             const SizedBox(height: 4),
                             Text(
                               urgent.customerName ?? l.customer,
-                              style: Style.name.copyWith(color: colors.ink),
+                              textDirection: nameLayout(context, urgent.customerName ?? l.customer).direction,
+                              textAlign: nameLayout(context, urgent.customerName ?? l.customer).align,
+                              style: display(Style.heading.copyWith(color: colors.ink, fontSize: 18)),
                             ),
                             const SizedBox(height: 12),
                             Text(
@@ -1621,6 +1672,9 @@ class _NothingOpen extends StatelessWidget {
                   ),
                 ],
         ),
+          ),
+        ),
+      ),
       ),
     );
   }
@@ -1837,7 +1891,9 @@ class _ThreadState extends State<_Thread> {
                     children: [
                       Text(
                         name,
-                        style: Style.heading.copyWith(color: colors.ink),
+                        textDirection: nameLayout(context, name).direction,
+                        textAlign: nameLayout(context, name).align,
+                        style: display(Style.heading.copyWith(color: colors.ink, fontSize: 17)),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -1888,7 +1944,9 @@ class _ThreadState extends State<_Thread> {
             ),
 
           Expanded(
-            child: FutureBuilder<List<Message>>(
+            child: CustomPaint(
+              painter: DotGrid(colors.ink, 0.07),
+              child: FutureBuilder<List<Message>>(
               future: _messages,
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
@@ -1936,6 +1994,7 @@ class _ThreadState extends State<_Thread> {
                   },
                 );
               },
+            ),
             ),
           ),
           if (_teach != null)
@@ -1995,7 +2054,6 @@ class _AssistantHere extends StatelessWidget {
               child: Switch(
                 value: on,
                 onChanged: onChanged,
-                activeTrackColor: colors.assistant,
               ),
             ),
           ],
@@ -2163,11 +2221,15 @@ class _Bubble extends StatelessWidget {
                   _ when message.byAssistant => colors.assistant,
                   _ => colors.accent,
                 },
+                // The customer's bubble alone has an edge: it is the same
+                // colour as the pane's surface, and on the dotted ground a
+                // bubble with no edge reads as a hole in the pattern.
+                border: inbound ? Border.all(color: colors.edge) : null,
                 borderRadius: BorderRadiusDirectional.only(
-                  topStart: const Radius.circular(16),
-                  topEnd: const Radius.circular(16),
-                  bottomStart: Radius.circular(inbound ? 4 : 16),
-                  bottomEnd: Radius.circular(inbound ? 16 : 4),
+                  topStart: const Radius.circular(Radii.bubble),
+                  topEnd: const Radius.circular(Radii.bubble),
+                  bottomStart: Radius.circular(inbound ? 6 : Radii.bubble),
+                  bottomEnd: Radius.circular(inbound ? Radii.bubble : 6),
                 ).resolve(Directionality.of(context)),
               ),
               // Each message takes its direction from its own text. This is the
@@ -2241,7 +2303,7 @@ class _Body extends StatelessWidget {
 
     if (first?['type'] == 'image' && url != null) {
       return ClipRRect(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(Radii.control),
         child: Image.network(
           url,
           width: 280,
@@ -2443,8 +2505,8 @@ class _ComposerState extends State<_Composer> {
                         filled: true,
                         fillColor: colors.ground,
                         contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 13,
+                          horizontal: 20,
+                          vertical: 15,
                         ),
                         border: _fieldBorder(colors.line),
                         enabledBorder: _fieldBorder(colors.line),
@@ -2461,7 +2523,12 @@ class _ComposerState extends State<_Composer> {
                 builder: (context, value, _) {
                   final ready = !_sending && value.text.trim().isNotEmpty;
 
-                  return IconButton.filled(
+                  // Stamped, like every screen's main action: this is the
+                  // one on this screen.
+                  return Stamp(
+                    radius: 999,
+                    enabled: ready,
+                    child: IconButton.filled(
                     onPressed: ready ? _send : null,
                     tooltip: _sending ? context.l.sending : context.l.sendReply,
                     // Directional: in Arabic the arrow points the other way.
@@ -2475,8 +2542,10 @@ class _ComposerState extends State<_Composer> {
                       foregroundColor: colors.onAccent,
                       disabledBackgroundColor: colors.accentSoft,
                       disabledForegroundColor: colors.muted,
-                      padding: const EdgeInsets.all(13),
+                      padding: const EdgeInsets.all(14),
+                      shape: const CircleBorder(),
                     ),
+                  ),
                   );
                 },
               ),
@@ -2508,7 +2577,7 @@ class _ComposerState extends State<_Composer> {
 
 OutlineInputBorder _fieldBorder(Color color, [double width = 1]) =>
     OutlineInputBorder(
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(24),
       borderSide: BorderSide(color: color, width: width),
     );
 

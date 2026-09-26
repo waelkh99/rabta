@@ -30,9 +30,12 @@ bool signedInUserIsAdmin() {
 
 /// The way in, drawn only for an admin and nothing at all for anyone else.
 class InviteButton extends StatelessWidget {
-  const InviteButton({super.key, required this.inbox});
+  const InviteButton({super.key, required this.inbox, this.onDark = false});
 
   final Inbox inbox;
+
+  /// On the menu's dark panel.
+  final bool onDark;
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +48,7 @@ class InviteButton extends StatelessWidget {
         MaterialPageRoute<void>(builder: (_) => InvitePage(inbox: inbox)),
       ),
       icon: const Icon(Icons.person_add_alt, size: 17),
-      color: colors.muted,
+      color: onDark ? colors.onNight : colors.muted,
       tooltip: context.l.invite,
       visualDensity: VisualDensity.compact,
     );
@@ -136,11 +139,7 @@ class _InvitePageState extends State<InvitePage> {
     return Scaffold(
       backgroundColor: colors.ground,
       appBar: AppBar(
-        backgroundColor: colors.surface,
-        surfaceTintColor: colors.surface,
-        elevation: 0,
-        title: Text(l.inviteTitle, style: Style.heading.copyWith(color: colors.ink)),
-        iconTheme: IconThemeData(color: colors.ink),
+        title: Text(l.inviteTitle),
         shape: Border(bottom: BorderSide(color: colors.edge)),
       ),
       body: ListView(
@@ -228,7 +227,7 @@ class _InvitePageState extends State<InvitePage> {
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: colors.surface,
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(Radii.control),
               border: Border.all(color: colors.line),
             ),
             child: SelectableText(
@@ -285,13 +284,13 @@ ButtonStyle _buttonStyle(RabtaColors colors) => FilledButton.styleFrom(
       textStyle: Style.name,
       elevation: 0,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(Radius.circular(10)),
+        borderRadius: BorderRadius.all(Radius.circular(Radii.control)),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 17),
     );
 
 OutlineInputBorder _border(Color color, [double width = 1]) =>
     OutlineInputBorder(
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(Radii.control),
       borderSide: BorderSide(color: color, width: width),
     );

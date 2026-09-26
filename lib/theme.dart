@@ -21,6 +21,10 @@ class RabtaColors extends ThemeExtension<RabtaColors> {
     required this.accent,
     required this.onAccent,
     required this.accentSoft,
+    required this.saffron,
+    required this.saffronSoft,
+    required this.night,
+    required this.onNight,
     required this.urgent,
     required this.assistant,
     required this.won,
@@ -28,109 +32,106 @@ class RabtaColors extends ThemeExtension<RabtaColors> {
     required this.messenger,
   });
 
-  /// Behind everything.
+  /// Behind everything. Warm sand rather than a cold near-white: a ground
+  /// with some colour in it is what stops the panes reading as blank paper.
   final Color ground;
 
   /// The list, the thread header, message bubbles from the customer.
   final Color surface;
 
-  /// A row that is open or hovered. A shift in ground, never a card.
+  /// A row that is open or hovered. Saffron-tinted, so the open row is a
+  /// different colour from the violet around it rather than a paler step of
+  /// the same one — which is what made selection invisible before.
   final Color raised;
 
-  /// Hairlines inside a pane: between rows, around the window card.
+  /// Hairlines inside a pane: between rows, around cards.
   final Color line;
 
-  /// The boundaries between panes, and the group rules in the list. Tinted
-  /// toward the accent rather than neutral grey: a plain grey rule at this
-  /// weight disappears against a near-white ground, which is what made the
-  /// sections read as one undifferentiated sheet.
+  /// The boundaries between panes, and the group rules in the list.
   final Color edge;
 
-  /// Names and message text.
+  /// Names and message text. A violet-black rather than a neutral one, so
+  /// text belongs to the same family as the accent.
   final Color ink;
 
   /// Previews, timestamps, anything secondary.
   final Color muted;
 
-  /// The seller's own actions and their own words, and nothing else.
+  /// The seller's own actions and their own words.
   final Color accent;
 
   /// Text sitting on the accent.
   final Color onAccent;
 
-  /// The accent at reading strength — the wait rail's track fill, quiet
-  /// highlights. Stored rather than computed so the dark scheme can pick its
-  /// own value instead of inheriting an opacity that only works on white.
+  /// The accent at reading strength — the wait rail's track, quiet highlights.
   final Color accentSoft;
 
+  /// Violet's complement, and the second half of the brand. Used where the
+  /// interface wants to point at something without alarming anyone: the open
+  /// row, the count of people waiting, the selected item in the menu. Never
+  /// for text on a light ground — it is far too light to read there — only
+  /// as a fill with ink on it.
+  final Color saffron;
+  final Color saffronSoft;
+
+  /// The dark panels: the menu, and the brand side of sign-in.
+  final Color night;
+  final Color onNight;
+
   /// Something needs the seller now: a reply window about to close, or a
-  /// conversation the assistant handed to them. Widened from the window alone
-  /// on 23 September 2026 — a hand-over in teal went unnoticed.
+  /// conversation the assistant handed to them.
   final Color urgent;
 
-  /// A message the assistant sent, and nothing else.
-  ///
-  /// Teal because it has to be told apart from the accent at a glance and from
-  /// across the thread: it is the furthest readable hue from the violet that
-  /// is not already spoken for by `urgent` or by either platform colour.
-  ///
-  /// Colour is the main signal but deliberately not the only one. These two
-  /// bubble fills differ by 1.72:1 in luminance, so a seller who cannot
-  /// separate violet from teal would have nothing left to go on — which is why
-  /// an assistant message also carries a word saying so.
+  /// A message the assistant sent, and nothing else. Teal because it is the
+  /// furthest readable hue from the violet that is not already spoken for. Not
+  /// the only signal: an assistant message also carries a word saying so.
   final Color assistant;
 
-  /// A conversation that ended in an order, and nothing else. Green because
-  /// every other hue here already means something; never used for the
-  /// assistant, so an order it marked still reads as an order.
+  /// A conversation that ended in an order, and nothing else.
   final Color won;
 
   final Color instagram;
   final Color messenger;
 
-  /// Light. White ground with a violet accent, closer to the platforms the
-  /// product lives inside than the near-monochrome it started as.
-  ///
-  /// The violet is a single flat colour rather than Instagram's gradient. The
-  /// gradient is their identity, not ours, and a gradient behind small text is
-  /// unreadable in both scripts.
-  ///
-  /// The accent is sampled from the app icon rather than chosen alongside it.
-  /// The two sit side by side in a browser tab, so they cannot be two different
-  /// purples, and of the pair the icon is the harder one to change later.
+  /// Violet and saffron on sand. See DECISIONS.md, 26 September 2026.
   static const light = RabtaColors(
-    ground: Color(0xFFFAF8FC),
-    surface: Color(0xFFFFFFFF),
-    raised: Color(0xFFF2EAFC),
-    line: Color(0xFFE5DCF4),
-    edge: Color(0xFFCFBDEE),
-    ink: Color(0xFF1B1526),
-    muted: Color(0xFF6E6880),
-    accent: Color(0xFF6010C0),
+    ground: Color(0xFFF5F0E8),
+    surface: Color(0xFFFFFDF9),
+    raised: Color(0xFFFFF1CF),
+    line: Color(0xFFEBE3D6),
+    edge: Color(0xFFDCCFBC),
+    ink: Color(0xFF1D1626),
+    muted: Color(0xFF6A6272),
+    accent: Color(0xFF5B16C8),
     onAccent: Color(0xFFFFFFFF),
-    accentSoft: Color(0xFFEDE1FC),
-    urgent: Color(0xFFD1365B),
+    accentSoft: Color(0xFFEDE4FB),
+    saffron: Color(0xFFFFB42E),
+    saffronSoft: Color(0xFFFFEBC2),
+    night: Color(0xFF1D1626),
+    onNight: Color(0xFFF6F0E6),
+    urgent: Color(0xFFCF2F55),
     assistant: Color(0xFF0B7A6E),
     won: Color(0xFF1C7C3A),
     instagram: Color(0xFFE1306C),
     messenger: Color(0xFF0866FF),
   );
 
-  /// Dark. Not wired up yet — `main.dart` has no dark theme and no toggle — but
-  /// defined so the extension is exercised by both schemes from the start and
-  /// the values are chosen once, with the light ones in front of us, rather
-  /// than guessed later.
+  /// Dark. Not wired up yet — `main.dart` has no dark theme and no toggle.
   static const dark = RabtaColors(
-    ground: Color(0xFF130F1A),
-    surface: Color(0xFF1C1726),
-    raised: Color(0xFF272034),
-    line: Color(0xFF322A42),
-    edge: Color(0xFF473A5E),
-    ink: Color(0xFFF1EDF7),
-    muted: Color(0xFF9D95AE),
-    accent: Color(0xFFA779F0),
-    onAccent: Color(0xFF1B1526),
+    ground: Color(0xFF15111B),
+    surface: Color(0xFF1E1826),
+    raised: Color(0xFF3A2E1A),
+    line: Color(0xFF2F2739),
+    edge: Color(0xFF443A52),
+    ink: Color(0xFFF3EEE6),
+    muted: Color(0xFFA39AAE),
+    accent: Color(0xFFA77BF5),
+    onAccent: Color(0xFF15111B),
     accentSoft: Color(0xFF2E2440),
+    saffron: Color(0xFFFFB42E),
+    saffronSoft: Color(0xFF3A2E1A),
+    night: Color(0xFF0E0B12),
+    onNight: Color(0xFFF3EEE6),
     urgent: Color(0xFFFF8098),
     assistant: Color(0xFF58D5C9),
     won: Color(0xFF74D38F),
@@ -141,60 +142,32 @@ class RabtaColors extends ThemeExtension<RabtaColors> {
   Color platform(String name) => name == 'instagram' ? instagram : messenger;
 
   @override
-  RabtaColors copyWith({
-    Color? ground,
-    Color? surface,
-    Color? raised,
-    Color? line,
-    Color? edge,
-    Color? ink,
-    Color? muted,
-    Color? accent,
-    Color? onAccent,
-    Color? accentSoft,
-    Color? urgent,
-    Color? assistant,
-    Color? won,
-    Color? instagram,
-    Color? messenger,
-  }) =>
-      RabtaColors(
-        ground: ground ?? this.ground,
-        surface: surface ?? this.surface,
-        raised: raised ?? this.raised,
-        line: line ?? this.line,
-        edge: edge ?? this.edge,
-        ink: ink ?? this.ink,
-        muted: muted ?? this.muted,
-        accent: accent ?? this.accent,
-        onAccent: onAccent ?? this.onAccent,
-        accentSoft: accentSoft ?? this.accentSoft,
-        urgent: urgent ?? this.urgent,
-        assistant: assistant ?? this.assistant,
-        won: won ?? this.won,
-        instagram: instagram ?? this.instagram,
-        messenger: messenger ?? this.messenger,
-      );
+  RabtaColors copyWith() => this;
 
   @override
   RabtaColors lerp(RabtaColors? other, double t) {
     if (other == null) return this;
+    Color l(Color a, Color b) => Color.lerp(a, b, t)!;
     return RabtaColors(
-      ground: Color.lerp(ground, other.ground, t)!,
-      surface: Color.lerp(surface, other.surface, t)!,
-      raised: Color.lerp(raised, other.raised, t)!,
-      line: Color.lerp(line, other.line, t)!,
-      edge: Color.lerp(edge, other.edge, t)!,
-      ink: Color.lerp(ink, other.ink, t)!,
-      muted: Color.lerp(muted, other.muted, t)!,
-      accent: Color.lerp(accent, other.accent, t)!,
-      onAccent: Color.lerp(onAccent, other.onAccent, t)!,
-      accentSoft: Color.lerp(accentSoft, other.accentSoft, t)!,
-      urgent: Color.lerp(urgent, other.urgent, t)!,
-      assistant: Color.lerp(assistant, other.assistant, t)!,
-      won: Color.lerp(won, other.won, t)!,
-      instagram: Color.lerp(instagram, other.instagram, t)!,
-      messenger: Color.lerp(messenger, other.messenger, t)!,
+      ground: l(ground, other.ground),
+      surface: l(surface, other.surface),
+      raised: l(raised, other.raised),
+      line: l(line, other.line),
+      edge: l(edge, other.edge),
+      ink: l(ink, other.ink),
+      muted: l(muted, other.muted),
+      accent: l(accent, other.accent),
+      onAccent: l(onAccent, other.onAccent),
+      accentSoft: l(accentSoft, other.accentSoft),
+      saffron: l(saffron, other.saffron),
+      saffronSoft: l(saffronSoft, other.saffronSoft),
+      night: l(night, other.night),
+      onNight: l(onNight, other.onNight),
+      urgent: l(urgent, other.urgent),
+      assistant: l(assistant, other.assistant),
+      won: l(won, other.won),
+      instagram: l(instagram, other.instagram),
+      messenger: l(messenger, other.messenger),
     );
   }
 }
@@ -203,21 +176,39 @@ extension RabtaTheme on BuildContext {
   RabtaColors get rabta => Theme.of(this).extension<RabtaColors>()!;
 }
 
-/// Almarai covers Arabic and Latin from one family, chosen on measured width in
-/// Arabic — see DECISIONS.md. Weights are deliberate: 700 for names, 300 for
-/// previews. That contrast is what lets a name detach at a glance in a dense
-/// list; the same family at 300/500 did not.
+/// Corners, in one place. Softer than before: the old 10 everywhere was the
+/// radius of every default kit.
+abstract final class Radii {
+  static const control = 12.0;
+  static const card = 18.0;
+  static const bubble = 20.0;
+}
+
+/// Almarai for everything read — narrowest in Arabic, see DECISIONS.md.
+/// Rubik for everything that names a place or a number: the wordmark, page
+/// titles, the counts. Rounded and heavy in both scripts, and it is the part of
+/// the type that gives the interface a voice.
+TextStyle display(TextStyle style) => GoogleFonts.rubik(textStyle: style);
+
 ThemeData rabtaTheme({required Brightness brightness}) {
   final colors =
       brightness == Brightness.dark ? RabtaColors.dark : RabtaColors.light;
 
   final base = ThemeData(brightness: brightness, useMaterial3: true);
+  final control = BorderRadius.circular(Radii.control);
+
+  OutlineInputBorder field(Color color, [double width = 1]) =>
+      OutlineInputBorder(
+        borderRadius: control,
+        borderSide: BorderSide(color: color, width: width),
+      );
 
   return base.copyWith(
     extensions: [colors],
     scaffoldBackgroundColor: colors.ground,
     canvasColor: colors.surface,
     dividerColor: colors.line,
+    splashFactory: InkSparkle.constantTurbulenceSeedSplashFactory,
     textTheme: GoogleFonts.almaraiTextTheme(base.textTheme).apply(
       bodyColor: colors.ink,
       displayColor: colors.ink,
@@ -225,11 +216,258 @@ ThemeData rabtaTheme({required Brightness brightness}) {
     colorScheme: base.colorScheme.copyWith(
       primary: colors.accent,
       onPrimary: colors.onAccent,
+      secondary: colors.saffron,
+      onSecondary: colors.ink,
       surface: colors.surface,
+      onSurface: colors.ink,
+      surfaceContainerHighest: colors.ground,
       error: colors.urgent,
+      outline: colors.edge,
+      outlineVariant: colors.line,
     ),
     dividerTheme: DividerThemeData(color: colors.line, thickness: 1, space: 1),
+    appBarTheme: AppBarTheme(
+      backgroundColor: colors.ground,
+      surfaceTintColor: Colors.transparent,
+      foregroundColor: colors.ink,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      centerTitle: false,
+      titleTextStyle: display(Style.title.copyWith(color: colors.ink)),
+      iconTheme: IconThemeData(color: colors.ink),
+    ),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        backgroundColor: colors.accent,
+        foregroundColor: colors.onAccent,
+        disabledBackgroundColor: colors.accentSoft,
+        disabledForegroundColor: colors.muted,
+        textStyle: Style.name,
+        elevation: 0,
+        minimumSize: const Size(0, 46),
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+        shape: RoundedRectangleBorder(borderRadius: control),
+      ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: colors.ink,
+        textStyle: Style.name,
+        side: BorderSide(color: colors.ink, width: 1.5),
+        minimumSize: const Size(0, 44),
+        shape: RoundedRectangleBorder(borderRadius: control),
+      ),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        foregroundColor: colors.accent,
+        textStyle: Style.name,
+        shape: RoundedRectangleBorder(borderRadius: control),
+      ),
+    ),
+    iconButtonTheme: IconButtonThemeData(
+      style: IconButton.styleFrom(
+        shape: RoundedRectangleBorder(borderRadius: control),
+      ),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: colors.surface,
+      hintStyle: Style.preview.copyWith(color: colors.muted),
+      labelStyle: Style.preview.copyWith(color: colors.muted),
+      floatingLabelStyle: Style.meta.copyWith(color: colors.accent),
+      border: field(colors.edge),
+      enabledBorder: field(colors.edge),
+      focusedBorder: field(colors.accent, 2),
+      errorBorder: field(colors.urgent),
+      focusedErrorBorder: field(colors.urgent, 2),
+      disabledBorder: field(colors.line),
+    ),
+    textSelectionTheme: TextSelectionThemeData(
+      cursorColor: colors.accent,
+      selectionColor: colors.saffron.withValues(alpha: 0.45),
+      selectionHandleColor: colors.accent,
+    ),
+    switchTheme: SwitchThemeData(
+      thumbColor: WidgetStateProperty.resolveWith(
+        (s) => s.contains(WidgetState.selected) ? colors.onAccent : colors.muted,
+      ),
+      trackColor: WidgetStateProperty.resolveWith(
+        (s) => s.contains(WidgetState.selected) ? colors.accent : colors.ground,
+      ),
+      trackOutlineColor: WidgetStateProperty.resolveWith(
+        (s) => s.contains(WidgetState.selected) ? Colors.transparent : colors.edge,
+      ),
+    ),
+    checkboxTheme: CheckboxThemeData(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+      side: BorderSide(color: colors.muted, width: 1.5),
+    ),
+    chipTheme: ChipThemeData(
+      backgroundColor: colors.surface,
+      selectedColor: colors.saffron,
+      side: BorderSide(color: colors.edge),
+      labelStyle: Style.meta.copyWith(color: colors.ink),
+      shape: const StadiumBorder(),
+    ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: colors.surface,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(Radii.card),
+        side: BorderSide(color: colors.ink, width: 1.5),
+      ),
+      titleTextStyle: display(Style.title.copyWith(color: colors.ink)),
+      contentTextStyle: Style.preview.copyWith(color: colors.ink),
+    ),
+    snackBarTheme: SnackBarThemeData(
+      backgroundColor: colors.night,
+      contentTextStyle: Style.preview.copyWith(color: colors.onNight),
+      actionTextColor: colors.saffron,
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: control),
+    ),
+    tooltipTheme: TooltipThemeData(
+      decoration: BoxDecoration(
+        color: colors.night,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      textStyle: Style.meta.copyWith(color: colors.onNight),
+    ),
+    menuTheme: MenuThemeData(
+      style: MenuStyle(
+        backgroundColor: WidgetStatePropertyAll(colors.surface),
+        surfaceTintColor: const WidgetStatePropertyAll(Colors.transparent),
+        elevation: const WidgetStatePropertyAll(0),
+        side: WidgetStatePropertyAll(BorderSide(color: colors.ink, width: 1.5)),
+        shape: WidgetStatePropertyAll(
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        ),
+      ),
+    ),
+    popupMenuTheme: PopupMenuThemeData(
+      color: colors.surface,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: colors.ink, width: 1.5),
+      ),
+    ),
+    progressIndicatorTheme: ProgressIndicatorThemeData(
+      color: colors.accent,
+      linearTrackColor: colors.accentSoft,
+    ),
+    badgeTheme: BadgeThemeData(
+      backgroundColor: colors.urgent,
+      textColor: Colors.white,
+    ),
   );
+}
+
+/// The one physical-looking thing in the interface: an ink edge and a hard
+/// shadow that sits down and away, like a rubber stamp. Kept to the primary
+/// action of a screen and to the cards that hold one — used everywhere it
+/// would be noise, and a default kit again.
+///
+/// The shadow falls toward the end edge, so it mirrors with the language.
+class Stamp extends StatelessWidget {
+  const Stamp({
+    super.key,
+    required this.child,
+    this.radius = Radii.control,
+    this.depth = 3,
+    this.enabled = true,
+    this.color,
+  });
+
+  final Widget child;
+  final double radius;
+  final double depth;
+  final bool enabled;
+
+  /// The fill, for a card. A button brings its own and leaves this null.
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.rabta;
+    final rtl = Directionality.of(context) == TextDirection.rtl;
+    final shape = BorderRadius.circular(radius);
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: shape,
+        border: Border.all(color: colors.ink, width: 1.5),
+        boxShadow: enabled
+            ? [
+                BoxShadow(
+                  color: colors.ink,
+                  offset: Offset(rtl ? -depth : depth, depth),
+                ),
+              ]
+            : null,
+      ),
+      child: ClipRRect(borderRadius: shape, child: child),
+    );
+  }
+}
+
+/// A group of rows on one card, with hairlines between them. Flat, unlike a
+/// [Stamp]: it holds content, it is not an action.
+class Panel extends StatelessWidget {
+  const Panel({super.key, required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.rabta;
+
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(Radii.card),
+        border: Border.all(color: colors.edge),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final (i, child) in children.indexed) ...[
+            if (i > 0) Divider(height: 1, color: colors.line),
+            child,
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// A faint dot grid, so a large flat area has a surface rather than being a
+/// void: behind the brand panel, and behind the messages in a thread.
+class DotGrid extends CustomPainter {
+  DotGrid(this.color, this.strength);
+
+  final Color color;
+  final double strength;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = color.withValues(alpha: strength);
+    const gap = 22.0;
+    for (var y = gap / 2; y < size.height; y += gap) {
+      for (var x = gap / 2; x < size.width; x += gap) {
+        canvas.drawCircle(Offset(x, y), 1.1, paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(DotGrid old) =>
+      old.color != color || old.strength != strength;
 }
 
 /// Arabic needs more leading than Flutter's 1.2 default: Almarai's ascenders
@@ -237,11 +475,18 @@ ThemeData rabtaTheme({required Brightness brightness}) {
 /// hardest thing this interface has to render.
 abstract final class Style {
   static const brand = TextStyle(
-    fontSize: 19,
+    fontSize: 21,
     fontWeight: FontWeight.w800,
-    height: 1.25,
-    letterSpacing: -0.2,
+    height: 1.2,
   );
+
+  /// Page titles, in Rubik through [display].
+  static const title =
+      TextStyle(fontSize: 22, fontWeight: FontWeight.w700, height: 1.3);
+
+  /// Large numbers and hero lines, in Rubik through [display].
+  static const hero =
+      TextStyle(fontSize: 34, fontWeight: FontWeight.w800, height: 1.15);
 
   static const heading =
       TextStyle(fontSize: 16, fontWeight: FontWeight.w700, height: 1.35);
@@ -263,7 +508,7 @@ abstract final class Style {
   static const groupLabel =
       TextStyle(fontSize: 12, fontWeight: FontWeight.w700, height: 1.35);
 
-  static const monogram = TextStyle(fontSize: 13, fontWeight: FontWeight.w700);
+  static const monogram = TextStyle(fontSize: 15, fontWeight: FontWeight.w700);
 }
 
 /// Message content takes its direction from its own text, never from the
@@ -291,6 +536,21 @@ TextDirection directionOf(String? value) {
 
   return TextDirection.ltr;
 }
+
+/// A customer's name, ordered by its own script but lined up with the
+/// interface. "Dana K." in the Arabic interface rendered as ".Dana K" when it
+/// took the interface's direction; given its own and left to align itself, an
+/// Arabic name in the English list sat flush right, away from its monogram.
+({TextDirection direction, TextAlign align}) nameLayout(
+  BuildContext context,
+  String name,
+) =>
+    (
+      direction: directionOf(name),
+      align: Directionality.of(context) == TextDirection.rtl
+          ? TextAlign.right
+          : TextAlign.left,
+    );
 
 /// How much of the 24 hour reply window is left, as 0..1.
 ///

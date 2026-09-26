@@ -1702,7 +1702,7 @@ abstract class L {
   /// No description provided for @pitchThree.
   ///
   /// In ar, this message translates to:
-  /// **'تعرف كم بقي لك للرد قبل أن تكتب.'**
+  /// **'المساعد يجيب عن السعر والتوفر وأنت مشغول، ويترك لك ما عداه.'**
   String get pitchThree;
 
   /// No description provided for @aboutCustomer.
@@ -2316,6 +2316,24 @@ abstract class L {
   /// In ar, this message translates to:
   /// **'مفصول'**
   String get adminStatusOff;
+
+  /// No description provided for @signInHero.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا زبون ينتظر حتى الصباح.'**
+  String get signInHero;
+
+  /// No description provided for @signInWelcome.
+  ///
+  /// In ar, this message translates to:
+  /// **'أهلاً من جديد'**
+  String get signInWelcome;
+
+  /// No description provided for @signInWelcomeBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'سجّل الدخول لترى من ينتظرك.'**
+  String get signInWelcomeBody;
 }
 
 class _LDelegate extends LocalizationsDelegate<L> {

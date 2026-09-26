@@ -274,14 +274,9 @@ class _ProductsPageState extends State<ProductsPage> {
     return Scaffold(
       backgroundColor: colors.ground,
       appBar: AppBar(
-        backgroundColor: colors.surface,
-        surfaceTintColor: colors.surface,
-        elevation: 0,
         title: Text(
           l.products,
-          style: Style.heading.copyWith(color: colors.ink),
         ),
-        iconTheme: IconThemeData(color: colors.ink),
         shape: Border(bottom: BorderSide(color: colors.edge)),
       ),
       body: FutureBuilder<_Catalog>(
@@ -339,9 +334,9 @@ class _ProductsPageState extends State<ProductsPage> {
             padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
             children: [
               Align(
-                alignment: AlignmentDirectional.topStart,
+                alignment: Alignment.topCenter,
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 560),
+                  constraints: const BoxConstraints(maxWidth: 640),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -402,6 +397,8 @@ class _ProductsPageState extends State<ProductsPage> {
                             style: Style.preview.copyWith(color: colors.muted),
                           ),
                         ),
+                      if (shown.isNotEmpty)
+                        Panel(children: [
                       for (final product in shown)
                         _ProductRow(
                           product: product,
@@ -416,7 +413,8 @@ class _ProductsPageState extends State<ProductsPage> {
                           onEdit: () => _edit(product, catalog),
                           onDelete: () => _delete(product),
                         ),
-                      const SizedBox(height: 12),
+                        ]),
+                      const SizedBox(height: 20),
                       // Wraps rather than overflowing: at phone width in English
                       // the three buttons ran 25px past the edge and the last
                       // was cut off. Arabic fitted only because its labels are
@@ -426,20 +424,18 @@ class _ProductsPageState extends State<ProductsPage> {
                         runSpacing: 4,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          FilledButton(
-                            onPressed: _working != null
-                                ? null
-                                : () => _edit(null, catalog),
-                            style: FilledButton.styleFrom(
-                              backgroundColor: colors.accent,
-                              foregroundColor: colors.onAccent,
-                              disabledBackgroundColor: colors.accentSoft,
-                              disabledForegroundColor: colors.muted,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
+                          Stamp(
+                            enabled: _working == null,
+                            child: FilledButton.icon(
+                              onPressed: _working != null
+                                  ? null
+                                  : () => _edit(null, catalog),
+                              style: FilledButton.styleFrom(
+                                shape: const RoundedRectangleBorder(),
                               ),
+                              icon: const Icon(Icons.add, size: 18),
+                              label: Text(l.productAdd),
                             ),
-                            child: Text(l.productAdd, style: Style.name),
                           ),
                           // Only once there is something to download. Shown
                           // disabled it kept the accent colour and looked
@@ -493,15 +489,15 @@ class _SearchField extends StatelessWidget {
         filled: true,
         fillColor: colors.surface,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(Radii.control),
           borderSide: BorderSide(color: colors.line),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(Radii.control),
           borderSide: BorderSide(color: colors.line),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(Radii.control),
           borderSide: BorderSide(color: colors.accent),
         ),
       ),
@@ -525,9 +521,12 @@ class _Chip extends StatelessWidget {
     final colors = context.rabta;
 
     return Material(
-      color: selected ? colors.accentSoft : colors.surface,
+      color: selected ? colors.saffron : colors.surface,
       shape: StadiumBorder(
-        side: BorderSide(color: selected ? colors.accent : colors.line),
+        side: BorderSide(
+          color: selected ? colors.ink : colors.edge,
+          width: selected ? 1.5 : 1,
+        ),
       ),
       child: InkWell(
         customBorder: const StadiumBorder(),
@@ -538,8 +537,8 @@ class _Chip extends StatelessWidget {
             label,
             textDirection: directionOf(label),
             style: Style.meta.copyWith(
-              color: selected ? colors.accent : colors.ink,
-              fontWeight: selected ? FontWeight.w700 : FontWeight.w300,
+              color: colors.ink,
+              fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
             ),
           ),
         ),
@@ -563,7 +562,7 @@ class _Thumb extends StatelessWidget {
     final colors = context.rabta;
 
     final placeholder = Container(
-      color: colors.raised,
+      color: colors.ground,
       alignment: Alignment.center,
       child: Icon(Icons.image_outlined, size: size * 0.42, color: colors.muted),
     );
@@ -573,11 +572,11 @@ class _Thumb extends StatelessWidget {
     // bottle in the Playwright pass of 22 September.
     return Container(
       foregroundDecoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: colors.line),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         child: SizedBox.square(
           dimension: size,
           child: bytes != null
@@ -639,7 +638,10 @@ class _ProductRow extends StatelessWidget {
     final price = product.price == null
         ? null
         : sale == null
-        ? TextSpan(text: formatPrice(product.price!, currency))
+        ? TextSpan(
+            text: formatPrice(product.price!, currency),
+            style: TextStyle(color: colors.ink, fontWeight: FontWeight.w700),
+          )
         : TextSpan(
             children: [
               TextSpan(
@@ -658,11 +660,11 @@ class _ProductRow extends StatelessWidget {
           );
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsetsDirectional.fromSTEB(14, 12, 8, 12),
       child: Row(
         children: [
-          _Thumb(size: 44, url: cover),
-          const SizedBox(width: 12),
+          _Thumb(size: 52, url: cover),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1193,7 +1195,7 @@ class _ProductDialogState extends State<_ProductDialog> {
         child: Material(
           color: colors.surface,
           elevation: 3,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(Radii.control),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxHeight: 220, maxWidth: 380),
             child: ListView(
@@ -1267,8 +1269,6 @@ class _ProductDialogState extends State<_ProductDialog> {
             l.productInStock,
             style: Style.preview.copyWith(color: colors.ink),
           ),
-          activeThumbColor: colors.onAccent,
-          activeTrackColor: colors.accent,
           contentPadding: EdgeInsets.zero,
         ),
       ],
@@ -1307,18 +1307,13 @@ class _ProductDialogState extends State<_ProductDialog> {
         child: Scaffold(
           backgroundColor: colors.surface,
           appBar: AppBar(
-            backgroundColor: colors.surface,
-            surfaceTintColor: colors.surface,
-            elevation: 0,
             leading: IconButton(
               icon: const Icon(Icons.close),
               tooltip: l.cancel,
               onPressed: () => Navigator.pop(context),
             ),
-            iconTheme: IconThemeData(color: colors.ink),
             title: Text(
               title,
-              style: Style.heading.copyWith(color: colors.ink),
             ),
             actions: [_saveButton(), const SizedBox(width: 8)],
             shape: Border(bottom: BorderSide(color: colors.edge)),
@@ -1537,7 +1532,7 @@ class _ImportDialogState extends State<_ImportDialog> {
                     vertical: 12,
                   ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(Radii.control),
                   ),
                 ),
               ),
@@ -1652,15 +1647,15 @@ class _Field extends StatelessWidget {
           filled: true,
           fillColor: colors.ground,
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(Radii.control),
             borderSide: BorderSide(color: colors.line),
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(Radii.control),
             borderSide: BorderSide(color: colors.line),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(Radii.control),
             borderSide: BorderSide(color: colors.accent),
           ),
         ),

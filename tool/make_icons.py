@@ -1,88 +1,77 @@
-"""Generate the web icon set from Assets/App Icons/App Icon.png.
+"""Generate the web icon set: the knot from the wordmark, on the night tile.
 
-Two things the source cannot be used for directly:
+The mark is the one drawn between "Rabta" and "ربطة" in lib/wordmark.dart —
+two overlapping rings, saffron and cream, as the wordmark sits on the dark
+panels — so the tab, the home screen and the name are one shape. The geometry
+is the widget's: each ring is 62% of the knot's width, the stroke 15%.
 
-  * it sits on a white background rather than transparency, so a favicon made
-    from it shows a white box on dark browser chrome;
-  * its padding is generous, which is right for a phone home screen and wrong
-    at 16px, where the interlocking bubbles close up into a smudge.
+Replaced the bubble artwork in Assets/App Icons on 26 September 2026, when the
+interface moved to violet and saffron. That file is left where it is.
 
-So the square is cut out, its corners are masked to transparency, and the small
-sizes are cropped tighter than the large ones.
+Drawn, not traced, at 8x and scaled down, so every size is sharp. The small
+sizes give the knot more of the tile: at 16px the margin the large icons carry
+leaves two rings a few pixels wide.
 
     python tool/make_icons.py
 """
 
 from PIL import Image, ImageDraw
 
-SOURCE = 'Assets/App Icons/App Icon.png'
+NIGHT = (0x1D, 0x16, 0x26, 255)
+SAFFRON = (0xFF, 0xB4, 0x2E, 255)
+CREAM = (0xF6, 0xF0, 0xE6, 255)
 
-# How much padding to trim, per size. Measured rather than guessed: at 16 and
-# 32 the untrimmed mark is unreadable, and trimming stops helping past ~48.
-TRIM = {16: 0.14, 32: 0.12, 48: 0.08}
+SUPER = 8
 
-
-def squared(img):
-    """The rounded square on its own, with transparent corners."""
-    # Anything not near-white is the icon; its bounding box is the square.
-    rgb = img.convert('RGB')
-    mask = rgb.point(lambda v: 0 if v > 245 else 255).convert('L')
-    box = mask.getbbox()
-    cut = img.crop(box)
-
-    side = min(cut.size)
-    cut = cut.crop((0, 0, side, side))
-
-    # The source's own corner radius, so the mask lands on the existing edge
-    # instead of cutting a second, tighter curve inside it.
-    corners = Image.new('L', cut.size, 0)
-    ImageDraw.Draw(corners).rounded_rectangle(
-        [(0, 0), (side - 1, side - 1)], radius=int(side * 0.225), fill=255
-    )
-
-    out = cut.copy()
-    out.putalpha(corners)
-    return out
+# How much of the tile's width the knot spans, per size.
+SPAN = {16: 0.9, 32: 0.86, 48: 0.82}
+DEFAULT_SPAN = 0.72
 
 
-def at(square, size):
-    trim = TRIM.get(size, 0.0)
-    if trim:
-        inset = int(square.width * trim)
-        square = square.crop(
-            (inset, inset, square.width - inset, square.height - inset)
+def knot(draw, cx, cy, width):
+    """The two rings, centred on (cx, cy), `width` across."""
+    ring = width * 0.62
+    stroke = width * 0.15
+    left = cx - width / 2
+    top = cy - ring / 2
+    for x, colour in ((left, SAFFRON), (left + width - ring, CREAM)):
+        draw.ellipse(
+            [x, top, x + ring, top + ring],
+            outline=colour,
+            width=round(stroke),
         )
-    return square.resize((size, size), Image.LANCZOS)
 
 
-def maskable(square, size):
-    """Full-bleed, for Android adaptive icons.
-
-    The launcher crops these to whatever shape it likes, so the square has to
-    reach every edge and the mark has to stay inside the middle 80%.
-    """
-    ground = square.convert('RGB').getpixel(
-        (int(square.width * 0.12), square.height // 2)
-    )
-    canvas = Image.new('RGBA', (size, size), ground + (255,))
-    inner = square.resize((int(size * 0.78), int(size * 0.78)), Image.LANCZOS)
-    offset = (size - inner.width) // 2
-    canvas.paste(inner, (offset, offset), inner)
-    return canvas
+def icon(size, *, rounded=True, span=None):
+    big = size * SUPER
+    img = Image.new('RGBA', (big, big), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    if rounded:
+        draw.rounded_rectangle(
+            [0, 0, big - 1, big - 1], radius=int(big * 0.225), fill=NIGHT
+        )
+    else:
+        draw.rectangle([0, 0, big, big], fill=NIGHT)
+    knot(draw, big / 2, big / 2, big * (span or SPAN.get(size, DEFAULT_SPAN)))
+    return img.resize((size, size), Image.LANCZOS)
 
 
 def main():
-    square = squared(Image.open(SOURCE).convert('RGBA'))
-    print(f'cut the square out of the white ground: {square.size}')
-
-    at(square, 32).save('web/favicon.png')
+    icon(32).save('web/favicon.png')
     for size in (16, 32, 48):
-        at(square, size).save(f'web/icons/favicon-{size}.png')
-    at(square, 180).save('web/icons/apple-touch-icon.png')
+        icon(size).save(f'web/icons/favicon-{size}.png')
+
+    # iOS draws its own rounded corners and fills transparency with black, so
+    # the touch icon is a full square.
+    icon(180, rounded=False).save('web/icons/apple-touch-icon.png')
 
     for size in (192, 512):
-        at(square, size).save(f'web/icons/Icon-{size}.png')
-        maskable(square, size).save(f'web/icons/Icon-maskable-{size}.png')
+        icon(size).save(f'web/icons/Icon-{size}.png')
+        # Android crops a maskable icon to any shape it likes: full bleed, and
+        # the knot inside the middle 80%.
+        icon(size, rounded=False, span=0.6).save(
+            f'web/icons/Icon-maskable-{size}.png'
+        )
 
     print('wrote favicon, apple touch icon, and the PWA set')
 

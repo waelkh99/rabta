@@ -931,7 +931,8 @@ class LAr extends L {
   String get pitchTwo => 'من ينتظر أطول يظهر في الأعلى.';
 
   @override
-  String get pitchThree => 'تعرف كم بقي لك للرد قبل أن تكتب.';
+  String get pitchThree =>
+      'المساعد يجيب عن السعر والتوفر وأنت مشغول، ويترك لك ما عداه.';
 
   @override
   String get aboutCustomer => 'عن الزبون';
@@ -1268,4 +1269,13 @@ class LAr extends L {
 
   @override
   String get adminStatusOff => 'مفصول';
+
+  @override
+  String get signInHero => 'لا زبون ينتظر حتى الصباح.';
+
+  @override
+  String get signInWelcome => 'أهلاً من جديد';
+
+  @override
+  String get signInWelcomeBody => 'سجّل الدخول لترى من ينتظرك.';
 }

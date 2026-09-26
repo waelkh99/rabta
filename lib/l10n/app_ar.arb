@@ -398,7 +398,7 @@
   "language": "اللغة",
   "pitchOne": "محادثات إنستغرام وماسنجر في وارد واحد.",
   "pitchTwo": "من ينتظر أطول يظهر في الأعلى.",
-  "pitchThree": "تعرف كم بقي لك للرد قبل أن تكتب.",
+  "pitchThree": "المساعد يجيب عن السعر والتوفر وأنت مشغول، ويترك لك ما عداه.",
   "aboutCustomer": "عن الزبون",
   "detailPlatform": "المنصة",
   "detailFirstWrote": "أول رسالة",
@@ -506,5 +506,8 @@
   "adminInvite": "دعوة بائع",
   "adminStatusActive": "يعمل",
   "adminStatusReconnect": "يحتاج إعادة ربط",
-  "adminStatusOff": "مفصول"
+  "adminStatusOff": "مفصول",
+  "signInHero": "لا زبون ينتظر حتى الصباح.",
+  "signInWelcome": "أهلاً من جديد",
+  "signInWelcomeBody": "سجّل الدخول لترى من ينتظرك."
 }

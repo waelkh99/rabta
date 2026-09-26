@@ -33,11 +33,7 @@ class _ResultsPageState extends State<ResultsPage> {
     return Scaffold(
       backgroundColor: colors.ground,
       appBar: AppBar(
-        backgroundColor: colors.surface,
-        surfaceTintColor: colors.surface,
-        elevation: 0,
-        title: Text(l.resultsTitle, style: Style.heading.copyWith(color: colors.ink)),
-        iconTheme: IconThemeData(color: colors.ink),
+        title: Text(l.resultsTitle),
         shape: Border(bottom: BorderSide(color: colors.edge)),
       ),
       body: FutureBuilder<WeekSummary>(
@@ -92,7 +88,7 @@ class _ResultsPageState extends State<ResultsPage> {
       // The headline: how many conversations became orders.
       Text(
         l.resultsOrders(w.ordered, w.conversations),
-        style: Style.heading.copyWith(color: colors.ink, fontSize: 20, height: 1.4),
+        style: display(Style.title.copyWith(color: colors.ink, height: 1.35)),
       ),
       const SizedBox(height: 16),
       Wrap(
@@ -186,13 +182,13 @@ class _Tile extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: colors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colors.line),
+        borderRadius: BorderRadius.circular(Radii.card),
+        border: Border.all(color: colors.edge),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('$count', style: Style.heading.copyWith(color: tint, fontSize: 24)),
+          Text('$count', style: display(Style.hero.copyWith(color: tint, fontSize: 30))),
           const SizedBox(height: 4),
           Text(label, style: Style.meta.copyWith(color: colors.muted)),
         ],
@@ -212,7 +208,7 @@ class _Callout extends StatelessWidget {
       padding: const EdgeInsetsDirectional.fromSTEB(14, 12, 14, 12),
       decoration: BoxDecoration(
         color: colors.urgent.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(Radii.control),
         border: BorderDirectional(start: BorderSide(color: colors.urgent, width: 4)),
       ),
       child: Text(text, style: Style.preview.copyWith(color: colors.ink, height: 1.5)),

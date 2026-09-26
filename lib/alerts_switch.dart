@@ -89,7 +89,6 @@ class _AlertsSwitchState extends State<AlertsSwitch> {
               Switch(
                 value: on,
                 onChanged: _busy ? null : (_) => _toggle(),
-                activeThumbColor: colors.accent,
               ),
           ],
         ),

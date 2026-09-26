@@ -106,24 +106,18 @@ class ConnectButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.rabta;
     final l = context.l;
 
-    return FilledButton(
-      onPressed: onPressed,
-      style: FilledButton.styleFrom(
-        backgroundColor: colors.accent,
-        foregroundColor: colors.onAccent,
-        disabledBackgroundColor: colors.accentSoft,
-        disabledForegroundColor: colors.muted,
-        textStyle: Style.name,
-        elevation: 0,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(10)),
+    return Stamp(
+      enabled: onPressed != null,
+      child: FilledButton(
+        onPressed: onPressed,
+        style: FilledButton.styleFrom(
+          shape: const RoundedRectangleBorder(),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 17),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 17),
+        child: Text(busy ? l.connectOpening : l.connectAction),
       ),
-      child: Text(busy ? l.connectOpening : l.connectAction),
     );
   }
 }
@@ -206,11 +200,7 @@ class _AccountsPageState extends State<AccountsPage> {
     return Scaffold(
       backgroundColor: colors.ground,
       appBar: AppBar(
-        backgroundColor: colors.surface,
-        surfaceTintColor: colors.surface,
-        elevation: 0,
-        title: Text(l.accounts, style: Style.heading.copyWith(color: colors.ink)),
-        iconTheme: IconThemeData(color: colors.ink),
+        title: Text(l.accounts),
         shape: Border(bottom: BorderSide(color: colors.edge)),
       ),
       body: FutureBuilder<List<Account>>(

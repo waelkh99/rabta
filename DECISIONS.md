@@ -2897,3 +2897,63 @@ settled the cheaper they are.
   "بتنال ايدك أيهما أكتر؟" is not a sentence. Whether that is worth doubling the
   cost for Sonnet 5 is the open part, and it is now a judgement call on
   transcripts rather than an unknown.
+
+---
+
+### 2026-09-26 — The interface, restyled: violet and saffron on sand
+
+Asked for by the product owner: the interface read as "very basic, very
+AI-ish", and the sign-in screen as "very empty". This supersedes the palette
+and parts of the type in the 18 September entry. The six principles, the list
+order, the wait rail, the three panes and every colour's *meaning* are
+unchanged.
+
+**Palette.** Violet stays as the accent — the product owner has since said the
+icon is not final, so it stays on merit: every other hue already means
+something (red: needs you; teal: the assistant; green: ordered; pink and blue:
+the platforms), and violet plus its complement are the only pair that collide
+with none of them. Saffron `#FFB42E` joins as the second brand colour, used
+only as a fill with ink on it — the waiting count, the open row, the current
+menu item, the selected chip. The ground moves from lavender-white to warm sand
+`#F5F0E8`; ink becomes a violet-black `#1D1626`; the menu and the sign-in
+brand panel are `night`, the same violet-black. Every text/ground pair is
+tested at AA in `test/theme_test.dart`, and the test was shown to fail with a
+lighter `muted`.
+
+**Type.** Rubik 700/800 for the wordmark, page titles, counts and the thread's
+customer name, chosen from nine Arabic-capable faces rendered side by side:
+rounded and heavy in both scripts without the novelty of Lalezar or Marhey.
+Almarai stays for everything read, for the width reason recorded on
+17 September.
+
+**The stamp.** An ink edge and a hard offset shadow (`Stamp` in `theme.dart`)
+on the one main action of each screen — sign in, send, add a product, add an
+offer, connect — and on the cards that hold them. It mirrors with the language.
+Used anywhere else it becomes noise.
+
+**Sign-in** shows the product instead of describing it: two inbox rows drawn
+with the inbox's own marks, a hero line (`signInHero`) and the three pitch
+lines, the third rewritten to be about the assistant, which the old one
+predated. The two sample messages are deliberately generic — one Arabic, one
+English, in both interface languages — and are sample content rather than
+localised strings. On a phone both rows show where the button stays above the
+fold (760px tall and up), and the pitch lines sit under the form.
+
+**The logo is the knot.** The two rings between "Rabta" and "ربطة" in the
+wordmark are now the favicon, the home-screen icon and the PWA set: saffron and
+cream on the night tile, the same geometry as the widget. `tool/make_icons.py`
+draws them rather than cropping `Assets/App Icons/App Icon.png`, which is left
+in place; the browser theme colour is night `#1D1626`. The Android and iOS
+folders still carry Flutter's default icons, as they did before — the product
+ships as a website.
+
+**Also:** switches no longer carry their own colours (two were the assistant's
+teal and read as a stray green); a customer name now takes its direction from
+its own text (`nameLayout`), which fixed "Dana K." rendering as ".Dana K" in
+Arabic; page columns are centred rather than pinned to one edge on a wide
+screen; product and offer rows sit on one card.
+
+**Seen, not only tested:** every main screen in Arabic and English at 1440 and
+390, sign-in and set-password also at 320, driven with Playwright. The inbox
+was seen with eight realistic conversations served by Playwright in place of
+the test seller's one — nothing was written to the database for it.

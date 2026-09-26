@@ -297,7 +297,7 @@
   "language": "Language",
   "pitchOne": "Instagram and Messenger in one inbox.",
   "pitchTwo": "Whoever waited longest comes first.",
-  "pitchThree": "See how long you have left before you type.",
+  "pitchThree": "The assistant answers price and stock while you are busy, and leaves you the rest.",
   "aboutCustomer": "About this customer",
   "detailPlatform": "Platform",
   "detailFirstWrote": "First message",
@@ -399,5 +399,8 @@
   "adminInvite": "Invite a seller",
   "adminStatusActive": "Active",
   "adminStatusReconnect": "Needs reconnect",
-  "adminStatusOff": "Disconnected"
+  "adminStatusOff": "Disconnected",
+  "signInHero": "No customer waits until morning.",
+  "signInWelcome": "Welcome back",
+  "signInWelcomeBody": "Sign in to see who is waiting for you."
 }

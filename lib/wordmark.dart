@@ -14,43 +14,84 @@ import 'package:flutter/material.dart';
 import 'theme.dart';
 
 class Wordmark extends StatelessWidget {
-  const Wordmark({super.key, this.size = 19, this.onAccent = false});
+  const Wordmark({super.key, this.size = 21, this.onDark = false});
 
   final double size;
 
-  /// When the mark sits on the accent colour rather than on the ground.
-  final bool onAccent;
+  /// When the mark sits on one of the dark panels rather than on the ground.
+  final bool onDark;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.rabta;
+    final first = onDark ? colors.onNight : colors.ink;
+    final second = onDark ? colors.saffron : colors.accent;
 
     // Always left-to-right, in both interface directions: this is a lockup, and
     // mirroring it would reorder the two halves of a name.
+    //
+    // The saffron knot between the two halves is the name made literal: a tie
+    // between two things.
     return Directionality(
       textDirection: TextDirection.ltr,
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.baseline,
-        textBaseline: TextBaseline.alphabetic,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(
             'Rabta',
-            style: Style.brand.copyWith(
-              fontSize: size,
-              color: onAccent ? colors.onAccent : colors.ink,
-            ),
+            style: display(Style.brand.copyWith(fontSize: size, color: first)),
           ),
-          SizedBox(width: size * 0.36),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: size * 0.22),
+            child: _Knot(size: size * 0.62, color: colors.saffron, ink: first),
+          ),
           Text(
             'ربطة',
             textDirection: TextDirection.rtl,
-            style: Style.brand.copyWith(
-              fontSize: size * 0.88,
-              fontWeight: FontWeight.w400,
-              color: onAccent ? colors.onAccent : colors.accent,
+            style: display(
+              Style.brand.copyWith(
+                fontSize: size * 0.95,
+                fontWeight: FontWeight.w700,
+                color: second,
+              ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Two interlocking rings.
+class _Knot extends StatelessWidget {
+  const _Knot({required this.size, required this.color, required this.ink});
+
+  final double size;
+  final Color color;
+  final Color ink;
+
+  @override
+  Widget build(BuildContext context) {
+    final ring = size * 0.62;
+    final stroke = size * 0.15;
+
+    Widget circle(Color c) => Container(
+          width: ring,
+          height: ring,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: c, width: stroke),
+          ),
+        );
+
+    return SizedBox(
+      width: size,
+      height: ring,
+      child: Stack(
+        children: [
+          Positioned(left: 0, child: circle(color)),
+          Positioned(right: 0, child: circle(ink)),
         ],
       ),
     );

@@ -44,10 +44,13 @@ void chooseLocale(Locale locale) {
 }
 
 class LocaleSwitch extends StatelessWidget {
-  const LocaleSwitch({super.key, this.compact = false});
+  const LocaleSwitch({super.key, this.compact = false, this.onDark = false});
 
   /// In the header of the inbox, where there is no room for two words.
   final bool compact;
+
+  /// On one of the dark panels.
+  final bool onDark;
 
   @override
   Widget build(BuildContext context) {
@@ -68,6 +71,7 @@ class LocaleSwitch extends StatelessWidget {
               label: names[locale.languageCode] ?? locale.languageCode,
               selected: locale.languageCode == active,
               compact: compact,
+              onDark: onDark,
               onTap: () => chooseLocale(locale),
               colors: colors,
             ),
@@ -82,6 +86,7 @@ class _Choice extends StatelessWidget {
     required this.label,
     required this.selected,
     required this.compact,
+    required this.onDark,
     required this.onTap,
     required this.colors,
   });
@@ -89,6 +94,7 @@ class _Choice extends StatelessWidget {
   final String label;
   final bool selected;
   final bool compact;
+  final bool onDark;
   final VoidCallback onTap;
   final RabtaColors colors;
 
@@ -107,13 +113,23 @@ class _Choice extends StatelessWidget {
               vertical: compact ? 4 : 7,
             ),
             decoration: BoxDecoration(
-              color: selected ? colors.accentSoft : Colors.transparent,
+              // Saffron where it is the first thing to find; sand in the inbox
+              // header, where saffron already means somebody is waiting.
+              color: !selected
+                  ? Colors.transparent
+                  : compact && !onDark
+                      ? colors.ground
+                      : colors.saffron,
               borderRadius: BorderRadius.circular(999),
             ),
             child: Text(
               label,
               style: (compact ? Style.meta : Style.preview).copyWith(
-                color: selected ? colors.accent : colors.muted,
+                color: selected
+                    ? colors.ink
+                    : onDark
+                        ? colors.onNight.withValues(alpha: 0.75)
+                        : colors.muted,
                 fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
               ),
             ),
