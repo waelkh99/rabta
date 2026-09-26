@@ -78,4 +78,12 @@ void main() {
     expect(wrapped.runes.last, 0x2069);
     expect(wrapped.substring(1, wrapped.length - 1), 'a+b@example.com');
   });
+
+  test('a piece of a joined line takes its own first-strong direction', () {
+    final wrapped = ownDirection('التوصيل مجاني.');
+    // First strong isolate (2068) and pop directional isolate (2069).
+    expect(wrapped.runes.first, 0x2068);
+    expect(wrapped.runes.last, 0x2069);
+    expect(wrapped.substring(1, wrapped.length - 1), 'التوصيل مجاني.');
+  });
 }

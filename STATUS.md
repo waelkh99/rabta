@@ -196,6 +196,29 @@ needs the Pro plan.
 
 ---
 
+## The demo shop (production)
+
+A login for showing Rabta to people, on production at https://rabta.chat:
+**`demo@rabta.chat`**, password `DEMO_PASSWORD` in `supabase/.env.prod`
+(meant to be shared). A fictional boutique, "ليالي بوتيك" in Amman: nine products
+with drawn photos (`tool/demo_photos.py`), three offers, four delivery areas,
+and ten conversations across Instagram and Messenger — waiting, handed over,
+answered by the assistant, and ended in each outcome.
+
+It cannot reach anyone or cost anything: its two accounts have no Meta token,
+so replies are refused and the account check skips them, and every
+conversation is marked already read, so the assistant never reads one. It is
+an ordinary seller, not an admin. No automatic reset, by decision: rebuild it
+— data, photos and password — with
+
+```
+cd supabase
+$env:RABTA_ENV="prod"; npm run demo-shop
+```
+
+Its conversations are timed relative to when it was seeded, so after a day
+their reply windows show as closed; re-seeding makes them current again.
+
 ## Test data in the live database
 
 Deliberately kept, so a message sent to the test Page flows straight through

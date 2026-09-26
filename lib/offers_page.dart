@@ -379,7 +379,10 @@ class _OfferRow extends StatelessWidget {
                     if (title != summary) summary,
                     if (showCovers) orphaned ? l.offerCoversNothing : covers,
                     ...dates,
-                  ].where((part) => part.trim().isNotEmpty).join(metaSeparator(context)),
+                  ]
+                      .where((part) => part.trim().isNotEmpty)
+                      .map(ownDirection)
+                      .join(metaSeparator(context)),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: Style.meta.copyWith(

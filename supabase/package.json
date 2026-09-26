@@ -17,7 +17,8 @@
     "catalog": "node scripts/catalog.mjs",
     "replay": "node scripts/replay.mjs",
     "seed-demo": "node scripts/seed-demo.mjs",
-    "email-templates": "node scripts/email-templates.mjs"
+    "email-templates": "node scripts/email-templates.mjs",
+    "demo-shop": "node scripts/demo-shop.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",

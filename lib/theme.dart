@@ -544,6 +544,12 @@ TextDirection directionOf(String? value) {
 String isolated(String text) =>
     '${String.fromCharCode(0x2066)}$text${String.fromCharCode(0x2069)}';
 
+/// A piece of a joined line — "10% off · عطور · until 26/10" — set in the
+/// direction of its own first letter, so no piece reorders its neighbours or
+/// carries its full stop to the wrong end. Character codes, as in [isolated].
+String ownDirection(String text) =>
+    '${String.fromCharCode(0x2068)}$text${String.fromCharCode(0x2069)}';
+
 /// A customer's name, ordered by its own script but lined up with the
 /// interface. "Dana K." in the Arabic interface rendered as ".Dana K" when it
 /// took the interface's direction; given its own and left to align itself, an
