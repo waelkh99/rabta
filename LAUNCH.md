@@ -85,19 +85,25 @@ in place, and step 1 is closed without them. To build: a nightly `pg_dump` of th
 database to storage you control, keeping about two weeks. Needs somewhere to run
 on a schedule (GitHub Actions if the repository is on GitHub).
 
-## 2. Hosting — done 26 September 2026; own domain still to buy
+## 2. Domain and hosting — done 26 September 2026
 
-**Live at https://rabta.pages.dev**, on Cloudflare Pages (free), against the
-production project. The legal pages are at
-**https://rabta.pages.dev/privacy** and **https://rabta.pages.dev/data-deletion**
-(the `.html` addresses redirect there) — those are the two URLs for Meta.
+**Live at https://rabta.chat** (bought through Cloudflare Registrar), served by
+Cloudflare Pages against the production project. `https://rabta.pages.dev`
+serves the same site and stays trusted, so no link breaks. The legal pages are
+at **https://rabta.chat/privacy** and **https://rabta.chat/data-deletion** (the
+`.html` addresses redirect there) — those are the two URLs for Meta.
 
-Done: the address is trusted by the functions (`origins.ts`) and nothing
-look-alike is; Supabase's Site URL and redirect allowlist point at it, with
-`http://localhost:5353` kept for running the app locally against production;
-sign-in links, the connect flow and CORS were checked from outside; the site
-was seen in both languages at desktop and phone width. Every file is served
-`no-cache` (`web/_headers`), so a deploy reaches sellers on their next reload.
+Done: `rabta.chat` is first in `origins.ts`, with look-alikes refused; the
+Supabase Site URL is `https://rabta.chat` and the redirect allowlist holds it,
+`rabta.pages.dev` and `http://localhost:5353` (for running locally against
+production); `APP_URL` in `.env.prod` makes production sign-in links land on
+it. Sign-in links, CORS and the connect flow were checked from outside. Every
+file is served `no-cache` (`web/_headers`), so a deploy reaches sellers on their
+next reload. DNS: one proxied CNAME, `rabta.chat` → `rabta.pages.dev`.
+
+Not set up, on purpose: `www.rabta.chat` (nobody types it for a signed-in app;
+one CNAME and a redirect rule if wanted), and the email records, which come
+with step 3.
 
 **To deploy**, from the project folder in PowerShell:
 
@@ -107,13 +113,6 @@ was seen in both languages at desktop and phone width. Every file is served
 
 It builds against production and uploads to Cloudflare. The Cloudflare token
 (Pages: Edit only) and account ID are in `supabase/.env.prod`.
-
-**Still to do: your own domain.** Not a blocker — Meta accepts the
-`pages.dev` addresses — but email (step 3) needs a domain you own to send
-from, and it reads better on invitations. When you buy one: Cloudflare
-dashboard → Workers & Pages → `rabta` → Custom domains. Then tell me, and I
-add it to the front of `origins.ts`, the Site URL and the allowlist, and
-update the legal pages and Meta.
 
 ## 3. Email sending (SMTP) — blocker
 

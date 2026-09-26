@@ -18,9 +18,9 @@
  * Index 0 is the default for a flow that names no origin.
  */
 export const APP_ORIGINS = [
-  // Production, on Cloudflare Pages since 26 September 2026. A custom domain
-  // joins at the front when there is one; this stays, because Pages keeps
-  // serving it.
+  // Production. The domain since 26 September 2026; the Pages address it
+  // replaced stays, because Pages keeps serving it and old links point there.
+  "https://rabta.chat",
   "https://rabta.pages.dev",
   // Development. The port is pinned in .vscode/launch.json and README.md for
   // exactly this reason: neither an allowlist nor a CORS check can hold a port
