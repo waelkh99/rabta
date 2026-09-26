@@ -85,7 +85,7 @@ in place, and step 1 is closed without them. To build: a nightly `pg_dump` of th
 database to storage you control, keeping about two weeks. Needs somewhere to run
 on a schedule (GitHub Actions if the repository is on GitHub).
 
-## 2. Domain and hosting — done 26 September 2026
+## 2. Domain and hosting — closed 26 September 2026
 
 **Live at https://rabta.chat** (bought through Cloudflare Registrar), served by
 Cloudflare Pages against the production project. `https://rabta.pages.dev`
@@ -99,7 +99,9 @@ Supabase Site URL is `https://rabta.chat` and the redirect allowlist holds it,
 production); `APP_URL` in `.env.prod` makes production sign-in links land on
 it. Sign-in links, CORS and the connect flow were checked from outside. Every
 file is served `no-cache` (`web/_headers`), so a deploy reaches sellers on their
-next reload. DNS: one proxied CNAME, `rabta.chat` → `rabta.pages.dev`.
+next reload. DNS: one proxied CNAME, `rabta.chat` → `rabta.pages.dev`. Seen loading on
+`rabta.chat` by the product owner on a phone; the same build was seen on
+`rabta.pages.dev` in Playwright, in both languages at desktop and phone width.
 
 Not set up, on purpose: `www.rabta.chat` (nobody types it for a signed-in app;
 one CNAME and a redirect rule if wanted), and the email records, which come
