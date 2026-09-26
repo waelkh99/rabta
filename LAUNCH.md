@@ -188,6 +188,40 @@ applies to the customer messages Rabta stores.
 
 ## 5. Meta: business verification and App Review — blocker
 
+**Checked against Meta's rules on 26 September 2026.**
+
+Rabta reads messages on Pages it does not own, so it needs **Advanced Access**
+to its permissions. Advanced Access requires **Business Verification**, and
+Meta's **Access Verification** (confirming Rabta is a Tech Provider handling
+other businesses' data) requires Business Verification first. Meta verifies
+a *registered business* from documents — a registration certificate, business
+licence or tax document — whose legal name and address match what is entered.
+"Rabta App" is a trading name, not a registered entity, so **this is the one
+blocker nothing in the code can remove.**
+
+Suggested route: register a sole proprietorship (مؤسسة فردية) with the Ministry
+of Industry, Trade and Supply — reported as JD 5 for a first registration and
+days to approve, through the MoITS e-services portal — then verify with its
+certificate. Update the legal pages to the registered name afterwards.
+
+Have already: privacy and data-deletion URLs; HTTPS on `rabta.chat`; production
+OAuth redirect and webhook URLs and verify token; a working production app to
+record screencasts from; a contact email; replies only inside the 24-hour
+window, with no message tags.
+
+Still to prepare: a 1024×1024 app icon; Data Use Checkup; a Rabta account and a
+test Page or Instagram account for Meta's reviewer; one screencast per
+permission; moving the webhook from staging to production.
+
+Automated replies: Meta requires disclosing a bot only *where the law requires
+it*, and recommends it everywhere. No Jordanian requirement was found, but that
+belongs to the legal review in step 4. A product decision, not a Meta one.
+
+Timing, as reported: Business Verification up to 14 business days; Access
+Verification about 5 days; App Review now often 2–3 weeks.
+
+The original step:
+
 **Why.** The app is in development mode: only people with a role on it can
 connect, and no Instagram message has ever reached the webhook.
 
