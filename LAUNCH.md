@@ -144,7 +144,24 @@ led to choosing a password on `rabta.chat`; an emailed invitation arrived; an
 existing address was refused without sending. The new screens were seen in
 both languages at desktop and phone width.
 
-## 4. Legal pages — blocker for Meta review
+## 4. Legal pages — deferred 26 September 2026; blocker for Meta App Review
+
+**Skipped for now by decision.** Must be done before App Review in step 5 is
+submitted; Business Verification in step 5 does not depend on it. The pages
+are live at `rabta.chat/privacy` and `rabta.chat/data-deletion` with their
+placeholders showing, but nothing in the app links to them.
+
+**Already known, from what was built since the draft:**
+- Region: Frankfurt, Germany (Supabase); email sent from Ireland (Resend).
+- **Backups: none today** (Free plan, see step 1). The page must not promise a
+  retention period until backups exist — say so, or fill it in once they do.
+- The "who processes it for us" list is missing two providers added on
+  26 September: **Resend** (sends invitations and password resets; sees
+  sellers' email addresses) and **Cloudflare** (serves the site).
+
+Still needed from the owner: business name, address, contact email, date.
+
+The original step:
 
 **Why.** Meta's App Review requires a privacy policy URL and data deletion
 instructions URL. Jordan's Personal Data Protection Law (No. 24 of 2023)
