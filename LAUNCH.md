@@ -144,22 +144,29 @@ led to choosing a password on `rabta.chat`; an emailed invitation arrived; an
 existing address was refused without sending. The new screens were seen in
 both languages at desktop and phone width.
 
-## 4. Legal pages — deferred 26 September 2026; blocker for Meta App Review
+## 4. Legal pages — filled and live 26 September 2026; review still open
 
-**Skipped for now by decision.** Must be done before App Review in step 5 is
-submitted; Business Verification in step 5 does not depend on it. The pages
-are live at `rabta.chat/privacy` and `rabta.chat/data-deletion` with their
-placeholders showing, but nothing in the app links to them.
+**Live:** https://rabta.chat/privacy and https://rabta.chat/data-deletion, in
+English and Arabic, operated by **Rabta App, Amman, Jordan**, contact
+**rabtaappsupport@gmail.com**, dated 26 September 2026. Seen in both languages
+at desktop and phone width.
 
-**Already known, from what was built since the draft:**
-- Region: Frankfurt, Germany (Supabase); email sent from Ireland (Resend).
-- **Backups: none today** (Free plan, see step 1). The page must not promise a
-  retention period until backups exist — say so, or fill it in once they do.
-- The "who processes it for us" list is missing two providers added on
-  26 September: **Resend** (sends invitations and password resets; sees
-  sellers' email addresses) and **Cloudflare** (serves the site).
+What changed from the draft beyond filling in: Resend and Cloudflare added to
+the providers; the backup sentence now says no separate backups are kept, which
+is true on the Free plan — **when backups are added (step 1), both pages must
+say how long they keep deleted data.**
 
-Still needed from the owner: business name, address, contact email, date.
+A deploy that changes these pages may be served stale by Cloudflare's edge for
+a while; Caching → Purge Everything on the `rabta.chat` zone clears it.
+
+Still yours:
+- Have them read by someone qualified in Jordan's Personal Data Protection Law.
+- Confirm "Anthropic does not use this data to train its models" still matches
+  Anthropic's commercial terms.
+- Someone answers `rabtaappsupport@gmail.com`: deletion requests carry a
+  30-day promise.
+- Meta Business Verification may ask for a registered business; "Rabta App"
+  is a trading name, not a legal entity (see step 5).
 
 The original step:
 

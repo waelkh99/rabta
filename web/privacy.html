@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <!--
-  DRAFT — written from what Rabta actually stores (see supabase/migrations),
-  not from a template. Before publishing: replace every [BRACKETED] field, and
-  have it reviewed against Jordan's Personal Data Protection Law (No. 24 of
-  2023). LAUNCH.md tracks this.
+  Written from what Rabta actually stores (see supabase/migrations), not from a
+  template. Published 26 September 2026. Not yet reviewed against Jordan's
+  Personal Data Protection Law (No. 24 of 2023) by someone qualified; LAUNCH.md
+  tracks that. When a new service starts handling data, add it under "Who
+  processes it for us" in both languages.
 -->
 <html lang="en">
 <head>
@@ -11,13 +12,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Rabta — Privacy Policy</title>
   <style>
-    :root { color-scheme: light; --ink:#1B1526; --muted:#6E6880; --accent:#6010C0; --line:#E5DCF4; --ground:#FAF8FC; }
+    :root { color-scheme: light; --ink:#1D1626; --muted:#6A6272; --accent:#5B16C8; --line:#EBE3D6; --ground:#F5F0E8; }
     body { margin:0; background:var(--ground); color:var(--ink); font:16px/1.7 system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif; }
     main { max-width:760px; margin:0 auto; padding:32px 20px 64px; }
     h1 { font-size:28px; margin:0 0 4px; } h2 { font-size:19px; margin:32px 0 8px; }
     .muted { color:var(--muted); font-size:14px; }
     .lang { border-top:1px solid var(--line); margin-top:48px; padding-top:24px; }
-    .todo { background:#FFF3C4; padding:0 4px; border-radius:3px; }
     a { color:var(--accent); } ul { padding-inline-start:22px; }
   </style>
 </head>
@@ -27,9 +27,9 @@
 
   <section lang="en" dir="ltr">
     <h1>Privacy Policy</h1>
-    <p class="muted">Last updated: <span class="todo">[DATE]</span></p>
+    <p class="muted">Last updated: 26 September 2026</p>
 
-    <p>Rabta is operated by <span class="todo">[BUSINESS NAME]</span>, <span class="todo">[ADDRESS]</span>
+    <p>Rabta is operated by Rabta App, Amman, Jordan
       ("we"). Rabta gives shops one inbox for their Instagram and Facebook Messenger conversations and an
       assistant that can answer customers on the shop's behalf. This policy explains what we store and why.</p>
 
@@ -65,7 +65,10 @@
 
     <h2>Who processes it for us</h2>
     <ul>
-      <li><strong>Supabase</strong> — database, sign-in and servers, in <span class="todo">[REGION, e.g. Frankfurt, Germany]</span>.</li>
+      <li><strong>Supabase</strong> — database, sign-in and servers, in Frankfurt, Germany.</li>
+      <li><strong>Resend</strong> — sends Rabta's emails, such as invitations and password resets, from
+        Ireland. It sees the seller's email address and the email it is sending.</li>
+      <li><strong>Cloudflare</strong> — serves the Rabta website.</li>
       <li><strong>Anthropic</strong> — the AI model behind the assistant. When the assistant is on, conversation
         text and the shop's information are sent to Anthropic to write a reply or read how a conversation ended.
         Anthropic does not use this data to train its models.</li>
@@ -78,25 +81,26 @@
       <li>Service logs and error reports: 90 days.</li>
       <li>Conversations, shop information and accounts: until the seller deletes their account, or asks us to.</li>
     </ul>
+    <p>We do not keep separate backup copies today, so data we delete is gone.</p>
 
     <h2>Your rights and deleting your data</h2>
     <p>You can ask us to access, correct or delete your personal data. See
       <a href="data-deletion.html">how to delete your data</a>, or write to
-      <span class="todo">[CONTACT EMAIL]</span>. Customers may also ask the shop they messaged.</p>
+      <a href="mailto:rabtaappsupport@gmail.com">rabtaappsupport@gmail.com</a>. Customers may also ask the shop they messaged.</p>
 
     <h2>Security</h2>
     <p>Data is encrypted in transit. Each shop can reach only its own data, enforced by the database.
       Meta access tokens are never sent to a browser.</p>
 
     <h2>Contact</h2>
-    <p><span class="todo">[BUSINESS NAME]</span> · <span class="todo">[CONTACT EMAIL]</span></p>
+    <p>Rabta App · Amman, Jordan · <a href="mailto:rabtaappsupport@gmail.com">rabtaappsupport@gmail.com</a></p>
   </section>
 
   <section id="ar" class="lang" lang="ar" dir="rtl">
     <h1>سياسة الخصوصية</h1>
-    <p class="muted">آخر تحديث: <span class="todo">[التاريخ]</span></p>
+    <p class="muted">آخر تحديث: 26 أيلول 2026</p>
 
-    <p>تُشغّل ربطة من قِبل <span class="todo">[اسم الشركة]</span>، <span class="todo">[العنوان]</span>. تمنح ربطة
+    <p>تُشغّل ربطة من قِبل Rabta App، عمّان، الأردن. تمنح ربطة
       المتاجر صندوق رسائل واحداً لمحادثات إنستغرام وماسنجر، ومساعداً يمكنه الرد على الزبائن نيابةً عن المتجر.
       توضّح هذه السياسة ما نحفظه ولماذا.</p>
 
@@ -131,7 +135,10 @@
 
     <h2>من يعالجها لصالحنا</h2>
     <ul>
-      <li><strong>Supabase</strong>: قاعدة البيانات وتسجيل الدخول والخوادم، في <span class="todo">[المنطقة، مثل فرانكفورت، ألمانيا]</span>.</li>
+      <li><strong>Supabase</strong>: قاعدة البيانات وتسجيل الدخول والخوادم، في فرانكفورت، ألمانيا.</li>
+      <li><strong>Resend</strong>: يرسل رسائل ربطة البريدية، مثل الدعوات وإعادة تعيين كلمة المرور، من إيرلندا، ويرى
+        البريد الإلكتروني للبائع والرسالة التي يرسلها.</li>
+      <li><strong>Cloudflare</strong>: يقدّم موقع ربطة.</li>
       <li><strong>Anthropic</strong>: نموذج الذكاء الاصطناعي وراء المساعد. عند تشغيل المساعد يُرسَل نص المحادثة
         ومعلومات المتجر إلى Anthropic لكتابة الرد أو قراءة كيف انتهت المحادثة، ولا تستخدم Anthropic هذه البيانات
         لتدريب نماذجها.</li>
@@ -144,10 +151,11 @@
       <li>سجلات الخدمة وتقارير الأخطاء: 90 يوماً.</li>
       <li>المحادثات ومعلومات المتجر والحسابات: حتى يحذف البائع حسابه أو يطلب منا ذلك.</li>
     </ul>
+    <p>لا نحتفظ اليوم بنسخ احتياطية منفصلة، فالبيانات التي نحذفها تُحذف نهائياً.</p>
 
     <h2>حقوقك وحذف بياناتك</h2>
     <p>يمكنك طلب الاطلاع على بياناتك الشخصية أو تصحيحها أو حذفها. اطّلع على
-      <a href="data-deletion.html">طريقة حذف بياناتك</a> أو راسلنا على <span class="todo">[البريد الإلكتروني]</span>.
+      <a href="data-deletion.html">طريقة حذف بياناتك</a> أو راسلنا على <a href="mailto:rabtaappsupport@gmail.com">rabtaappsupport@gmail.com</a>.
       ويمكن للزبائن أيضاً مخاطبة المتجر الذي راسلوه.</p>
 
     <h2>الأمان</h2>
@@ -155,7 +163,7 @@
       وصول ميتا إلى المتصفح أبداً.</p>
 
     <h2>للتواصل</h2>
-    <p><span class="todo">[اسم الشركة]</span> · <span class="todo">[البريد الإلكتروني]</span></p>
+    <p>Rabta App · عمّان، الأردن · <a href="mailto:rabtaappsupport@gmail.com">rabtaappsupport@gmail.com</a></p>
   </section>
 </main>
 </body>
