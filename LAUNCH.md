@@ -38,7 +38,7 @@ The link is single use and expires in an hour; run step 2 again for a new one.
 
 ---
 
-## 1. Production Supabase project — done 26 September 2026
+## 1. Production Supabase project — closed 26 September 2026
 
 `Rabta-prod`, ref **`yxewrxkxhmwnyxslyefn`**, in **Frankfurt (`eu-central-1`)**,
 on the **Free plan** by decision: one pilot seller does not come near its
@@ -79,7 +79,8 @@ $env:RABTA_ENV="prod"; npm run signin -- wal.kh.saleh99@gmail.com --password
 
 and open the link it prints in that Chrome.
 
-**Backups.** Not yet in place. To build: a nightly `pg_dump` of the production
+**Backups — deferred by decision, 26 September 2026; to be revisited.** Not
+in place, and step 1 is closed without them. To build: a nightly `pg_dump` of the production
 database to storage you control, keeping about two weeks. Needs somewhere to run
 on a schedule (GitHub Actions if the repository is on GitHub).
 
