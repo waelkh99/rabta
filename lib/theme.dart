@@ -537,6 +537,13 @@ TextDirection directionOf(String? value) {
   return TextDirection.ltr;
 }
 
+/// Text set inside a sentence in the other script — an email address in an
+/// Arabic sentence — kept in one left-to-right piece. Without it an address
+/// reorders around its + . and @. Built from character codes rather than
+/// written out, because the isolates are invisible in source.
+String isolated(String text) =>
+    '${String.fromCharCode(0x2066)}$text${String.fromCharCode(0x2069)}';
+
 /// A customer's name, ordered by its own script but lined up with the
 /// interface. "Dana K." in the Arabic interface rendered as ".Dana K" when it
 /// took the interface's direction; given its own and left to align itself, an

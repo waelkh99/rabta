@@ -116,18 +116,33 @@ with step 3.
 It builds against production and uploads to Cloudflare. The Cloudflare token
 (Pages: Edit only) and account ID are in `supabase/.env.prod`.
 
-## 3. Email sending (SMTP) — blocker
+## 3. Email sending — closed 26 September 2026
 
-**Why.** Supabase's built-in email sends 2 a minute and is not for
-production. Without it, invitations and password resets depend on a person
-copying links around.
+Production sends through **Resend** (Ireland, `eu-west-1`), as "Rabta"
+`<no-reply@rabta.chat>`, at up to 30 emails an hour. DKIM, SPF and DMARC
+(`p=none`) are published for `rabta.chat`. The Resend key is send-only and
+lives in `supabase/.env.prod`; the domain has no tracking subdomain, so links
+in emails are not rewritten.
 
-**Do.** Create an account with an email provider (Resend, Postmark or Amazon
-SES), verify your domain with it, then in Supabase: *Authentication → Emails →
-SMTP Settings*.
+- **Emails are Rabta's own**, Arabic first with English under it: invitation,
+  password reset and sign-in link. Source: `supabase/scripts/email-templates.mjs`;
+  after editing, `$env:RABTA_ENV="prod"; npm run email-templates` pushes them,
+  and `npm run email-templates -- --preview <folder>` writes them as files.
+- **Forgot password** on the sign-in screen: it emails a reset to the address
+  typed, and says the same thing whether or not the address has an account.
+- **Invitations are emailed** on production (`INVITE_BY_EMAIL=true` on its
+  functions); the invite screen says they are on their way. Staging has no
+  SMTP, so there it still hands back a link to copy. For a lost email,
+  `$env:RABTA_ENV="prod"; npm run invite -- them@example.com --link` makes one.
+- **Redirect allowlist** now holds each address both bare and with `/**`.
+  Supabase matched a bare `https://rabta.pages.dev` against neither entry and
+  sent the link to the Site URL instead — invisible on `rabta.chat`, where the
+  two are the same place.
 
-**Hand back.** Tell me it is set. I will build the "forgot password" button
-and switch invitations to real emails.
+Seen working: a reset email to the owner arrived in the inbox and its button
+led to choosing a password on `rabta.chat`; an emailed invitation arrived; an
+existing address was refused without sending. The new screens were seen in
+both languages at desktop and phone width.
 
 ## 4. Legal pages — blocker for Meta review
 

@@ -1278,4 +1278,28 @@ class LAr extends L {
 
   @override
   String get signInWelcomeBody => 'سجّل الدخول لترى من ينتظرك.';
+
+  @override
+  String get inviteSentTitle => 'أُرسلت الدعوة';
+
+  @override
+  String inviteSentBody(String email) {
+    return 'أرسلنا إلى $email رابطاً ليختار كلمة المرور. يعمل مرة واحدة ولفترة محدودة. إذا لم يصله، اطلب منه أن يتفقّد مجلد الرسائل غير المرغوب فيها.';
+  }
+
+  @override
+  String get forgotPassword => 'نسيت كلمة المرور؟';
+
+  @override
+  String get forgotPasswordNeedEmail =>
+      'اكتب بريدك الإلكتروني أولاً، ثم اضغط «نسيت كلمة المرور؟».';
+
+  @override
+  String forgotPasswordSent(String email) {
+    return 'إذا كان لـ $email حساب في ربطة، فقد أرسلنا إليه رابطاً لاختيار كلمة مرور جديدة.';
+  }
+
+  @override
+  String get forgotPasswordFailed =>
+      'تعذّر إرسال الرابط. انتظر دقيقة ثم حاول مرة أخرى.';
 }

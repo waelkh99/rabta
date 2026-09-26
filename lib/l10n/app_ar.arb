@@ -509,5 +509,13 @@
   "adminStatusOff": "مفصول",
   "signInHero": "لا زبون ينتظر حتى الصباح.",
   "signInWelcome": "أهلاً من جديد",
-  "signInWelcomeBody": "سجّل الدخول لترى من ينتظرك."
+  "signInWelcomeBody": "سجّل الدخول لترى من ينتظرك.",
+  "inviteSentTitle": "أُرسلت الدعوة",
+  "inviteSentBody": "أرسلنا إلى {email} رابطاً ليختار كلمة المرور. يعمل مرة واحدة ولفترة محدودة. إذا لم يصله، اطلب منه أن يتفقّد مجلد الرسائل غير المرغوب فيها.",
+  "@inviteSentBody": {"placeholders": {"email": {"type": "String"}}},
+  "forgotPassword": "نسيت كلمة المرور؟",
+  "forgotPasswordNeedEmail": "اكتب بريدك الإلكتروني أولاً، ثم اضغط «نسيت كلمة المرور؟».",
+  "forgotPasswordSent": "إذا كان لـ {email} حساب في ربطة، فقد أرسلنا إليه رابطاً لاختيار كلمة مرور جديدة.",
+  "@forgotPasswordSent": {"placeholders": {"email": {"type": "String"}}},
+  "forgotPasswordFailed": "تعذّر إرسال الرابط. انتظر دقيقة ثم حاول مرة أخرى."
 }

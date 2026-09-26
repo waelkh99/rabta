@@ -27,7 +27,11 @@ class _SignInPageState extends State<SignInPage> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   String? _problem;
+
+  /// Something that went right and is worth saying: the reset link was sent.
+  String? _notice;
   bool _busy = false;
+  bool _resetting = false;
 
   @override
   void dispose() {
@@ -42,6 +46,7 @@ class _SignInPageState extends State<SignInPage> {
     setState(() {
       _busy = true;
       _problem = null;
+      _notice = null;
     });
 
     try {
@@ -69,8 +74,47 @@ class _SignInPageState extends State<SignInPage> {
     }
   }
 
+  /// Sends a reset link to the address in the email field.
+  ///
+  /// The answer is the same whether or not the address has an account, so the
+  /// form cannot be used to find out who does. The link comes back to this
+  /// same site, where the set-password screen takes over.
+  Future<void> _forgot() async {
+    if (_busy || _resetting) return;
+    final l = context.l;
+    final email = _email.text.trim();
+
+    if (email.isEmpty) {
+      setState(() {
+        _notice = null;
+        _problem = l.forgotPasswordNeedEmail;
+      });
+      return;
+    }
+
+    setState(() {
+      _resetting = true;
+      _problem = null;
+      _notice = null;
+    });
+
+    try {
+      await Supabase.instance.client.auth.resetPasswordForEmail(
+        email,
+        redirectTo: Uri.base.origin,
+      );
+      if (mounted) setState(() => _notice = l.forgotPasswordSent(isolated(email)));
+    } catch (_) {
+      // Mostly Supabase's limit on how often one address may ask.
+      if (mounted) setState(() => _problem = l.forgotPasswordFailed);
+    } finally {
+      if (mounted) setState(() => _resetting = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final colors = context.rabta;
     final l = context.l;
 
     return AuthFrame(
@@ -106,11 +150,37 @@ class _SignInPageState extends State<SignInPage> {
               autofillHints: const [AutofillHints.password],
               onSubmitted: (_) => _signIn(),
             ),
+            Align(
+              alignment: AlignmentDirectional.centerEnd,
+              child: TextButton(
+                onPressed: _busy || _resetting ? null : _forgot,
+                child: Text(l.forgotPassword, style: Style.meta.copyWith(
+                  color: colors.accent,
+                  fontWeight: FontWeight.w700,
+                )),
+              ),
+            ),
             if (_problem != null) ...[
-              const SizedBox(height: 14),
+              const SizedBox(height: 6),
               AuthProblem(_problem!),
             ],
-            const SizedBox(height: 24),
+            if (_notice != null) ...[
+              const SizedBox(height: 6),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.mark_email_read_outlined, size: 16, color: colors.ink),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _notice!,
+                      style: Style.meta.copyWith(color: colors.ink, height: 1.5),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            const SizedBox(height: 18),
             AuthButton(
               label: _busy ? l.signingIn : l.signIn,
               onPressed: _busy ? null : _signIn,

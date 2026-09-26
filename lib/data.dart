@@ -1479,14 +1479,20 @@ class Inbox {
   /// Whether the caller may do this is decided on the server, from their user
   /// record rather than from their token. Nothing here is a permission check —
   /// the client only decides whether to draw the button.
-  Future<String> invite(String email) async {
+  /// The link to send by hand, or null when the invitation was emailed —
+  /// which is what a project with real SMTP does. See INVITE_BY_EMAIL in
+  /// supabase/functions/admin-invite.
+  Future<String?> invite(String email) async {
     try {
       final response = await _db.functions.invoke(
         'admin-invite',
         body: {'email': email.trim()},
       );
 
-      final link = (response.data as Map?)?['link'] as String?;
+      final data = response.data as Map?;
+      if (data?['sent'] == true) return null;
+
+      final link = data?['link'] as String?;
       if (link == null) throw const InviteFailed('failed');
 
       return link;

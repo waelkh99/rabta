@@ -86,4 +86,22 @@ void main() {
     expect(Directionality.of(tester.element(find.byType(TextField).first)),
         TextDirection.rtl);
   });
+
+  testWidgets('forgot password with no email asks for one, and sends nothing',
+      (tester) async {
+    // Nothing reaches Supabase here — it is not even initialised in this test,
+    // so a request would fail and show the "could not send" sentence instead.
+    await tester.pumpWidget(_app());
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('Forgot your password?'));
+    await tester.tap(find.text('Forgot your password?'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Type your email first, then press "Forgot your password?".'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Could not send the link'), findsNothing);
+  });
 }

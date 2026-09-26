@@ -1277,4 +1277,28 @@ class LEn extends L {
 
   @override
   String get signInWelcomeBody => 'Sign in to see who is waiting for you.';
+
+  @override
+  String get inviteSentTitle => 'The invitation is on its way';
+
+  @override
+  String inviteSentBody(String email) {
+    return 'We emailed $email a link to choose their password. It works once, for a limited time. If it does not arrive, ask them to check their spam folder.';
+  }
+
+  @override
+  String get forgotPassword => 'Forgot your password?';
+
+  @override
+  String get forgotPasswordNeedEmail =>
+      'Type your email first, then press \"Forgot your password?\".';
+
+  @override
+  String forgotPasswordSent(String email) {
+    return 'If $email has a Rabta account, we have sent it a link to choose a new password.';
+  }
+
+  @override
+  String get forgotPasswordFailed =>
+      'Could not send the link. Wait a minute and try again.';
 }

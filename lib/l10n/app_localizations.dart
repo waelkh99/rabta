@@ -2334,6 +2334,42 @@ abstract class L {
   /// In ar, this message translates to:
   /// **'سجّل الدخول لترى من ينتظرك.'**
   String get signInWelcomeBody;
+
+  /// No description provided for @inviteSentTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'أُرسلت الدعوة'**
+  String get inviteSentTitle;
+
+  /// No description provided for @inviteSentBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'أرسلنا إلى {email} رابطاً ليختار كلمة المرور. يعمل مرة واحدة ولفترة محدودة. إذا لم يصله، اطلب منه أن يتفقّد مجلد الرسائل غير المرغوب فيها.'**
+  String inviteSentBody(String email);
+
+  /// No description provided for @forgotPassword.
+  ///
+  /// In ar, this message translates to:
+  /// **'نسيت كلمة المرور؟'**
+  String get forgotPassword;
+
+  /// No description provided for @forgotPasswordNeedEmail.
+  ///
+  /// In ar, this message translates to:
+  /// **'اكتب بريدك الإلكتروني أولاً، ثم اضغط «نسيت كلمة المرور؟».'**
+  String get forgotPasswordNeedEmail;
+
+  /// No description provided for @forgotPasswordSent.
+  ///
+  /// In ar, this message translates to:
+  /// **'إذا كان لـ {email} حساب في ربطة، فقد أرسلنا إليه رابطاً لاختيار كلمة مرور جديدة.'**
+  String forgotPasswordSent(String email);
+
+  /// No description provided for @forgotPasswordFailed.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعذّر إرسال الرابط. انتظر دقيقة ثم حاول مرة أخرى.'**
+  String get forgotPasswordFailed;
 }
 
 class _LDelegate extends LocalizationsDelegate<L> {

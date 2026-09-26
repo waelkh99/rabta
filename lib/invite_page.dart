@@ -69,9 +69,10 @@ class _InvitePageState extends State<InvitePage> {
   bool _creating = false;
   String? _problem;
 
-  /// The finished invitation, and who it is for.
-  String? _link;
+  /// Who was invited, once they have been; and the link, when it has to be
+  /// sent by hand rather than having been emailed.
   String? _invited;
+  String? _link;
 
   @override
   void dispose() {
@@ -146,10 +147,14 @@ class _InvitePageState extends State<InvitePage> {
         padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
         children: [
           Align(
-            alignment: AlignmentDirectional.topStart,
+            alignment: Alignment.topCenter,
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 480),
-              child: _link == null ? _form(colors, l) : _ready(colors, l),
+              child: _invited == null
+                  ? _form(colors, l)
+                  : _link == null
+                      ? _sent(colors, l)
+                      : _ready(colors, l),
             ),
           ),
         ],
@@ -207,6 +212,45 @@ class _InvitePageState extends State<InvitePage> {
         ],
       );
 
+  void _again() => setState(() {
+        _link = null;
+        _invited = null;
+        _email.clear();
+      });
+
+  Widget _sent(RabtaColors colors, L l) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: colors.saffron,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(Icons.mark_email_read_outlined, size: 19, color: colors.ink),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  l.inviteSentTitle,
+                  style: display(Style.heading.copyWith(color: colors.ink, fontSize: 18)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Text(
+            l.inviteSentBody(isolated(_invited ?? '')),
+            style: Style.preview.copyWith(color: colors.muted, height: 1.6),
+          ),
+          const SizedBox(height: 20),
+          TextButton(onPressed: _again, child: Text(l.inviteAnother)),
+        ],
+      );
+
   Widget _ready(RabtaColors colors, L l) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -246,11 +290,7 @@ class _InvitePageState extends State<InvitePage> {
               ),
               const SizedBox(width: 12),
               TextButton(
-                onPressed: () => setState(() {
-                  _link = null;
-                  _invited = null;
-                  _email.clear();
-                }),
+                onPressed: _again,
                 child: Text(
                   l.inviteAnother,
                   style: Style.name.copyWith(color: colors.muted),

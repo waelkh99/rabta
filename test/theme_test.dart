@@ -69,4 +69,13 @@ void main() {
       }));
     });
   });
+
+  test('an address inside an Arabic sentence is isolated left to right', () {
+    final wrapped = isolated('a+b@example.com');
+    // Left-to-right isolate (2066) and pop directional isolate (2069), and nothing
+    // else changed.
+    expect(wrapped.runes.first, 0x2066);
+    expect(wrapped.runes.last, 0x2069);
+    expect(wrapped.substring(1, wrapped.length - 1), 'a+b@example.com');
+  });
 }

@@ -27,6 +27,12 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 
+// Set to "true" on a project whose auth sends through real SMTP — production,
+// since 26 September 2026. There the invitation is emailed. Elsewhere Supabase's
+// built-in sender is all there is, which is rate limited and delivers only to
+// the project's own team, so the link is handed back to be sent by hand.
+const INVITE_BY_EMAIL = Deno.env.get("INVITE_BY_EMAIL") === "true";
+
 const log = createLog(
   createClient(SUPABASE_URL, SERVICE_ROLE_KEY, { auth: { persistSession: false } }),
   "admin-invite",
@@ -81,13 +87,37 @@ Deno.serve(async (request: Request) => {
     ? origin
     : undefined;
 
+  const headers = {
+    apikey: SERVICE_ROLE_KEY,
+    authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+    "content-type": "application/json",
+  };
+
+  if (INVITE_BY_EMAIL) {
+    // The invite endpoint reads where to land from the query string, unlike
+    // generate_link below, which takes it in the body.
+    const invite = new URL(`${SUPABASE_URL}/auth/v1/invite`);
+    if (redirectTo) invite.searchParams.set("redirect_to", redirectTo);
+
+    const response = await fetch(invite, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ email }),
+    });
+    const answer = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      await log("error", "invite_refused", { status: response.status, answer });
+      return refuse(readInviteError(response.status, answer), 400, cors);
+    }
+
+    await log("info", "invited", { email, by: identity.user.id, emailed: true });
+    return json({ sent: true, email }, 200, cors);
+  }
+
   const response = await fetch(`${SUPABASE_URL}/auth/v1/admin/generate_link`, {
     method: "POST",
-    headers: {
-      apikey: SERVICE_ROLE_KEY,
-      authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-      "content-type": "application/json",
-    },
+    headers,
     body: JSON.stringify({
       type: "invite",
       email,
@@ -112,9 +142,8 @@ Deno.serve(async (request: Request) => {
 
   await log("info", "invited", { email, by: identity.user.id });
 
-  // The link is returned rather than emailed. Supabase's built-in sender is
-  // rate limited and not for production, so until custom SMTP exists the
-  // honest thing is to hand it over and let it be sent deliberately.
+  // Handed back rather than emailed, on a project without real SMTP; see
+  // INVITE_BY_EMAIL.
   return json({ link, email }, 200, cors);
 });
 
