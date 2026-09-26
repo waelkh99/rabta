@@ -188,6 +188,23 @@ applies to the customer messages Rabta stores.
 
 ## 5. Meta: business verification and App Review — blocker
 
+**Decided 27 September 2026: Live mode with Standard Access, no Business
+Verification for now.** The product owner will not register a business for an
+app with no users yet; if Rabta grows, registering and verifying is the extra
+step then. Until then:
+
+- The app is switched to **Live mode**, which needs no verification. Meta then
+  delivers messages from *every* customer to connected Pages and Instagram
+  accounts; development mode delivered only from people with a role on the app.
+- **Sellers connect as app Testers.** Standard Access covers anyone with a role
+  on the app. Each pilot seller is added under App roles → Testers and accepts
+  with their Facebook account; without a role, connecting fails.
+- **Opening to sellers without an invitation needs Advanced Access**, and so
+  Business Verification — the rest of this step, below, is that route.
+
+Meta app icon: `Assets/App Icons/meta-app-icon-1024.png`, made by
+`tool/make_icons.py`.
+
 **Checked against Meta's rules on 26 September 2026.**
 
 Rabta reads messages on Pages it does not own, so it needs **Advanced Access**

@@ -2957,3 +2957,26 @@ screen; product and offer rows sit on one card.
 390, sign-in and set-password also at 320, driven with Playwright. The inbox
 was seen with eight realistic conversations served by Playwright in place of
 the test seller's one — nothing was written to the database for it.
+
+---
+
+### 2026-09-27 — Live mode with Standard Access; no Business Verification yet
+
+Meta requires Business Verification — a registered business's documents — for
+Advanced Access, which is what lets a seller with no role on the app connect.
+"Rabta App" is not a registered business, and the product owner will not
+register one for an app with no users yet.
+
+**Decided:** switch the Meta app to Live mode on Standard Access. Live mode
+needs no verification and makes Meta deliver messages from every customer, not
+only from people with a role on the app — which is also what finally lets an
+Instagram delivery be observed. Pilot sellers are added as app Testers, which
+Standard Access covers.
+
+**Cost:** each seller must accept a tester invitation with their Facebook
+account before connecting, and nobody can sign up and connect unprompted.
+Acceptable for a pilot of friendly sellers; not for opening up.
+
+**Revisit when** Rabta has more sellers than can reasonably be invited by hand,
+or before any public launch: register a sole proprietorship, complete Business
+Verification, Access Verification and App Review — LAUNCH.md step 5.

@@ -73,7 +73,11 @@ def main():
             f'web/icons/Icon-maskable-{size}.png'
         )
 
-    print('wrote favicon, apple touch icon, and the PWA set')
+    # For the Meta app dashboard, which asks for 1024x1024 and rounds the
+    # corners itself. Not served by the site, so it lives with the source art.
+    icon(1024, rounded=False).save('Assets/App Icons/meta-app-icon-1024.png')
+
+    print('wrote favicon, apple touch icon, the PWA set, and the Meta app icon')
 
 
 if __name__ == '__main__':
