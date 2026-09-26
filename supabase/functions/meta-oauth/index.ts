@@ -40,8 +40,12 @@ const GRAPH = "https://graph.facebook.com/v26.0";
 
 // Must match a Valid OAuth Redirect URI registered on the app exactly. Meta
 // compares strings and rejects a mismatch with a generic error.
+//
+// Built from the project this function runs in rather than written out: it was
+// the staging address, so a production deploy would have sent every seller who
+// connected back to staging. Staging and production each register their own.
 const REDIRECT_URI =
-  "https://xejtffbpfguwvybrwqqj.supabase.co/functions/v1/meta-oauth/callback";
+  `${Deno.env.get("SUPABASE_URL")!.replace(/\/$/, "")}/functions/v1/meta-oauth/callback`;
 
 // Subscribing the Page to these is what makes messages arrive at all.
 const SUBSCRIBED_FIELDS = "messages,messaging_postbacks,message_echoes";

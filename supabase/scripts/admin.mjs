@@ -15,7 +15,11 @@
 import { readFile } from "node:fs/promises";
 
 const env = {};
-for (const file of ["../.env", "../.env.local"]) {
+// RABTA_ENV=prod reads the production file and nothing else, so a command
+// meant for production can never pick up a staging key, or the reverse.
+const envFiles =
+  process.env.RABTA_ENV === "prod" ? ["../.env.prod"] : ["../.env", "../.env.local"];
+for (const file of envFiles) {
   let contents;
   try {
     contents = await readFile(new URL(file, import.meta.url), "utf8");

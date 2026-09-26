@@ -38,26 +38,50 @@ The link is single use and expires in an hour; run step 2 again for a new one.
 
 ---
 
-## 1. Production Supabase project — blocker
+## 1. Production Supabase project — done 26 September 2026
 
-**Why.** The current project is in **Tokyo** (`ap-northeast-1`), on a plan
-with **no backups** (the live API reports `backups: []`), and it holds test
-data and a test account whose password is in the git history. A region cannot
-be changed after creation, and free projects pause after a week idle.
+`Rabta-prod`, ref **`yxewrxkxhmwnyxslyefn`**, in **Frankfurt (`eu-central-1`)**,
+on the **Free plan** by decision: one pilot seller does not come near its
+limits. The one real gap on Free is **no backups** — see "Backups" below.
+Upgrade to Pro ($25/month) when a second seller joins, sign-ups open, or the
+first seller depends on Rabta daily for real sales.
 
-**Do.**
-- Upgrade the organisation to **Pro** (daily backups; enables leaked-password
-  protection).
-- Create a **new project** in **Frankfurt (`eu-central-1`)** — the closest
-  Supabase region to Jordan. Name it e.g. `rabta-prod`.
-- Keep the current project as **staging** for testing.
-- Later, once real sellers are on it: turn on **Point-in-Time Recovery**
-  (a paid add-on).
+Done: all 18 migrations; the four functions and their secrets (a new webhook
+verify token, the staging Meta app secret, the staging Anthropic key until
+step 6); public sign-up **off** (it was on by default — proven refused); the
+password rules; Site URL `http://localhost:5353` until the domain exists; your
+admin account. Row-level security and every function were checked from outside,
+and the connect flow was seen returning to production, not staging. Supabase's
+advisors: the same expected items as staging. Leaked-password protection needs
+Pro.
 
-**Hand back.** The new project's ref, its secret (service) key and publishable
-key — put them in a new `supabase/.env.prod` (never committed) and tell me. I
-will apply all migrations, deploy the four functions, set their secrets, turn
-on leaked-password protection, and repeat the password policy.
+The old Tokyo project is now **staging**.
+
+**Working against production.** Keys live in `supabase/.env.prod` and
+`env.prod.json`, both git-ignored. Scripts read staging unless told otherwise:
+
+```
+cd supabase
+$env:RABTA_ENV="prod"; npm run admin
+```
+
+(PowerShell; the variable lasts for that terminal window — close it, or run
+`Remove-Item Env:RABTA_ENV`, before working on staging again.) `seed-demo`
+deliberately has no production switch. The app against production:
+`flutter run -d chrome --dart-define-from-file=env.prod.json --web-port=5353`.
+
+**To sign in the first time**, with that app running:
+
+```
+cd supabase
+$env:RABTA_ENV="prod"; npm run signin -- wal.kh.saleh99@gmail.com --password
+```
+
+and open the link it prints in that Chrome.
+
+**Backups.** Not yet in place. To build: a nightly `pg_dump` of the production
+database to storage you control, keeping about two weeks. Needs somewhere to run
+on a schedule (GitHub Actions if the repository is on GitHub).
 
 ## 2. Domain and hosting — blocker
 
