@@ -1,5 +1,12 @@
 # Launch checklist — the steps that need you
 
+> **Paused 27 September 2026, by the product owner's decision.** Instagram
+> messages from real customers need Meta App Review for
+> `instagram_manage_messages`, which needs Business Verification, which needs a
+> registered business. The owner will not register one for an unproven product
+> (and Sanad does not offer trade-name registration). See "Where it was left"
+> at the end, and DECISIONS.md, 27 September.
+
 Written 25 September 2026, after a launch-readiness review. Everything that
 could be done in code is done (see "Done from the code side" at the end). What
 is left needs an account, a payment, a legal decision or a person — so it is
@@ -312,3 +319,42 @@ For reference — no action needed.
 - **"New version — Reload" banner** when a new build is deployed.
 - **Library versions pinned** in the Edge Functions.
 - **Draft privacy and data-deletion pages** in `web/`.
+
+---
+
+## Where it was left — 27 September 2026
+
+**Working in production, and verified:**
+- https://rabta.chat (and rabta.pages.dev) serving the app against the
+  Frankfurt project, with Supabase auth, email through Resend, legal pages.
+- The Meta app is **Live** on Standard Access. Facebook Page messages from any
+  customer arrive and are processed — seen on 26 September.
+- The owner's Page (`1427711713749572`) and Instagram (`17841401424316998`)
+  are connected on production; the Page is subscribed; tokens are valid and
+  carry `instagram_manage_messages`.
+- The demo shop (`demo@rabta.chat`, STATUS.md) for showing people.
+
+**Not working, and why:** Instagram DMs from customers are never sent by Meta
+without App Review — Meta's own webhook documentation says so, and none
+arrived in testing while Facebook messages did. The Instagram `entry.id`
+question (STATUS.md) is still unverified.
+
+**To resume Instagram:** register a business (a sole proprietorship at the
+Ministry of Industry, Trade and Supply), Business Verification in Meta
+Business Manager, Access Verification, then App Review for
+`instagram_manage_messages` (+ `business_management`), with the screencasts
+described under step 5. Then update the legal pages to the registered name.
+
+**A Facebook-only pilot needs none of that:** add sellers as app Testers
+(step 5, the Live-mode decision) and they can connect their Pages today.
+
+**While paused, nothing costs money:** Supabase Free (production pauses after a
+week without activity; resume it from the dashboard — nothing is lost),
+Cloudflare Pages and Resend on free tiers, the Anthropic key spends only when
+the assistant answers. The one recurring cost is the `rabta.chat` domain
+renewal, due 26 September 2027 at Cloudflare Registrar.
+
+**Loose ends to know about:** production has no backups (step 1); the staging
+account `webhook-test@rabta.local` still has a password in git history
+(step 7); the demo login is public by design.
+

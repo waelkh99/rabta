@@ -2980,3 +2980,22 @@ Acceptable for a pilot of friendly sellers; not for opening up.
 **Revisit when** Rabta has more sellers than can reasonably be invited by hand,
 or before any public launch: register a sole proprietorship, complete Business
 Verification, Access Verification and App Review — LAUNCH.md step 5.
+
+---
+
+### 2026-09-27 — Paused: Instagram needs App Review, and no business will be registered for it
+
+Correction to the entry above. Live mode on Standard Access is enough for
+**Facebook Page** messages from any customer, and that was seen working. It is
+**not** enough for **Instagram**: Meta's Instagram messaging webhook page says
+webhooks carrying data from people with no role on the app are only sent once
+the app has been approved in App Review, and App Review for
+`instagram_manage_messages` needs Advanced Access, so Business Verification.
+Meta's "apps for your own business" route still goes through App Review. In
+testing, no customer DM to the connected Instagram account arrived while a
+Facebook message did.
+
+The product owner will not register a business for a product not yet proven
+with real sellers, and has paused the project. Everything built stays deployed;
+LAUNCH.md, "Where it was left", lists what works, what does not, and the steps
+to resume.
