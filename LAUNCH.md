@@ -102,7 +102,7 @@ was seen in both languages at desktop and phone width. Every file is served
 **To deploy**, from the project folder in PowerShell:
 
 ```
-.	ool\deploy.ps1
+.\tool\deploy.ps1
 ```
 
 It builds against production and uploads to Cloudflare. The Cloudflare token
