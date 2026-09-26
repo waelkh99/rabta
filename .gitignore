@@ -62,3 +62,8 @@ env.*.json
 
 # Screenshots and logs from driving the app in a browser.
 .playwright-mcp/
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example

@@ -1,0 +1,14 @@
+# Cloudflare Pages response headers. Copied into build/web by `flutter build`.
+#
+# Everything revalidates. Flutter's main files are not named by content hash,
+# so a long cache would keep a seller on an old build after a deploy — the
+# "new version, reload" bar would appear and reloading would load the old one
+# again. `no-cache` still lets the browser keep the file; it only asks whether
+# it changed, which is a 304 when it has not.
+# ponytail: one rule for every file, so canvaskit and fonts revalidate too.
+# Give them their own long max-age if first-load time on a repeat visit matters.
+/*
+  Cache-Control: no-cache
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin

@@ -70,35 +70,50 @@ $env:RABTA_ENV="prod"; npm run admin
 deliberately has no production switch. The app against production:
 `flutter run -d chrome --dart-define-from-file=env.prod.json --web-port=5353`.
 
-**To sign in the first time**, with that app running:
+**To sign in the first time:**
 
 ```
 cd supabase
 $env:RABTA_ENV="prod"; npm run signin -- wal.kh.saleh99@gmail.com --password
 ```
 
-and open the link it prints in that Chrome.
+and open the link it prints. It lands on the live site (`APP_URL` in
+`.env.prod`), where you choose your password.
 
 **Backups — deferred by decision, 26 September 2026; to be revisited.** Not
 in place, and step 1 is closed without them. To build: a nightly `pg_dump` of the production
 database to storage you control, keeping about two weeks. Needs somewhere to run
 on a schedule (GitHub Actions if the repository is on GitHub).
 
-## 2. Domain and hosting — blocker
+## 2. Hosting — done 26 September 2026; own domain still to buy
 
-**Why.** There is nowhere to serve the app from. Every link — invitations,
-password resets, the Meta connect flow — needs a real HTTPS address.
+**Live at https://rabta.pages.dev**, on Cloudflare Pages (free), against the
+production project. The legal pages are at
+**https://rabta.pages.dev/privacy** and **https://rabta.pages.dev/data-deletion**
+(the `.html` addresses redirect there) — those are the two URLs for Meta.
 
-**Do.**
-- Buy a domain (e.g. `rabta.app` or a `.jo`).
-- Pick static hosting for the Flutter web build. Any of: Cloudflare Pages,
-  Netlify, Vercel, Firebase Hosting. Cloudflare Pages is the simplest and free.
-- Point the domain at it.
+Done: the address is trusted by the functions (`origins.ts`) and nothing
+look-alike is; Supabase's Site URL and redirect allowlist point at it, with
+`http://localhost:5353` kept for running the app locally against production;
+sign-in links, the connect flow and CORS were checked from outside; the site
+was seen in both languages at desktop and phone width. Every file is served
+`no-cache` (`web/_headers`), so a deploy reaches sellers on their next reload.
 
-**Hand back.** The final address (e.g. `https://app.rabta.jo`). I will add it
-to `supabase/functions/_shared/origins.ts`, set the Supabase **Site URL** and
-redirect allowlist (still `http://localhost:3000` today), wire the build and
-deploy, and confirm `/privacy.html` and `/data-deletion.html` are served.
+**To deploy**, from the project folder in PowerShell:
+
+```
+.	ool\deploy.ps1
+```
+
+It builds against production and uploads to Cloudflare. The Cloudflare token
+(Pages: Edit only) and account ID are in `supabase/.env.prod`.
+
+**Still to do: your own domain.** Not a blocker — Meta accepts the
+`pages.dev` addresses — but email (step 3) needs a domain you own to send
+from, and it reads better on invitations. When you buy one: Cloudflare
+dashboard → Workers & Pages → `rabta` → Custom domains. Then tell me, and I
+add it to the front of `origins.ts`, the Site URL and the allowlist, and
+update the legal pages and Meta.
 
 ## 3. Email sending (SMTP) — blocker
 

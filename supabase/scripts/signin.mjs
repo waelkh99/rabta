@@ -42,7 +42,7 @@ const url = env.SUPABASE_URL?.replace(/\/$/, "");
 const key = env.SUPABASE_SECRET_KEY || env.SUPABASE_SERVICE_ROLE_KEY;
 const args = process.argv.slice(2);
 const choosePassword = args.includes("--password");
-const [email, redirect = "http://localhost:5353"] = args.filter((a) => !a.startsWith("--"));
+const [email, redirect = env.APP_URL ?? "http://localhost:5353"] = args.filter((a) => !a.startsWith("--"));
 
 if (!url || !key || !email) {
   console.error("Usage: npm run signin -- someone@example.test [return-url]");

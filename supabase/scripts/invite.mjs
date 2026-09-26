@@ -55,7 +55,7 @@ const linkOnly = args.includes("--link");
 // project, or Supabase refuses it — and it must be an origin the application is
 // actually served from, or the seller arrives nowhere.
 const returnAt = args[args.indexOf("--return") + 1];
-const redirectTo = args.includes("--return") ? returnAt : "http://localhost:5353";
+const redirectTo = args.includes("--return") ? returnAt : env.APP_URL ?? "http://localhost:5353";
 
 if (!email) {
   console.error("Usage: npm run invite -- someone@example.com [--link] [--return <origin>]");
