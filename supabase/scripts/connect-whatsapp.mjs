@@ -97,6 +97,7 @@ const [account] = await json(
       external_id: phoneId,
       name,
       status: "active",
+      business_account_id: wabaId,
     }),
   }),
   "saving the account",

@@ -5,6 +5,41 @@ they finish, and add a dated line under "Log" at the end of each session.**
 Big-company features are deliberately not here; the owner will report back
 after meeting the buyers.
 
+## Next session — start here
+
+1. **Owner, in Meta (about 10 minutes):** developers.facebook.com → Rabta app →
+   Facebook Login for Business → Configurations → Create configuration.
+   - Name: `WhatsApp signup`
+   - Login variation: **WhatsApp Embedded Signup**
+   - Access token: **System-user access token**, expiry **Never**
+   - Assets: **WhatsApp accounts**
+   - Permissions: `whatsapp_business_management`, `whatsapp_business_messaging`
+   - Hand back the **Configuration ID**.
+2. **Claude:** `supabase secrets set META_WHATSAPP_CONFIG_ID=<id>` on staging,
+   then press Connect WhatsApp in the app as the owner and pick the test
+   account. Check: the number shows on Accounts, `business_account_id` is
+   stored, a message arrives, Stop unsubscribes the business account (no
+   `unsubscribe_refused` in `ops_log`). If Meta's dialog rejects the redirect
+   flow for Embedded Signup, the fallback is Meta's JavaScript SDK popup — say
+   so before building it.
+   - Known gap: a brand-new number (not one already on the Cloud API) also
+     needs `POST /{phone}/register` with a two-step PIN. Logged as
+     `whatsapp_number_not_registered`, not done — a product decision.
+3. **Then Track A — the naming brief.** Nothing done yet.
+4. **Still open, the owner's call:** production route for WhatsApp and
+   Instagram (buyer owns the Meta app, or register a business). Buyer-meeting
+   outcomes will change priorities; ask before building anything for bigger
+   companies.
+
+Working notes: staging is `xejtffbpfguwvybrwqqj` (the CLI is linked to it);
+WhatsApp test values are in `supabase/.env` (`WHATSAPP_*`);
+`npm run events -- whatsapp_business_account` shows WhatsApp deliveries;
+`ops_log` is where the functions write what they refused. Driving the app in
+Playwright: `flutter build web --dart-define-from-file=env.json`, serve
+`build/web` on port 5353, `npm run signin -- <email>` for a link, then click
+the "Enable accessibility" placeholder (Flutter's canvas has no DOM until
+then). After resizing the browser, wait a few seconds before a screenshot.
+
 ## Status
 
 - [x] Step 0 — plan in the repo, pointed to from CLAUDE.md
@@ -15,9 +50,10 @@ after meeting the buyers.
 - [x] B1 — migration, parse, send, media, UI three-way switches, prompts (unit-tested)
 - [x] B1 — connect-whatsapp script, end to end on staging with the test number (receive, reply, photo, stop, reconnect)
 - [x] B1 — seen in Playwright (both languages, both widths)
-- [ ] B2 — Embedded Signup + "Connect WhatsApp" button
+- [x] B2 — "Connect WhatsApp" button built and deployed to staging (Embedded Signup via the OAuth dialog, same callback, `business_account_id` stored) — **seen** reaching the server, which answers `not_configured`
+- [ ] B2 — **owner creates Meta's WhatsApp Embedded Signup configuration** (see "Next session"), then test the button end to end
 - [ ] Owner decision — production access route (buyer owns the Meta app, or register a business)
-- [ ] Docs — docs/DECISIONS.md, CLAUDE.md, docs/CHECKLIST.md, docs/LAUNCH.md header
+- [x] Docs — docs/DECISIONS.md, CLAUDE.md, docs/CHECKLIST.md (section 15), docs/LAUNCH.md header — 7 Oct
 
 ## Log
 
@@ -242,3 +278,14 @@ source linked.
   ignored → reconnect script → row back, receiving. Unsubscribing the WABA
   properly needs its id stored, which B2 will do.
 - 2026-10-07 — Accounts page seen in Arabic (desktop). B1 is done.
+- 2026-10-07 — Account names keep their own direction (the test number read
+  "(+1555-…" in Arabic). "Connect WhatsApp" button: `meta-oauth/start?kind=
+  whatsapp` opens the WhatsApp config; the callback connects every number of
+  every granted business account and subscribes it; Stop unsubscribes the
+  business account when it is the last running number on it. New
+  `assets.ts` + 4 tests (shown failing without the WhatsApp branch);
+  migration `20261007000001_business_account.sql` pushed to staging;
+  connect script backfilled the test number. Seen: Accounts page in Arabic
+  desktop and English phone with both buttons; pressing Connect WhatsApp
+  reaches the server (503 `not_configured`) and shows the failure message.
+  271 Flutter + 492 backend tests pass. Session ended here.

@@ -29,6 +29,14 @@ costs much less than twice the work of supporting one.
 should assume there will only ever be two — WhatsApp is deferred, not
 cancelled, so "platform" stays an open set.
 
+**Changed 6 October 2026.** WhatsApp is now being built (NEXT.md). The reason
+above no longer holds as written: Meta's Coexistence (2025) lets one number run
+on the WhatsApp Business app and the Cloud API at once, with up to six months of
+history synced, so a seller need not give up the app. Coexistence and
+connecting other companies' numbers both need Rabta to be a Meta Tech Provider —
+Business Verification, App Review, Access Verification — the same blocker as
+Instagram. See the 6 October entries at the end.
+
 ---
 
 ### 2026-09-14 — Flutter client plus a managed backend
@@ -2999,3 +3007,55 @@ The product owner will not register a business for a product not yet proven
 with real sellers, and has paused the project. Everything built stays deployed;
 LAUNCH.md, "Where it was left", lists what works, what does not, and the steps
 to resume.
+
+---
+
+### 2026-10-06 — Resumed for buyers; a new name and WhatsApp
+
+There are potential buyers, and the target moved from small shops to a bigger
+company. The owner will report back after meeting them; nothing for bigger
+companies is built before that. The current work is in `NEXT.md`.
+
+### 2026-10-06 — WhatsApp built on Meta's test number first
+
+Everything up to a real seller's number works without Business Verification:
+Meta's test number in the existing app, a never-expiring system-user token, the
+WhatsApp webhook pointed at staging. Proven on staging 7 October: a message and
+a photo from a real phone arrived, a reply arrived back, stopping and
+reconnecting the link behaved.
+
+What differs from Messenger, and where it is handled:
+
+- Payload shape (`entry.changes[].value`, seconds not milliseconds, the account
+  is `metadata.phone_number_id`) — `parse.ts`, one branch, mapped to the same
+  message type so nothing downstream changed.
+- Media comes as an id that needs the token — downloaded once into the public
+  `customer-media` bucket (`keepWhatsAppMedia`), so attachments carry
+  `payload.url` like Messenger's. Public with uuid paths: the same exposure as
+  Meta's own attachment URLs.
+- No profile API — the name arrives with each message.
+- A caption sits on the photo's own message — `MessageBody` shows both.
+- The app is subscribed per **business account**, not per number, so
+  `connected_accounts.business_account_id` holds it and Stop unsubscribes it
+  only when no other running number shares it.
+
+**Production is still the open decision:** either the buyer's verified
+business owns the Meta app and Rabta is deployed for them, or the owner
+registers a business and Rabta becomes a Tech Provider.
+
+### 2026-10-07 — A stopped link leaves the Accounts page and receives nothing
+
+Asked by the owner. Turned-off accounts were kept on the Accounts page on
+purpose; they are now hidden there, and only there — the inbox still counts
+them, so a seller who stops every link keeps their past conversations instead
+of being sent to the first-run screen. The webhook's `findAccount` now ignores
+disconnected accounts, because Meta refused to unsubscribe a WhatsApp number
+(`DELETE /{phone_number_id}/subscribed_apps`, code 100) and the stopped number
+kept receiving.
+
+### 2026-10-07 — Platform marks are the brands' own glyphs
+
+Asked by the owner: the hand-drawn marks read as near misses. The glyphs are
+Simple Icons (CC0) path data, drawn with `flutter_svg` — one dependency, from
+the Flutter ecosystem's standard SVG package, in place of hand-writing an SVG
+path parser for arcs and packed numbers.

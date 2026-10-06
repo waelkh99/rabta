@@ -27,6 +27,7 @@ import { corsHeaders } from "../_shared/origins.ts";
 import { tokenExpired } from "../send-message/send.ts";
 import { createLog, describe } from "../_shared/log.ts";
 
+import { assetsFromScopes, type Granted, whatsappName } from "./assets.ts";
 import {
   isWorkspaceId,
   readState,
@@ -36,6 +37,11 @@ import {
 
 const APP_ID = "1759728245295705";
 const CONFIG_ID = "1063344539629710";
+// WhatsApp's own Facebook Login for Business configuration (the "WhatsApp
+// Embedded Signup" variation, system-user token). A secret rather than a
+// constant only so it can be set without a deploy; absent, the button says
+// connecting failed rather than opening the wrong screen.
+const WHATSAPP_CONFIG_ID = Deno.env.get("META_WHATSAPP_CONFIG_ID") ?? "";
 const GRAPH = "https://graph.facebook.com/v26.0";
 
 // Must match a Valid OAuth Redirect URI registered on the app exactly. Meta
@@ -128,9 +134,17 @@ async function start(
   );
   if (originIndex === null) return json({ reason: "unknown_return" }, 400, cors);
 
+  // ?kind=whatsapp opens WhatsApp's signup instead of the Page screen. Both
+  // come back to the same callback, which tells them apart by what was granted.
+  const whatsapp = new URL(request.url).searchParams.get("kind") === "whatsapp";
+  if (whatsapp && !WHATSAPP_CONFIG_ID) return json({ reason: "not_configured" }, 503, cors);
+
   const dialog = new URL("https://www.facebook.com/v26.0/dialog/oauth");
   dialog.searchParams.set("client_id", APP_ID);
-  dialog.searchParams.set("config_id", CONFIG_ID);
+  dialog.searchParams.set("config_id", whatsapp ? WHATSAPP_CONFIG_ID : CONFIG_ID);
+  if (whatsapp) {
+    dialog.searchParams.set("extras", JSON.stringify({ setup: {}, sessionInfoVersion: "3" }));
+  }
   dialog.searchParams.set("redirect_uri", REDIRECT_URI);
   dialog.searchParams.set("response_type", "code");
   dialog.searchParams.set(
@@ -181,7 +195,7 @@ async function disconnect(
 
   const { data: account } = await asSeller
     .from("connected_accounts")
-    .select("id, external_id, platform")
+    .select("id, external_id, platform, business_account_id")
     .eq("id", accountId)
     .maybeSingle();
 
@@ -197,10 +211,23 @@ async function disconnect(
     .eq("account_id", account.id)
     .maybeSingle();
 
-  if (stored?.access_token) {
+  // A WhatsApp number is subscribed through its business account, which may
+  // hold other numbers this seller still uses. Only the last one unsubscribes.
+  let subscribedId: string | null = account.external_id;
+  if (account.platform === "whatsapp") {
+    const { count } = await supabase
+      .from("connected_accounts")
+      .select("id", { count: "exact", head: true })
+      .eq("business_account_id", account.business_account_id ?? "")
+      .neq("status", "disconnected")
+      .neq("id", account.id);
+    subscribedId = account.business_account_id && !count ? account.business_account_id : null;
+  }
+
+  if (stored?.access_token && subscribedId) {
     try {
       const answer = await fetch(
-        `${GRAPH}/${account.external_id}/subscribed_apps` +
+        `${GRAPH}/${subscribedId}/subscribed_apps` +
           `?access_token=${encodeURIComponent(stored.access_token)}`,
         { method: "DELETE" },
       ).then((r) => r.json());
@@ -331,6 +358,10 @@ async function callback(params: URLSearchParams): Promise<Response> {
   // was granted against, and those have been reliable, so read from there.
   const granted = await grantedAssets(token.access_token);
 
+  if (granted.whatsappIds.length > 0) {
+    return await connectWhatsApp(workspaceId, returnOrigin, granted.whatsappIds, token.access_token);
+  }
+
   const pages = await fetchPages(granted.pageIds, token.access_token);
   if (pages.length === 0) {
     // The seller has no Page, or did not grant one on the asset screen. The two
@@ -418,34 +449,67 @@ Messenger conversations can reach Rabta.`,
   return Response.redirect(`${returnOrigin}/?connected=1`, 302);
 }
 
-// Which Pages and Instagram accounts this token was actually granted against.
-// Every pages_* scope is granted against the same Page ids and every
-// instagram_* scope against the same Instagram ids, so the union of the target
-// ids under each prefix is the answer.
-async function grantedAssets(
-  userToken: string,
-): Promise<{ pageIds: string[]; instagramIds: string[] }> {
+// What this token was actually granted against. See assets.ts.
+async function grantedAssets(userToken: string): Promise<Granted> {
   const debug = await fetch(
     `${GRAPH}/debug_token?input_token=${encodeURIComponent(userToken)}` +
       `&access_token=${APP_ID}|${encodeURIComponent(APP_SECRET)}`,
   ).then((r) => r.json());
 
-  const pageIds = new Set<string>();
-  const instagramIds = new Set<string>();
+  return assetsFromScopes(debug?.data?.granular_scopes);
+}
 
-  for (const scope of debug?.data?.granular_scopes ?? []) {
-    const name = String(scope.scope ?? "");
-    const target = name.startsWith("pages_")
-      ? pageIds
-      : name.startsWith("instagram_")
-      ? instagramIds
-      : null;
+/**
+ * The WhatsApp half of the callback: every number in every business account
+ * the seller granted, each stored with the token, and each business account
+ * subscribed so its messages reach the webhook.
+ *
+ * ponytail: a number not yet registered for the Cloud API (a brand-new number,
+ * not one moved from the WhatsApp Business app through Coexistence) also needs
+ * POST /{phone}/register with a two-step PIN. Logged, not done — choosing a
+ * PIN the seller does not know is a decision to make, not a default.
+ */
+async function connectWhatsApp(
+  workspaceId: string,
+  returnOrigin: string,
+  businessAccountIds: string[],
+  accessToken: string,
+): Promise<Response> {
+  const report: string[] = [];
+  const auth = { headers: { authorization: `Bearer ${accessToken}` } };
 
-    if (!target) continue;
-    for (const id of scope.target_ids ?? []) target.add(String(id));
+  for (const waba of businessAccountIds) {
+    const numbers = await fetch(
+      `${GRAPH}/${waba}/phone_numbers?fields=id,display_phone_number,verified_name,status`,
+      auth,
+    ).then((r) => r.json());
+
+    for (const phone of numbers?.data ?? []) {
+      await connect(workspaceId, "whatsapp", phone.id, whatsappName(phone), accessToken, waba);
+      report.push(`WhatsApp: ${whatsappName(phone)} (${phone.id}) status=${phone.status}`);
+      if (phone.status && phone.status !== "CONNECTED") {
+        await log("warn", "whatsapp_number_not_registered", { phone: phone.id, status: phone.status }, workspaceId);
+      }
+    }
+
+    const subscribe = await fetch(`${GRAPH}/${waba}/subscribed_apps`, { method: "POST", ...auth })
+      .then((r) => r.json());
+    report.push(subscribe.success ? `  subscribed ${waba}` : `  SUBSCRIPTION FAILED: ${JSON.stringify(subscribe)}`);
   }
 
-  return { pageIds: [...pageIds], instagramIds: [...instagramIds] };
+  if (!report.some((line) => line.startsWith("WhatsApp:"))) {
+    await log("error", "connect_no_whatsapp_number", { businessAccountIds }, workspaceId);
+    return text(
+      `Almost there.
+
+No WhatsApp number was included. Go back to Rabta, press Connect WhatsApp
+again, and choose the number you sell from.`,
+      200,
+    );
+  }
+
+  await log("info", "account_connected", { report }, workspaceId);
+  return Response.redirect(`${returnOrigin}/?connected=1`, 302);
 }
 
 async function fetchPages(ids: string[], userToken: string): Promise<Page[]> {
@@ -474,10 +538,11 @@ interface Page {
 
 async function connect(
   workspaceId: string,
-  platform: "messenger" | "instagram",
+  platform: "messenger" | "instagram" | "whatsapp",
   externalId: string,
   name: string | null,
   accessToken: string,
+  businessAccountId: string | null = null,
 ): Promise<void> {
   const { data: account, error } = await supabase
     .from("connected_accounts")
@@ -491,6 +556,7 @@ async function connect(
         // expired, puts it back in service. Without this it would keep the
         // old status and read as disconnected while messages arrived.
         status: "active",
+        business_account_id: businessAccountId,
       },
       { onConflict: "platform,external_id" },
     )

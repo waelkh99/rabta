@@ -751,10 +751,13 @@ class LAr extends L {
 
   @override
   String get connectBody =>
-      'تصل رسائل إنستغرام وماسنجر إلى هنا بعد ربط صفحتك. أما ما أُرسل قبل الربط فيبقى في تطبيقات ميتا.';
+      'تصل رسائل إنستغرام وماسنجر وواتساب إلى هنا بعد ربطها. أما ما أُرسل قبل الربط فيبقى في تطبيقات ميتا.';
 
   @override
   String get connectAction => 'الربط مع ميتا';
+
+  @override
+  String get connectWhatsApp => 'ربط واتساب';
 
   @override
   String get connectOpening => 'جارٍ فتح ميتا';

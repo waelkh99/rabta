@@ -1,5 +1,9 @@
 # Launch checklist — the steps that need you
 
+> **Resumed 6 October 2026** for potential buyers — current work is in
+> `NEXT.md`. The note below is kept for its reasoning, which still holds for
+> Instagram and now for WhatsApp too.
+>
 > **Paused 27 September 2026, by the product owner's decision.** Instagram
 > messages from real customers need Meta App Review for
 > `instagram_manage_messages`, which needs Business Verification, which needs a

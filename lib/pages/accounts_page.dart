@@ -23,13 +23,17 @@ import '../theme.dart';
 /// The same tab on purpose: the callback redirects back to the application when
 /// it is done, and a new tab would leave the seller looking at the old one
 /// wondering whether it worked.
-Future<void> startConnecting(BuildContext context, Inbox inbox) async {
+Future<void> startConnecting(
+  BuildContext context,
+  Inbox inbox, {
+  bool whatsapp = false,
+}) async {
   final l = context.l;
   final messenger = ScaffoldMessenger.maybeOf(context);
   final colors = context.rabta;
 
   try {
-    final url = await inbox.connectUrl();
+    final url = await inbox.connectUrl(whatsapp: whatsapp);
     await launchUrl(Uri.parse(url), webOnlyWindowName: '_self');
   } on ConnectFailed catch (error) {
     messenger?.showSnackBar(
@@ -61,9 +65,9 @@ class ConnectPrompt extends StatefulWidget {
 class _ConnectPromptState extends State<ConnectPrompt> {
   bool _opening = false;
 
-  Future<void> _connect() async {
+  Future<void> _connect({bool whatsapp = false}) async {
     setState(() => _opening = true);
-    await startConnecting(context, widget.inbox);
+    await startConnecting(context, widget.inbox, whatsapp: whatsapp);
     if (mounted) setState(() => _opening = false);
   }
 
@@ -89,10 +93,51 @@ class _ConnectPromptState extends State<ConnectPrompt> {
               style: Style.preview.copyWith(color: colors.muted, height: 1.6),
             ),
             const SizedBox(height: 28),
-            ConnectButton(onPressed: _opening ? null : _connect, busy: _opening),
+            ConnectButtons(
+              onConnect: _opening ? null : (whatsapp) => _connect(whatsapp: whatsapp),
+              busy: _opening,
+            ),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Both ways in: Meta (Pages and Instagram) as the accent, WhatsApp beside it
+/// in outline, because the screen keeps one accent and most sellers start with
+/// a Page.
+class ConnectButtons extends StatelessWidget {
+  const ConnectButtons({super.key, required this.onConnect, this.busy = false});
+
+  /// Called with true for WhatsApp. Null while one is opening.
+  final void Function(bool whatsapp)? onConnect;
+  final bool busy;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l;
+    final onConnect = this.onConnect;
+
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        ConnectButton(
+          onPressed: onConnect == null ? null : () => onConnect(false),
+          busy: busy,
+        ),
+        OutlinedButton.icon(
+          onPressed: onConnect == null ? null : () => onConnect(true),
+          icon: const PlatformIcon(platform: 'whatsapp', size: 16),
+          label: Text(l.connectWhatsApp),
+          style: OutlinedButton.styleFrom(
+            shape: const RoundedRectangleBorder(),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 17),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -255,8 +300,9 @@ class _AccountsPageState extends State<AccountsPage> {
               const SizedBox(height: 12),
               Align(
                 alignment: AlignmentDirectional.centerStart,
-                child: ConnectButton(
-                  onPressed: () => startConnecting(context, widget.inbox),
+                child: ConnectButtons(
+                  onConnect: (whatsapp) =>
+                      startConnecting(context, widget.inbox, whatsapp: whatsapp),
                 ),
               ),
                     ],
@@ -304,7 +350,9 @@ class _AccountRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  account.name ?? platformName(context, account.platform),
+                  // In its own direction: "Test Number (+1 555-633-5647)" in
+                  // the Arabic page reordered around its brackets.
+                  ownDirection(account.name ?? platformName(context, account.platform)),
                   style: Style.name.copyWith(color: colors.ink),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

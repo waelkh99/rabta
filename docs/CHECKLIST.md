@@ -985,3 +985,24 @@ owner is in `LAUNCH.md`.
       language, sign-out and a link to Accounts — **seen** in both languages at
       both widths, with a throwaway admin created and deleted for the purpose
 - [ ] Everything in `LAUNCH.md`
+
+## 15. WhatsApp — started 6 October 2026
+
+Plan and log in `NEXT.md`.
+
+- [x] Receive: text, photos and files (downloaded into `customer-media`), the
+      customer's name, replies sent from the WhatsApp Business app — unit
+      tested; **seen** on staging from a real phone
+- [x] Reply from Rabta, with WhatsApp's 4,096 limit and its window error —
+      unit tested; **seen** arriving on the phone
+- [x] A photo with a caption shows both — widget test; **seen** in English
+      desktop and Arabic phone
+- [x] WhatsApp mark, name and colour in the list, thread, details and Accounts
+      page — **seen** in both languages at both widths
+- [x] Stop removes the link from the Accounts page and nothing more arrives;
+      reconnecting brings it back — **seen** on staging
+- [x] `npm run connect-whatsapp -- <email>` connects a number by hand
+- [ ] "Connect WhatsApp" button end to end — built and deployed, **seen**
+      reaching the server; blocked on the owner creating Meta's WhatsApp
+      Embedded Signup configuration (`NEXT.md`, "Next session")
+- [ ] A real seller's number — blocked on the production decision

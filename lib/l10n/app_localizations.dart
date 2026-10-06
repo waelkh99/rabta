@@ -1378,7 +1378,7 @@ abstract class L {
   /// No description provided for @connectBody.
   ///
   /// In ar, this message translates to:
-  /// **'تصل رسائل إنستغرام وماسنجر إلى هنا بعد ربط صفحتك. أما ما أُرسل قبل الربط فيبقى في تطبيقات ميتا.'**
+  /// **'تصل رسائل إنستغرام وماسنجر وواتساب إلى هنا بعد ربطها. أما ما أُرسل قبل الربط فيبقى في تطبيقات ميتا.'**
   String get connectBody;
 
   /// No description provided for @connectAction.
@@ -1386,6 +1386,12 @@ abstract class L {
   /// In ar, this message translates to:
   /// **'الربط مع ميتا'**
   String get connectAction;
+
+  /// No description provided for @connectWhatsApp.
+  ///
+  /// In ar, this message translates to:
+  /// **'ربط واتساب'**
+  String get connectWhatsApp;
 
   /// No description provided for @connectOpening.
   ///

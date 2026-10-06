@@ -211,6 +211,22 @@ in step with the product, not a licence to add features.
 
 ---
 
+## WhatsApp
+
+Requested by the product owner on 6 October 2026, with a new name for the
+product and a shift toward bigger companies as buyers. `NEXT.md` has the plan
+and its status; `docs/DECISIONS.md` (6–7 October) has what was decided.
+
+WhatsApp is a third channel in the same inbox, not a separate one: the same
+conversations, reply window, assistant and outcomes. Built and proven on Meta's
+test number on staging. A real seller's number needs the open production
+decision in `NEXT.md`.
+
+Features for bigger companies (teams, roles, assignment) are **not** to be
+built until the owner reports back from the buyer meetings.
+
+---
+
 ## How conversations end
 
 Requested by the product owner on 24 September 2026. The product owner counts
@@ -399,7 +415,6 @@ Avoid unnecessary screens, popups, settings, and steps.
 
 Later phases may include:
 
-- WhatsApp support;
 - customer profiles across multiple channels;
 - order information;
 - delivery company integrations;
@@ -409,6 +424,7 @@ Later phases may include:
 
 AI-assisted replies and AI-powered customer service have moved off this list.
 They were requested on 19 September 2026 and are Phase Two, described above.
+WhatsApp moved off it on 6 October 2026; see "WhatsApp" above.
 
 These are future possibilities only.
 

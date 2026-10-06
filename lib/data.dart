@@ -1854,12 +1854,16 @@ class Inbox {
   /// The workspace is not passed. It comes from the seller's own token on the
   /// far side, because a workspace named in the request would let anyone start
   /// a connection into an inbox they do not own.
-  Future<String> connectUrl() async {
+  /// [whatsapp] opens WhatsApp's own signup rather than the Page screen.
+  Future<String> connectUrl({bool whatsapp = false}) async {
     try {
       final response = await _db.functions.invoke(
         'meta-oauth/start',
         method: HttpMethod.get,
-        queryParameters: {'return': Uri.base.origin},
+        queryParameters: {
+          'return': Uri.base.origin,
+          if (whatsapp) 'kind': 'whatsapp',
+        },
       );
 
       final url = (response.data as Map?)?['url'] as String?;

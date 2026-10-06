@@ -752,10 +752,13 @@ class LEn extends L {
 
   @override
   String get connectBody =>
-      'Instagram and Messenger messages arrive here once you connect your Page. Anything sent before you connect stays in Meta\'s apps.';
+      'Instagram, Messenger and WhatsApp messages arrive here once you connect them. Anything sent before you connect stays in Meta\'s apps.';
 
   @override
   String get connectAction => 'Connect with Meta';
+
+  @override
+  String get connectWhatsApp => 'Connect WhatsApp';
 
   @override
   String get connectOpening => 'Opening Meta';
