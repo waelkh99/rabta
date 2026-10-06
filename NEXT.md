@@ -212,3 +212,10 @@ source linked.
   tests pass; each new test shown failing first. Deploy to staging was held for
   the owner's permission: `supabase db push`, then
   `supabase functions deploy meta-webhook send-message`, then the connect script.
+- 2026-10-07 — Deployed to staging (db push, meta-webhook + send-message,
+  connect script for wal.kh.saleh99@gmail.com). A real WhatsApp message from
+  the owner's phone arrived, stored as a WhatsApp conversation named "Wael",
+  window open. Seen in Playwright: inbox row, thread, details pane, in English
+  and Arabic at 1366 and at 390 wide. Not yet seen: a photo, a reply sent from
+  Rabta, the Accounts page. Note: `npm run events` needs
+  `-- whatsapp_business_account` to show WhatsApp deliveries.
