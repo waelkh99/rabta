@@ -294,13 +294,18 @@ class _Fact extends StatelessWidget {
               style: Style.preview.copyWith(color: colors.muted),
             ),
           ),
-          if (mark != null) ...[
-            Padding(
-              padding: const EdgeInsetsDirectional.only(end: 7),
-              child: mark,
-            ),
-          ],
-          Text(value, style: Style.preview.copyWith(color: colors.ink)),
+          // The mark is centred on the value, not on the row's top edge.
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (mark != null)
+                Padding(
+                  padding: const EdgeInsetsDirectional.only(end: 7),
+                  child: mark,
+                ),
+              Text(value, style: Style.preview.copyWith(color: colors.ink)),
+            ],
+          ),
         ],
       ),
     );

@@ -219,3 +219,10 @@ source linked.
   and Arabic at 1366 and at 390 wide. Not yet seen: a photo, a reply sent from
   Rabta, the Accounts page. Note: `npm run events` needs
   `-- whatsapp_business_account` to show WhatsApp deliveries.
+- 2026-10-07 — A reply sent from Rabta arrived on the owner's phone. Platform
+  marks replaced at the owner's request: the hand-drawn painters became the
+  brands' own glyphs (Simple Icons, CC0) through flutter_svg; details pane
+  centres the mark on its value. Seen in Playwright: WhatsApp in the list,
+  thread and details, English and Arabic, 1366 and 390; Instagram and
+  Messenger on the sign-in page. Still not seen: a customer photo, the
+  Accounts page.

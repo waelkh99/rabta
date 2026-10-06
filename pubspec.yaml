@@ -28,6 +28,7 @@ dependencies:
   # new version is out. Already in the tree through supabase_flutter; named
   # because we import it.
   http: ^1.2.0
+  flutter_svg: ^2.3.0
 
 dev_dependencies:
   flutter_test:
