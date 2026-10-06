@@ -13,11 +13,11 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'accounts_page.dart';
-import 'data.dart';
+import '../data.dart';
 import 'invite_page.dart';
-import 'locale_switch.dart';
-import 'strings.dart';
-import 'theme.dart';
+import '../widgets/locale_switch.dart';
+import '../strings.dart';
+import '../theme.dart';
 
 /// admin_overview's answer, read into what the screen draws.
 class AdminOverview {

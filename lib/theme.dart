@@ -93,7 +93,7 @@ class RabtaColors extends ThemeExtension<RabtaColors> {
   final Color instagram;
   final Color messenger;
 
-  /// Violet and saffron on sand. See DECISIONS.md, 26 September 2026.
+  /// Violet and saffron on sand. See docs/DECISIONS.md, 26 September 2026.
   static const light = RabtaColors(
     ground: Color(0xFFF5F0E8),
     surface: Color(0xFFFFFDF9),
@@ -184,7 +184,7 @@ abstract final class Radii {
   static const bubble = 20.0;
 }
 
-/// Almarai for everything read — narrowest in Arabic, see DECISIONS.md.
+/// Almarai for everything read — narrowest in Arabic, see docs/DECISIONS.md.
 /// Rubik for everything that names a place or a number: the wordmark, page
 /// titles, the counts. Rounded and heavy in both scripts, and it is the part of
 /// the type that gives the interface a voice.

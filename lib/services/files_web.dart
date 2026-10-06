@@ -10,7 +10,7 @@ import 'dart:typed_data';
 
 import 'package:web/web.dart' as web;
 
-import 'data.dart';
+import '../data.dart';
 import 'files.dart';
 
 Future<Picked> pickPhotos() async {

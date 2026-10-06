@@ -13,10 +13,10 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import 'data.dart';
-import 'platform_icon.dart';
-import 'strings.dart';
-import 'theme.dart';
+import '../data.dart';
+import '../widgets/platform_icon.dart';
+import '../strings.dart';
+import '../theme.dart';
 
 /// Sends the browser to Meta's approval page, in this tab.
 ///

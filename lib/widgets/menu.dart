@@ -11,10 +11,10 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'data.dart';
-import 'invite_page.dart';
-import 'strings.dart';
-import 'theme.dart';
+import '../data.dart';
+import '../pages/invite_page.dart';
+import '../strings.dart';
+import '../theme.dart';
 import 'wordmark.dart';
 
 class AppMenu extends StatelessWidget {

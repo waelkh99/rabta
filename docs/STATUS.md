@@ -177,7 +177,7 @@ terminal. **Menu → Admin** (admins only, enforced in the database by
 
 Where it comes from: every function writes important events to `ops_log`
 (`functions/_shared/log.ts`), every model call's tokens and cost to `ai_usage`,
-and the app reports uncaught errors to `client_errors` (`lib/reporting.dart`).
+and the app reports uncaught errors to `client_errors` (`lib/services/reporting.dart`).
 Processed raw deliveries are pruned after 30 days and logs after 90
 (`prune_old_records`, run after each delivery).
 

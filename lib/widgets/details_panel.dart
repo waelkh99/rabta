@@ -13,10 +13,10 @@
 
 import 'package:flutter/material.dart';
 
-import 'data.dart';
+import '../data.dart';
 import 'platform_icon.dart';
-import 'strings.dart';
-import 'theme.dart';
+import '../strings.dart';
+import '../theme.dart';
 
 class DetailsPanel extends StatelessWidget {
   const DetailsPanel({

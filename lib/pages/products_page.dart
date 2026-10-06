@@ -15,10 +15,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'data.dart';
-import 'files.dart';
-import 'strings.dart';
-import 'theme.dart';
+import '../data.dart';
+import '../services/files.dart';
+import '../strings.dart';
+import '../theme.dart';
 
 /// The catalog and the assistant's settings, loaded together.
 typedef _Catalog = ({

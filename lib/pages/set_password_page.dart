@@ -11,11 +11,11 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'data.dart';
-import 'l10n/app_localizations.dart';
-import 'strings.dart';
+import '../data.dart';
+import '../l10n/app_localizations.dart';
+import '../strings.dart';
 import 'sign_in_page.dart';
-import 'theme.dart';
+import '../theme.dart';
 
 /// Ten characters with mixed case and a digit, the rule the server enforces
 /// (see passwordStrongEnough), because this password opens other people's

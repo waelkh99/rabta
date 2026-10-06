@@ -10,11 +10,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'locale_switch.dart';
-import 'platform_icon.dart';
-import 'strings.dart';
-import 'theme.dart';
-import 'wordmark.dart';
+import '../widgets/locale_switch.dart';
+import '../widgets/platform_icon.dart';
+import '../strings.dart';
+import '../theme.dart';
+import '../widgets/wordmark.dart';
 
 class SignInPage extends StatefulWidget {
   const SignInPage({super.key});

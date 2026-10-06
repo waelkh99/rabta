@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:rabta/data.dart';
 import 'package:rabta/l10n/app_localizations.dart';
-import 'package:rabta/outcome.dart';
+import 'package:rabta/widgets/outcome.dart';
 
 Conversation _c({String? outcome, String? reason, String? by}) => Conversation(
       id: '1',

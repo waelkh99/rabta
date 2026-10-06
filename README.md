@@ -127,7 +127,7 @@ The service is run from an **Admin** screen inside the app: health, every
 seller, costs, events and errors on sellers' screens.
 
 The product is not publicly launched — Meta app review, hosting and custom
-email are the remaining blockers, all tracked in `STATUS.md`. Notifications
+email are the remaining blockers, all tracked in `docs/STATUS.md`. Notifications
 reach a closed browser only once there is hosting for Web Push.
 
 ---
@@ -136,15 +136,27 @@ reach a closed browser only once there is hosting for Web Push.
 
 - `CLAUDE.md` — what the product is, how it should behave, and what is
   deliberately out of scope
-- `DECISIONS.md` — every settled decision and the reasoning behind it,
+- `docs/DECISIONS.md` — every settled decision and the reasoning behind it,
   including what was measured, what was wrong first, and Meta's constraints
-- `CHECKLIST.md` — what has been built and proven, phase by phase
-- `STATUS.md` — where the work stands right now
-- `WEBHOOKS.md` — the webhook service specification
-- `ONBOARDING.md` — the seller's first ten minutes
-- `LAUNCH.md` — the steps before launch that need the owner, not code
+- `docs/CHECKLIST.md` — what has been built and proven, phase by phase
+- `docs/STATUS.md` — where the work stands right now
+- `docs/WEBHOOKS.md` — the webhook service specification
+- `docs/ONBOARDING.md` — the seller's first ten minutes
+- `docs/LAUNCH.md` — the steps before launch that need the owner, not code
+- `NEXT.md` — the current piece of work, with a status list
 
-`DECISIONS.md` is the one worth reading. It records the failures as carefully
+Code:
+
+- `lib/` — the Flutter app: `main.dart`, `data.dart` (every query), `theme.dart`,
+  `strings.dart`, and `l10n/`
+  - `pages/` — one file per screen
+  - `widgets/` — pieces shared between screens
+  - `services/` — notifications, files, preferences and error reporting; each
+    with a `_web` and a `_stub` file, picked by conditional import
+- `supabase/` — migrations, Edge Functions, their tests and the operator scripts
+- `test/` — Flutter tests; `tool/` — deploy and asset scripts
+
+`docs/DECISIONS.md` is the one worth reading. It records the failures as carefully
 as the results — an assistant that answered an English customer in Arabic, one
 that invented a delivery date out of the seller's own past reply, one that
 asked a browsing customer what size they wanted.
@@ -187,4 +199,4 @@ until the page was reloaded. None of those failed a test.
 Supabase key that bypasses row level security. Both are protected by
 `.gitignore` alone — worth a glance at `git status` before any commit that
 touches `supabase/`. Why they must stay separate, and why `META_VERIFY_TOKEN`
-cannot be recovered if lost, are in `DECISIONS.md` under Platform constraints.
+cannot be recovered if lost, are in `docs/DECISIONS.md` under Platform constraints.

@@ -13,11 +13,11 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'alerts_switch.dart';
-import 'data.dart';
-import 'locale_switch.dart';
-import 'strings.dart';
-import 'theme.dart';
+import '../widgets/alerts_switch.dart';
+import '../data.dart';
+import '../widgets/locale_switch.dart';
+import '../strings.dart';
+import '../theme.dart';
 
 typedef _ShopView = ({Shop shop, List<DeliveryZone> zones, int products});
 

@@ -16,7 +16,7 @@
 
 import 'package:flutter/material.dart';
 
-import 'theme.dart';
+import '../theme.dart';
 
 /// The mark on its own, in the platform's own colour.
 class PlatformIcon extends StatelessWidget {

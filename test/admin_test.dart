@@ -2,9 +2,9 @@
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:rabta/admin_page.dart';
+import 'package:rabta/pages/admin_page.dart';
 import 'package:rabta/data.dart';
-import 'package:rabta/reporting.dart';
+import 'package:rabta/services/reporting.dart';
 
 AdminOverview _o(Map<String, dynamic> health) => AdminOverview({'health': health});
 

@@ -4,7 +4,7 @@ images, so nothing in the demo belongs to anyone else.
     python tool/demo_photos.py
 
 Writes supabase/demo/photos/<name>.jpg at 1200px and <name>_s.jpg at 320px —
-the two sizes the app itself stores (lib/files.dart) — for
+the two sizes the app itself stores (lib/services/files.dart) — for
 supabase/scripts/demo-shop.mjs to upload.
 """
 

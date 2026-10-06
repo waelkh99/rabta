@@ -12,11 +12,11 @@
 //
 // Nothing here reaches a phone in a Safari tab, which cannot show a notification
 // at all until the site is added to the Home Screen. That is written up in
-// DECISIONS.md rather than worked around.
+// docs/DECISIONS.md rather than worked around.
 
 import 'alerts_stub.dart' if (dart.library.js_interop) 'alerts_web.dart' as browser;
-import 'data.dart';
-import 'l10n/app_localizations.dart';
+import '../data.dart';
+import '../l10n/app_localizations.dart';
 
 /// Why the seller is being told about a conversation.
 enum AlertKind {

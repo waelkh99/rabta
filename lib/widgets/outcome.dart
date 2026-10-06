@@ -8,10 +8,10 @@
 
 import 'package:flutter/material.dart';
 
-import 'data.dart';
-import 'l10n/app_localizations.dart';
-import 'strings.dart';
-import 'theme.dart';
+import '../data.dart';
+import '../l10n/app_localizations.dart';
+import '../strings.dart';
+import '../theme.dart';
 
 IconData _icon(String outcome) => switch (outcome) {
       'ordered' => Icons.check_circle_outline,

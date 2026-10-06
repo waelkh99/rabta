@@ -5,7 +5,7 @@
 // it were wrong.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:rabta/files.dart';
+import 'package:rabta/services/files.dart';
 
 void main() {
   test('a phone photo is brought down to the long edge, keeping its shape', () {

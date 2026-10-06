@@ -23,21 +23,21 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'accounts_page.dart';
 import 'admin_page.dart';
-import 'alerts.dart';
-import 'data.dart';
-import 'details_panel.dart';
+import '../services/alerts.dart';
+import '../data.dart';
+import '../widgets/details_panel.dart';
 import 'invite_page.dart';
-import 'locale_switch.dart';
-import 'menu.dart';
+import '../widgets/locale_switch.dart';
+import '../widgets/menu.dart';
 import 'offers_page.dart';
-import 'outcome.dart';
-import 'platform_icon.dart';
+import '../widgets/outcome.dart';
+import '../widgets/platform_icon.dart';
 import 'products_page.dart';
 import 'results_page.dart';
 import 'shop_page.dart';
-import 'strings.dart';
-import 'theme.dart';
-import 'wordmark.dart';
+import '../strings.dart';
+import '../theme.dart';
+import '../widgets/wordmark.dart';
 
 class InboxPage extends StatefulWidget {
   const InboxPage({super.key});

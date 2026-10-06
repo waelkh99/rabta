@@ -902,7 +902,7 @@ test("Arabizi is told to answer in Arabic, not English", () => {
 
 test("numbers are to be written in Western figures, even in Arabic", () => {
   // Measured: the same conversation gave "32 دينار" and then "٣٢ دينار". The
-  // interface uses Western numerals everywhere (DECISIONS.md), the shop's own
+  // interface uses Western numerals everywhere (docs/DECISIONS.md), the shop's own
   // list is written that way, and a shop that changes numeral system halfway
   // through reads as two different people.
   const body = buildRequest(requestInput);

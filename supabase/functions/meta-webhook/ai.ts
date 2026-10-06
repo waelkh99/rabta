@@ -2,7 +2,7 @@
 //
 // The AI answers basic inquiries — price, availability, basic product facts —
 // from the seller's own catalog, and hands everything else back to the seller.
-// See CLAUDE.md for the product shape and DECISIONS.md (19 September 2026) for
+// See CLAUDE.md for the product shape and docs/DECISIONS.md (19 September 2026) for
 // why it is shaped this way.
 //
 // The guards below are free, deterministic and testable without a network, and
@@ -64,7 +64,7 @@ export const SELLER_PRESENT_MINUTES = 15;
  * talk to itself; the monthly ceiling below is the cost backstop.
  */
 
-/** Roughly $7 of Haiku at the prices in DECISIONS.md. A backstop, not a quota. */
+/** Roughly $7 of Haiku at the prices in docs/DECISIONS.md. A backstop, not a quota. */
 export const MONTHLY_CEILING = 2000;
 
 // ---------------------------------------------------------------------------
@@ -1855,7 +1855,7 @@ function numbersIn(text: string): Set<number> {
 /**
  * Arabic-Indic and Extended Arabic-Indic digits folded onto Western ones.
  *
- * The interface uses Western numerals throughout (DECISIONS.md), but a
+ * The interface uses Western numerals throughout (docs/DECISIONS.md), but a
  * customer may well type ٢٥٠٠٠, and the model may echo it back. Comparing
  * those against a catalog written in Western digits would fail every time.
  */

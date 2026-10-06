@@ -8,7 +8,7 @@
 import 'package:flutter/widgets.dart' show Locale;
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:rabta/alerts.dart';
+import 'package:rabta/services/alerts.dart';
 import 'package:rabta/data.dart';
 import 'package:rabta/l10n/app_localizations.dart';
 

@@ -11,7 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:rabta/data.dart';
-import 'package:rabta/details_panel.dart';
+import 'package:rabta/widgets/details_panel.dart';
 import 'package:rabta/l10n/app_localizations.dart';
 import 'package:rabta/strings.dart';
 import 'package:rabta/theme.dart';
@@ -500,7 +500,7 @@ void _arabic() {
     });
 
     test('times keep Western numerals in Arabic', () {
-      // Settled in DECISIONS.md. Some Arabic locale data renders Eastern
+      // Settled in docs/DECISIONS.md. Some Arabic locale data renders Eastern
       // numerals by default, which is exactly what this catches.
       expect(ar.hoursAgo(5), contains('5'));
       expect(ar.minutesLeftToReply(20), contains('20'));
@@ -828,7 +828,7 @@ void _numerals() {
 
   test('no Arabic string uses Eastern numerals', () {
     // Western numerals throughout, including in the Arabic interface — settled
-    // in DECISIONS.md. Checking the file rather than a handful of getters is
+    // in docs/DECISIONS.md. Checking the file rather than a handful of getters is
     // what makes this hold: "٢٤ ساعة" was written into the explanation string
     // and two spot-checks on other strings did not see it.
     final arb = File('lib/l10n/app_ar.arb').readAsStringSync();

@@ -11,7 +11,7 @@
 
 import 'package:flutter/material.dart';
 
-import 'theme.dart';
+import '../theme.dart';
 
 class Wordmark extends StatelessWidget {
   const Wordmark({super.key, this.size = 21, this.onDark = false});

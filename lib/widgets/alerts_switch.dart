@@ -14,9 +14,9 @@
 
 import 'package:flutter/material.dart';
 
-import 'alerts.dart';
-import 'strings.dart';
-import 'theme.dart';
+import '../services/alerts.dart';
+import '../strings.dart';
+import '../theme.dart';
 
 class AlertsSwitch extends StatefulWidget {
   const AlertsSwitch({super.key});

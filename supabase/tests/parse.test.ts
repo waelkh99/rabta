@@ -448,7 +448,7 @@ test("reads an image attachment from a real delivery", () => {
   assert.match(attachment.payload.url, /^https:\/\/scontent\..*fbcdn\.net\//);
 
   // The signed URL expires. Measured from this delivery, Meta gave it roughly
-  // 30 days — see the note in DECISIONS.md about storing versus proxying.
+  // 30 days — see the note in docs/DECISIONS.md about storing versus proxying.
   assert.match(attachment.payload.url, /[?&]oe=[0-9A-F]+/);
 });
 

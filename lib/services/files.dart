@@ -18,7 +18,7 @@
 
 import 'dart:typed_data';
 
-import 'data.dart';
+import '../data.dart';
 import 'files_stub.dart' if (dart.library.js_interop) 'files_web.dart' as browser;
 
 /// The long edge of the photo that is shown and sent. Enough for a phone

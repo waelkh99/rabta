@@ -7,9 +7,9 @@
 
 import 'package:flutter/material.dart';
 
-import 'l10n/app_localizations.dart';
-import 'prefs.dart';
-import 'theme.dart';
+import '../l10n/app_localizations.dart';
+import '../services/prefs.dart';
+import '../theme.dart';
 
 /// The language chosen in this tab, or null until somebody chooses one.
 ///

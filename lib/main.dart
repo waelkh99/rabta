@@ -19,12 +19,12 @@ import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import 'inbox_page.dart';
+import 'pages/inbox_page.dart';
 import 'l10n/app_localizations.dart';
-import 'locale_switch.dart';
-import 'reporting.dart';
-import 'set_password_page.dart';
-import 'sign_in_page.dart';
+import 'widgets/locale_switch.dart';
+import 'services/reporting.dart';
+import 'pages/set_password_page.dart';
+import 'pages/sign_in_page.dart';
 import 'theme.dart';
 
 const _url = String.fromEnvironment('SUPABASE_URL');

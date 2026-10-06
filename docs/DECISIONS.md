@@ -464,7 +464,7 @@ seller can override with the switch on the sign-in screen or `?lang=`.
 **The name is ربطة — a tie.** Not رابطة, which is a league or an association,
 and which was used by mistake for half a day. The Latin "Rabta" is a
 transliteration of it rather than the other way round, so the two are set at
-equal weight in `lib/wordmark.dart` and never drift apart.
+equal weight in `lib/widgets/wordmark.dart` and never drift apart.
 
 **Consequences:**
 
@@ -475,7 +475,7 @@ equal weight in `lib/wordmark.dart` and never drift apart.
   source artwork sits on white rather than transparency, and its padding is
   right for a phone home screen and wrong at 16px, where the interlocking
   bubbles close into a smudge — so each size is trimmed differently.
-- Platform marks are drawn as paths in `lib/platform_icon.dart`.
+- Platform marks are drawn as paths in `lib/widgets/platform_icon.dart`.
   `font_awesome_flutter` does not compile against Flutter 3.47, where
   `IconData` became a final class it can no longer extend. Worth knowing that
   `flutter analyze` passed and only `dart2js` failed.
@@ -2684,7 +2684,7 @@ the same, which is what made the column restriction testable at all.
 carries a hash that changes on every build; the app reads it at start and every
 ten minutes. `version.json` would have needed the version bumped by hand on
 every deploy. The hash comes from Flutter's deprecated service worker setting —
-marked `ponytail:` in `lib/reporting.dart`, with the upgrade path.
+marked `ponytail:` in `lib/services/reporting.dart`, with the upgrade path.
 
 **The new password is typed twice — a reversal.** The invitation screen had
 one field with a reveal, reasoning that seeing the password does what a second

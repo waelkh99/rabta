@@ -1,6 +1,6 @@
 """Generate the web icon set: the knot from the wordmark, on the night tile.
 
-The mark is the one drawn between "Rabta" and "ربطة" in lib/wordmark.dart —
+The mark is the one drawn between "Rabta" and "ربطة" in lib/widgets/wordmark.dart —
 two overlapping rings, saffron and cream, as the wordmark sits on the dark
 panels — so the tab, the home screen and the name are one shape. The geometry
 is the widget's: each ring is 62% of the knot's width, the stroke 15%.

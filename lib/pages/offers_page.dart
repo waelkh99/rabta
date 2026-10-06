@@ -15,9 +15,9 @@
 
 import 'package:flutter/material.dart';
 
-import 'data.dart';
-import 'strings.dart';
-import 'theme.dart';
+import '../data.dart';
+import '../strings.dart';
+import '../theme.dart';
 
 typedef _Loaded = ({
   List<Offer> offers,

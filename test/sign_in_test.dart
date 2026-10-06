@@ -14,7 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:rabta/l10n/app_localizations.dart';
-import 'package:rabta/sign_in_page.dart';
+import 'package:rabta/pages/sign_in_page.dart';
 import 'package:rabta/theme.dart';
 
 Widget _app({Locale locale = const Locale('en')}) => MaterialApp(

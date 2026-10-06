@@ -17,11 +17,18 @@ after meeting the buyers.
 - [ ] B1 — seen in Playwright (both languages, both widths)
 - [ ] B2 — Embedded Signup + "Connect WhatsApp" button
 - [ ] Owner decision — production access route (buyer owns the Meta app, or register a business)
-- [ ] Docs — DECISIONS.md, CLAUDE.md, CHECKLIST.md, LAUNCH.md header
+- [ ] Docs — docs/DECISIONS.md, CLAUDE.md, docs/CHECKLIST.md, docs/LAUNCH.md header
 
 ## Log
 
 - 2026-10-06 — plan written and approved.
+- 2026-10-06 — B1 started: `parse.ts` reads WhatsApp messages, media (by id),
+  and Coexistence echoes; 5 tests. Not yet: migration, media download,
+  profile name, send, UI, prompts. Inbound WhatsApp would currently fail at
+  `findAccount` (enum lacks 'whatsapp') — harmless until a number is subscribed.
+- 2026-10-06 — repo reorganized at the owner's request: docs into `docs/`,
+  `lib/` into `pages/`, `widgets/`, `services/`. Imports rewritten; analyzer
+  clean, 266 Flutter + 480 backend tests pass, `flutter build web` compiles.
 
 ---
 
@@ -77,7 +84,7 @@ The deliverable is a short naming brief, published as a doc the owner can share.
 Rename only what users see:
 
 - about 6–9 l10n strings per language;
-- `lib/wordmark.dart` and the title in `lib/main.dart`;
+- `lib/widgets/wordmark.dart` and the title in `lib/main.dart`;
 - `web/index.html`, `web/manifest.json`, `web/privacy.html`, `web/data-deletion.html`;
 - `supabase/scripts/email-templates.mjs` and `web/alerts_sw.js`;
 - the OAuth error text in `meta-oauth/index.ts`;
@@ -165,10 +172,10 @@ B1 doesn't depend on this.
 
 ## Docs to update when building
 
-- `DECISIONS.md`: amend the 14 Sept WhatsApp entry (Coexistence now exists) and note the change.
+- `docs/DECISIONS.md`: amend the 14 Sept WhatsApp entry (Coexistence now exists) and note the change.
 - `CLAUDE.md`: add a WhatsApp section and take WhatsApp off Future Vision.
-- `CHECKLIST.md`: add a section for B1 and B2.
-- `LAUNCH.md`: the header no longer says "paused".
+- `docs/CHECKLIST.md`: add a section for B1 and B2.
+- `docs/LAUNCH.md`: the header no longer says "paused".
 
 ## Verification
 

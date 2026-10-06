@@ -9,9 +9,9 @@
 
 import 'package:flutter/material.dart';
 
-import 'data.dart';
-import 'strings.dart';
-import 'theme.dart';
+import '../data.dart';
+import '../strings.dart';
+import '../theme.dart';
 
 class ResultsPage extends StatefulWidget {
   const ResultsPage({super.key, required this.inbox});

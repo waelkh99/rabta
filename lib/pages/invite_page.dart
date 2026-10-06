@@ -10,10 +10,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'data.dart';
-import 'l10n/app_localizations.dart';
-import 'strings.dart';
-import 'theme.dart';
+import '../data.dart';
+import '../l10n/app_localizations.dart';
+import '../strings.dart';
+import '../theme.dart';
 
 /// Matches ADMIN_FLAG in supabase/functions/admin-invite/admin.ts.
 const _adminFlag = 'rabta_admin';

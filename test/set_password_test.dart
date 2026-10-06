@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:rabta/l10n/app_localizations.dart';
-import 'package:rabta/set_password_page.dart';
+import 'package:rabta/pages/set_password_page.dart';
 import 'package:rabta/theme.dart';
 
 Widget _app({required VoidCallback onDone}) => MaterialApp(

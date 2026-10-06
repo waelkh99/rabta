@@ -11,15 +11,15 @@ The product should be designed around real seller workflows, not around technica
 **Current work (from 6 October 2026): read `NEXT.md`** — a new name and
 WhatsApp, with a status list each session ticks.
 
-**Before launch, read `LAUNCH.md`:** the steps that need the product owner
+**Before launch, read `docs/LAUNCH.md`:** the steps that need the product owner
 (production project, hosting, SMTP, legal pages, Meta review), in order, with
 what each hands back.
 
 Decisions that have already been settled — supported platforms, backend, and
-known Meta limitations — are recorded in `DECISIONS.md`. Read it before making
+known Meta limitations — are recorded in `docs/DECISIONS.md`. Read it before making
 architectural choices.
 
-`WEBHOOKS.md` specifies the webhook service that receives messages from Meta
+`docs/WEBHOOKS.md` specifies the webhook service that receives messages from Meta
 and sends replies. It is being built as a standalone piece of work.
 
 ---
@@ -148,8 +148,8 @@ The catalog exists so the model can answer questions. It is not a place for the
 seller to run their inventory, and it should not grow into one without a
 decision that says so.
 
-`DECISIONS.md` holds the settled Phase Two decisions and the reasoning behind
-each. `CHECKLIST.md` tracks progress.
+`docs/DECISIONS.md` holds the settled Phase Two decisions and the reasoning behind
+each. `docs/CHECKLIST.md` tracks progress.
 
 ### Anything the seller writes down, the assistant should be able to read
 
@@ -252,8 +252,8 @@ conversation, not an order record, and should not grow into one without a
 decision that says so.
 
 **Built 24–25 September 2026**, seen in a browser in both languages at both
-widths, and reading live conversations on the deployed function. `CHECKLIST.md`
-section 13 and `DECISIONS.md` have the detail.
+widths, and reading live conversations on the deployed function. `docs/CHECKLIST.md`
+section 13 and `docs/DECISIONS.md` have the detail.
 
 The rule that anything the seller writes down reaches the assistant applies
 here in reverse as well: an outcome the seller corrects is the ground truth the
@@ -348,7 +348,7 @@ something could not be tested, say exactly that and why.
 **A standing rule, asked for by the product owner on 21 September 2026.**
 
 No change that affects the interface may be called done, ticked in
-`CHECKLIST.md`, or reported as working on the strength of unit tests. It has to
+`docs/CHECKLIST.md`, or reported as working on the strength of unit tests. It has to
 be driven in a real browser with Playwright and looked at.
 
 This is not a formality and it is not the same rule as the one above. A widget
