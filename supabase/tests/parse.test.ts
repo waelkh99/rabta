@@ -171,17 +171,132 @@ test("survives payloads that are not shaped as expected", () => {
 });
 
 test("ignores objects we do not support", () => {
-  // WhatsApp is deferred. Its events must be skipped quietly rather than
-  // misread as Messenger.
   const { messages, skipped } = parseWebhookPayload({
-    object: "whatsapp_business_account",
-    entry: [{ id: "waba", changes: [] }],
+    object: "user",
+    entry: [{ id: "x", changes: [] }],
   });
 
   assert.equal(messages.length, 0);
   assert.match(skipped[0], /unsupported object type/);
 });
 
+// ---------------------------------------------------------------------------
+// WhatsApp: a different shape. entry[].changes[].value, the account is the
+// phone number id in metadata, timestamps in seconds, media by id.
+// ---------------------------------------------------------------------------
+
+const PHONE_ID = "106540352242922";
+const WA_ID = "962790000000";
+const SENT_S = 1_757_000_000;
+
+function whatsappPayload(value: Record<string, unknown>, field = "messages") {
+  return {
+    object: "whatsapp_business_account",
+    entry: [{
+      id: "waba_1",
+      changes: [{
+        field,
+        value: {
+          messaging_product: "whatsapp",
+          metadata: { display_phone_number: "15550000000", phone_number_id: PHONE_ID },
+          ...value,
+        },
+      }],
+    }],
+  };
+}
+
+test("reads an inbound WhatsApp text, with the customer's name", () => {
+  const { messages } = parseWebhookPayload(whatsappPayload({
+    contacts: [{ profile: { name: "Lina" }, wa_id: WA_ID }],
+    messages: [{
+      from: WA_ID,
+      id: "wamid.A",
+      timestamp: String(SENT_S),
+      type: "text",
+      text: { body: "بكم هاد؟" },
+    }],
+  }));
+
+  assert.deepEqual(messages, [{
+    accountExternalId: PHONE_ID,
+    platform: "whatsapp",
+    customerExternalId: WA_ID,
+    customerName: "Lina",
+    mid: "wamid.A",
+    direction: "inbound",
+    text: "بكم هاد؟",
+    attachments: [],
+    sentAt: new Date(SENT_S * 1000).toISOString(),
+  }]);
+});
+
+test("reads WhatsApp media as an attachment by id, caption as text", () => {
+  const { messages } = parseWebhookPayload(whatsappPayload({
+    contacts: [{ profile: { name: "Lina" }, wa_id: WA_ID }],
+    messages: [
+      {
+        from: WA_ID, id: "wamid.I", timestamp: String(SENT_S), type: "image",
+        image: { id: "media_1", mime_type: "image/jpeg", caption: "هاد" },
+      },
+      {
+        from: WA_ID, id: "wamid.D", timestamp: String(SENT_S), type: "document",
+        document: { id: "media_2", mime_type: "application/pdf", filename: "a.pdf" },
+      },
+    ],
+  }));
+
+  assert.equal(messages.length, 2);
+  assert.equal(messages[0].text, "هاد");
+  assert.deepEqual(messages[0].attachments, [
+    { type: "image", payload: { media_id: "media_1", mime_type: "image/jpeg" } },
+  ]);
+  // Meta's Messenger vocabulary, so the rest of the system reads it unchanged.
+  assert.equal((messages[1].attachments[0] as { type: string }).type, "file");
+});
+
+test("reads a reply the seller sent from the WhatsApp Business app as outbound", () => {
+  const { messages } = parseWebhookPayload(whatsappPayload({
+    message_echoes: [{
+      from: "15550000000",
+      to: WA_ID,
+      id: "wamid.E",
+      timestamp: String(SENT_S),
+      type: "text",
+      text: { body: "15 دينار" },
+    }],
+  }, "smb_message_echoes"));
+
+  assert.equal(messages.length, 1);
+  assert.equal(messages[0].direction, "outbound");
+  assert.equal(messages[0].customerExternalId, WA_ID);
+  assert.equal(messages[0].text, "15 دينار");
+});
+
+test("skips WhatsApp delivery statuses and reactions without storing them", () => {
+  const { messages, skipped } = parseWebhookPayload(whatsappPayload({
+    statuses: [{ id: "wamid.A", status: "read", timestamp: String(SENT_S), recipient_id: WA_ID }],
+    messages: [{
+      from: WA_ID, id: "wamid.R", timestamp: String(SENT_S), type: "reaction",
+      reaction: { message_id: "wamid.A", emoji: "👍" },
+    }],
+  }));
+
+  assert.equal(messages.length, 0);
+  assert.ok(skipped.length >= 1);
+});
+
+test("survives WhatsApp payloads that are not shaped as expected", () => {
+  for (const value of [{}, { messages: "x" }, { messages: [null, { id: "w" }] }]) {
+    assert.doesNotThrow(() => parseWebhookPayload(whatsappPayload(value)));
+    assert.equal(parseWebhookPayload(whatsappPayload(value)).messages.length, 0);
+  }
+  assert.equal(
+    parseWebhookPayload({ object: "whatsapp_business_account", entry: [{ changes: [{ value: {} }] }] })
+      .messages.length,
+    0,
+  );
+});
 // ---------------------------------------------------------------------------
 // Captured from Meta, not written by us.
 //
