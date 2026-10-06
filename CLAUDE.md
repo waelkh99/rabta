@@ -8,6 +8,9 @@ The long-term goal is to provide one place where sellers can manage customer int
 
 The product should be designed around real seller workflows, not around technical possibilities.
 
+**Current work (from 6 October 2026): read `NEXT.md`** — a new name and
+WhatsApp, with a status list each session ticks.
+
 **Before launch, read `LAUNCH.md`:** the steps that need the product owner
 (production project, hosting, SMTP, legal pages, Meta review), in order, with
 what each hands back.
