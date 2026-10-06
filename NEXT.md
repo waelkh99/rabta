@@ -12,9 +12,9 @@ after meeting the buyers.
 - [ ] A — owner picks a name
 - [ ] A — rename what users see, new domain
 - [x] B — owner added WhatsApp to the Meta app; test number +1 555-633-5647, IDs and a never-expiring system-user token in `supabase/.env` (checked against Graph 6 Oct); staging webhook verified for WhatsApp
-- [ ] B1 — migration, parse, send, media, UI three-way switches, prompts (unit-tested)
-- [ ] B1 — connect-whatsapp script, end to end on staging with the test number
-- [ ] B1 — seen in Playwright (both languages, both widths)
+- [x] B1 — migration, parse, send, media, UI three-way switches, prompts (unit-tested)
+- [x] B1 — connect-whatsapp script, end to end on staging with the test number (receive, reply, photo, stop, reconnect)
+- [x] B1 — seen in Playwright (both languages, both widths)
 - [ ] B2 — Embedded Signup + "Connect WhatsApp" button
 - [ ] Owner decision — production access route (buyer owns the Meta app, or register a business)
 - [ ] Docs — docs/DECISIONS.md, CLAUDE.md, docs/CHECKLIST.md, docs/LAUNCH.md header
@@ -232,3 +232,13 @@ source linked.
   Fixed (`MessageBody` shows the photo, then the caption); widget test shown
   failing with the old branch. Seen in Playwright, English desktop and Arabic
   phone. Still not seen: the Accounts page.
+- 2026-10-07 — Stopping a link: the owner asked that a stopped link leave the
+  Accounts page. It now does (only there — the inbox still counts it, so
+  stopping every link does not swap the past for the first-run screen). Found
+  on the way: Meta refuses `DELETE /{phone_number_id}/subscribed_apps`
+  (code 100), so a stopped WhatsApp number kept receiving; the webhook's
+  `findAccount` now skips disconnected accounts. Cycle tested on staging:
+  stop in the app → row gone → a message sent was delivered (event 62) and
+  ignored → reconnect script → row back, receiving. Unsubscribing the WABA
+  properly needs its id stored, which B2 will do.
+- 2026-10-07 — Accounts page seen in Arabic (desktop). B1 is done.

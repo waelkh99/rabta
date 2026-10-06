@@ -219,7 +219,12 @@ class _AccountsPageState extends State<AccountsPage> {
             );
           }
 
-          final accounts = snapshot.data!;
+          // A link the seller stopped leaves this list. Its conversations stay
+          // in the inbox, and connecting it again brings it back. (The inbox
+          // still counts it, so stopping every link does not hide the past
+          // behind the first-run screen.)
+          final accounts =
+              snapshot.data!.where((a) => a.status != 'disconnected').toList();
 
           // A column rather than the whole window. Left to stretch, a row put
           // its name and its Turn off control a thousand pixels apart on a

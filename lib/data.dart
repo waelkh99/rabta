@@ -1510,8 +1510,8 @@ class Inbox {
 
   /// The seller's connected accounts, including ones no longer receiving.
   ///
-  /// A disconnected account is still shown, because its conversations are
-  /// still here and being able to reconnect it is the point.
+  /// A disconnected account is still returned, because its conversations are
+  /// still here; the Accounts page leaves it out of its list.
   Future<List<Account>> accounts() async {
     final rows = await _db
         .from('connected_accounts')

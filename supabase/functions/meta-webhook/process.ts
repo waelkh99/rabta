@@ -712,6 +712,10 @@ export function createSupabaseStore(client: SupabaseLike): Store {
         .select("id, workspace_id")
         .eq("platform", platform)
         .eq("external_id", externalId)
+        // A link the seller stopped receives nothing, even if Meta still
+        // delivers: unsubscribing a WhatsApp number happens on its business
+        // account, which we do not hold yet (NEXT.md, B2).
+        .neq("status", "disconnected")
         .maybeSingle();
 
       if (error) throw new Error(`account lookup failed: ${error.message}`);
