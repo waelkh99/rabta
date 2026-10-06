@@ -166,7 +166,7 @@ export async function createSeller(db: TestDb, email: string): Promise<{
 export async function connectAccount(
   db: TestDb,
   workspaceId: string,
-  platform: "instagram" | "messenger",
+  platform: "instagram" | "messenger" | "whatsapp",
   externalId: string,
 ): Promise<string> {
   const [account] = await db.sql(

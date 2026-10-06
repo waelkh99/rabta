@@ -80,10 +80,10 @@ test("each platform accepts exactly its limit and refuses one more", () => {
 });
 
 test("an unknown platform falls back to the shorter limit", () => {
-  // WhatsApp is deferred, not cancelled. A platform added without touching
-  // this file must not send messages that are silently truncated.
-  assert.equal(checkText("x".repeat(1000), "whatsapp"), null);
-  assert.equal(checkText("x".repeat(1001), "whatsapp"), "too_long");
+  // A platform added without touching this file must not send messages that
+  // are silently truncated.
+  assert.equal(checkText("x".repeat(1000), "telegram"), null);
+  assert.equal(checkText("x".repeat(1001), "telegram"), "too_long");
 });
 
 // ---------------------------------------------------------------------------
@@ -191,4 +191,52 @@ test("only Meta's code 190 means the token is dead", () => {
   assert.equal(tokenExpired({ error: { code: "190" } }), false, "a string is not Meta's code");
   assert.equal(tokenExpired({ id: "1427711713749572" }), false);
   assert.equal(tokenExpired(null), false);
+});
+
+// ---------------------------------------------------------------------------
+// WhatsApp: a different request and a different answer
+// ---------------------------------------------------------------------------
+
+test("WhatsApp takes a longer message than Messenger", () => {
+  assert.equal(checkText("x".repeat(4096), "whatsapp"), null);
+  assert.equal(checkText("x".repeat(4097), "whatsapp"), "too_long");
+});
+
+test("a WhatsApp reply goes to the phone number id, addressed to the customer's number", () => {
+  const { url, init } = sendRequest("106540352242922", "962790000000", "مرحبا", "TOKEN", "whatsapp");
+  const body = JSON.parse(String(init.body));
+
+  assert.equal(url, "https://graph.facebook.com/v26.0/106540352242922/messages");
+  assert.deepEqual(body, {
+    messaging_product: "whatsapp",
+    recipient_type: "individual",
+    to: "962790000000",
+    type: "text",
+    text: { body: "مرحبا" },
+  });
+  assert.equal((init.headers as Record<string, string>).authorization, "Bearer TOKEN");
+  assert.ok(!url.includes("TOKEN"));
+});
+
+test("a WhatsApp photo is sent by link", () => {
+  const { init } = sendRequest("1", "2", { image: "https://x/p.jpg" }, "T", "whatsapp");
+  const body = JSON.parse(String(init.body));
+  assert.equal(body.type, "image");
+  assert.deepEqual(body.image, { link: "https://x/p.jpg" });
+});
+
+test("a sent WhatsApp reply gives back its wamid", () => {
+  assert.deepEqual(
+    readSendResult({
+      messaging_product: "whatsapp",
+      contacts: [{ input: "962790000000", wa_id: "962790000000" }],
+      messages: [{ id: "wamid.HBg" }],
+    }),
+    { mid: "wamid.HBg" },
+  );
+});
+
+test("WhatsApp's 24-hour error is reported as a closed window", () => {
+  const result = readSendResult({ error: { code: 131047, message: "Re-engagement message" } });
+  assert.ok("refusal" in result && result.refusal === "window_closed");
 });

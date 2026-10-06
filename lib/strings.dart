@@ -136,9 +136,11 @@ String? assistantReason(L l, Conversation c) {
 }
 
 String platformName(BuildContext context, String platform) =>
-    platform == 'instagram'
-        ? L.of(context)!.platformInstagram
-        : L.of(context)!.platformMessenger;
+    switch (platform) {
+      'instagram' => L.of(context)!.platformInstagram,
+      'whatsapp' => L.of(context)!.platformWhatsApp,
+      _ => L.of(context)!.platformMessenger,
+    };
 
 /// The label for a message that carries an attachment and no text. Built here
 /// rather than stored, so the database never holds a user-facing string in one

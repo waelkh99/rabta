@@ -95,6 +95,14 @@ class FakeStore implements Store {
     return Promise.resolve();
   }
 
+  /** Files the webhook kept, by path. */
+  media = new Map<string, { bytes: Uint8Array; contentType: string }>();
+
+  saveMedia(path: string, bytes: Uint8Array, contentType: string): Promise<string> {
+    this.media.set(path, { bytes, contentType });
+    return Promise.resolve(`https://storage.test/${path}`);
+  }
+
   // -- the AI path -----------------------------------------------------------
 
   /** Overridden per test. Defaults to a workspace with the AI switched on. */
@@ -1240,4 +1248,101 @@ test("the seller's own latest reply is found past any number of the assistant's"
 
   assert.equal(lastSellerReply(rows), "2026-09-23T16:50:00Z");
   assert.equal(lastSellerReply(rows.slice(0, 41)), null);
+});
+
+// ---------------------------------------------------------------------------
+// WhatsApp: the name comes with the message, media comes as an id
+// ---------------------------------------------------------------------------
+
+const PHONE_ID = "106540352242922";
+const WA_ID = "962790000000";
+
+function whatsappInbound(mid: string, extra: Partial<NormalisedMessage> = {}): NormalisedMessage {
+  return {
+    accountExternalId: PHONE_ID,
+    platform: "whatsapp",
+    customerExternalId: WA_ID,
+    customerName: "Lina",
+    mid,
+    direction: "inbound",
+    text: "مرحبا",
+    attachments: [],
+    sentAt: new Date(SENT_MS).toISOString(),
+    ...extra,
+  };
+}
+
+test("a WhatsApp customer's name is taken from the message, without asking Graph", async () => {
+  const store = new FakeStore();
+  store.connect("whatsapp", PHONE_ID);
+  store.tokens.set(`acct_whatsapp_${PHONE_ID}`, "wa-token");
+
+  const message = whatsappInbound("wamid.1");
+  const outcome = await processMessage(store, message);
+  const { fetcher, asked } = graph({ name: "should not be used" });
+
+  const result = await refreshCustomerProfile(store, message, outcome, new Date(), fetcher);
+
+  assert.equal(result, "saved");
+  assert.equal(asked.length, 0, "WhatsApp has no profile API to ask");
+  assert.deepEqual(
+    { name: store.profiles.get("conv_1")?.name, avatar: store.profiles.get("conv_1")?.avatarUrl },
+    { name: "Lina", avatar: null },
+  );
+});
+
+/** Graph for media: the id resolves to a URL, the URL to bytes. */
+function mediaGraph({ fail = false } = {}) {
+  const asked: { url: string; auth: string | undefined }[] = [];
+  const fetcher = ((url: string, init?: RequestInit) => {
+    asked.push({ url: String(url), auth: (init?.headers as Record<string, string>)?.authorization });
+    if (fail) return Promise.resolve({ ok: false, json: () => Promise.resolve({ error: { code: 100 } }) } as Response);
+    if (String(url).startsWith("https://graph.facebook.com/")) {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ url: "https://lookaside.test/media_1", mime_type: "image/jpeg" }),
+      } as Response);
+    }
+    return Promise.resolve({
+      ok: true,
+      arrayBuffer: () => Promise.resolve(new Uint8Array([1, 2, 3]).buffer),
+    } as Response);
+  }) as unknown as typeof fetch;
+  return { fetcher, asked };
+}
+
+const photo = () => [{ type: "image", payload: { media_id: "media_1", mime_type: "image/jpeg" } }];
+
+test("a WhatsApp photo is downloaded with the token and kept, so it has a URL like Messenger's", async () => {
+  const store = new FakeStore();
+  store.connect("whatsapp", PHONE_ID);
+  store.tokens.set(`acct_whatsapp_${PHONE_ID}`, "wa-token");
+  const { fetcher, asked } = mediaGraph();
+
+  await processMessage(store, whatsappInbound("wamid.P", { attachments: photo() }), fetcher);
+
+  assert.equal(asked.length, 2);
+  assert.ok(asked.every((a) => a.auth === "Bearer wa-token"), "media needs the token on both calls");
+  const [path] = [...store.media.keys()];
+  assert.match(path, /^ws_1\/.+\.jpg$/);
+  const stored = store.messages.get("wamid.P")!.attachments[0] as { payload: { url?: string } };
+  assert.equal(stored.payload.url, `https://storage.test/${path}`);
+});
+
+test("a WhatsApp photo that cannot be fetched still leaves the message stored", async () => {
+  const store = new FakeStore();
+  store.connect("whatsapp", PHONE_ID);
+  store.tokens.set(`acct_whatsapp_${PHONE_ID}`, "wa-token");
+
+  const outcome = await processMessage(
+    store,
+    whatsappInbound("wamid.F", { attachments: photo() }),
+    mediaGraph({ fail: true }).fetcher,
+  );
+
+  assert.equal(outcome.status, "stored");
+  assert.equal(store.media.size, 0);
+  const stored = store.messages.get("wamid.F")!.attachments[0] as { type: string; payload: { url?: string } };
+  assert.equal(stored.type, "image");
+  assert.equal(stored.payload.url, undefined);
 });

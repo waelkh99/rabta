@@ -123,6 +123,7 @@ Deno.serve(async (request: Request) => {
     conversation.customer_external_id,
     text,
     token.access_token,
+    account.platform,
   );
 
   let answer: unknown;

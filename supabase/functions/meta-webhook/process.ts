@@ -41,7 +41,7 @@ import {
 // Imported across function directories rather than copied. The CLI bundles the
 // entrypoint's whole module graph, which is why send-message can already
 // import ../_shared/origins.ts. These are pure and already tested.
-import { checkText, readSendResult, sendRequest, tokenExpired } from "../send-message/send.ts";
+import { checkText, GRAPH, readSendResult, sendRequest, tokenExpired } from "../send-message/send.ts";
 
 export interface AccountRef {
   id: string;
@@ -85,6 +85,9 @@ export interface Store {
    * reconnect, rather than left wondering why nobody writes any more.
    */
   markNeedsReconnect(accountId: string): Promise<void>;
+
+  /** Keeps a file a customer sent, and returns the URL it can be read at. */
+  saveMedia(path: string, bytes: Uint8Array, contentType: string): Promise<string>;
 
   /** Everything the guards need, in one read. Null when the row has gone. */
   aiContext(conversationId: string): Promise<AiContext | null>;
@@ -161,6 +164,7 @@ export type Outcome =
 export async function processMessage(
   store: Store,
   message: NormalisedMessage,
+  fetcher: typeof fetch = fetch,
 ): Promise<Outcome> {
   const account = await store.findAccount(message.platform, message.accountExternalId);
 
@@ -173,6 +177,10 @@ export async function processMessage(
       mid: message.mid,
       accountExternalId: message.accountExternalId,
     };
+  }
+
+  if (message.platform === "whatsapp") {
+    message = await keepWhatsAppMedia(store, account, message, fetcher);
   }
 
   const conversationId = await store.findOrCreateConversation(
@@ -193,6 +201,71 @@ export async function processMessage(
     accountId: account.id,
     workspaceId: account.workspaceId,
   };
+}
+
+const EXTENSIONS: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "video/mp4": "mp4",
+  "audio/ogg": "ogg",
+  "audio/mpeg": "mp3",
+  "application/pdf": "pdf",
+};
+
+/**
+ * WhatsApp sends a media id, not a URL, and fetching it needs the account's
+ * token — so neither the app nor Meta's own image fetch could use it as it
+ * comes. Each file is downloaded once and kept in our storage, and the
+ * attachment gains a `payload.url` in the same place Messenger's carries one,
+ * so the inbox and the assistant read it unchanged.
+ *
+ * A file that cannot be fetched leaves the attachment without a URL: the
+ * message is still stored, and the seller sees that something was sent.
+ *
+ * ponytail: downloaded before the duplicate check, so a redelivered message
+ * stores its file twice. Rare and small; check the mid first if it ever shows.
+ */
+async function keepWhatsAppMedia(
+  store: Store,
+  account: AccountRef,
+  message: NormalisedMessage,
+  fetcher: typeof fetch,
+): Promise<NormalisedMessage> {
+  const wanted = message.attachments.some((a) => (a as { payload?: { media_id?: string } })?.payload?.media_id);
+  if (!wanted) return message;
+
+  const token = await store.accountToken(account.id);
+  if (!token) return message;
+  const headers = { authorization: `Bearer ${token}` };
+
+  const attachments = await Promise.all(message.attachments.map(async (raw) => {
+    const attachment = raw as { type: string; payload?: { media_id?: string; mime_type?: string } };
+    const id = attachment.payload?.media_id;
+    if (!id) return raw;
+
+    try {
+      const meta = await fetcher(`${GRAPH}/${encodeURIComponent(id)}`, { headers });
+      const info = await meta.json() as { url?: string; mime_type?: string };
+      if (!meta.ok || !info.url) return raw;
+
+      const file = await fetcher(info.url, { headers });
+      if (!file.ok) return raw;
+
+      const contentType = info.mime_type ?? attachment.payload?.mime_type ?? "application/octet-stream";
+      const extension = EXTENSIONS[contentType.split(";")[0]] ?? "bin";
+      const url = await store.saveMedia(
+        `${account.workspaceId}/${crypto.randomUUID()}.${extension}`,
+        new Uint8Array(await file.arrayBuffer()),
+        contentType,
+      );
+      return { ...attachment, payload: { ...attachment.payload, url } };
+    } catch {
+      return raw;
+    }
+  }));
+
+  return { ...message, attachments };
 }
 
 /** What asking Meta about a customer came to. Returned so it can be logged. */
@@ -224,6 +297,14 @@ export async function refreshCustomerProfile(
 
   const fetchedAt = await store.profileFetchedAt(outcome.conversationId);
   if (!profileIsStale(fetchedAt, now)) return "fresh";
+
+  // WhatsApp has no profile to ask for: the name the customer gave WhatsApp
+  // arrives with every message, and there is no photo.
+  if (message.platform === "whatsapp") {
+    if (!message.customerName) return "no-answer";
+    await store.saveProfile(outcome.conversationId, { name: message.customerName, avatarUrl: null });
+    return "saved";
+  }
 
   const token = await store.accountToken(outcome.accountId);
   if (!token) return "no-token";
@@ -371,6 +452,7 @@ export async function autoReply(
       message.customerExternalId,
       typeof content === "string" ? content : { image: content.image },
       token,
+      message.platform,
     );
 
     let sent: unknown;
@@ -610,7 +692,16 @@ function reasonNotToSend(
 /** The slice of supabase-js this module uses. */
 interface SupabaseLike {
   from(table: string): any;
-  storage: { from(bucket: string): { getPublicUrl(path: string): { data: { publicUrl: string } } } };
+  storage: {
+    from(bucket: string): {
+      getPublicUrl(path: string): { data: { publicUrl: string } };
+      upload(
+        path: string,
+        body: Uint8Array,
+        options: { contentType: string },
+      ): Promise<{ error: { message: string } | null }>;
+    };
+  };
 }
 
 export function createSupabaseStore(client: SupabaseLike): Store {
@@ -744,6 +835,13 @@ export function createSupabaseStore(client: SupabaseLike): Store {
         .eq("status", "active");
 
       if (error) throw new Error(`reconnect mark failed: ${error.message}`);
+    },
+
+    async saveMedia(path, bytes, contentType) {
+      const bucket = client.storage.from("customer-media");
+      const { error } = await bucket.upload(path, bytes, { contentType });
+      if (error) throw new Error(`media upload failed: ${error.message}`);
+      return bucket.getPublicUrl(path).data.publicUrl;
     },
 
     async saveProfile(conversationId, profile) {

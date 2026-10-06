@@ -58,11 +58,12 @@ describe("schema", () => {
 
     await connectAccount(db, seller.workspaceId, "messenger", "same_id");
     await connectAccount(db, seller.workspaceId, "instagram", "same_id");
+    await connectAccount(db, seller.workspaceId, "whatsapp", "same_id");
 
     const rows = await db.sql(
       "select platform from connected_accounts where external_id = 'same_id'",
     );
-    assert.equal(rows.length, 2);
+    assert.equal(rows.length, 3);
   });
 
   test("a redelivered message is refused by the database", async () => {

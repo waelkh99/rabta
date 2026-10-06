@@ -59,7 +59,7 @@ export interface Line {
   text: string;
 }
 
-const INSTRUCTIONS = `You read a finished conversation between a shop and a customer on Instagram or Facebook Messenger, and say how it ended. The shop sells mainly in Jordan; customers write Jordanian or Levantine Arabic, sometimes in Latin letters, sometimes English. Nothing you write is sent to anyone.
+const INSTRUCTIONS = `You read a finished conversation between a shop and a customer on Instagram, Facebook Messenger or WhatsApp, and say how it ended. The shop sells mainly in Jordan; customers write Jordanian or Levantine Arabic, sometimes in Latin letters, sometimes English. Nothing you write is sent to anyone.
 
 Choose exactly one outcome:
 

@@ -912,6 +912,9 @@ class LEn extends L {
   String get platformMessenger => 'Messenger';
 
   @override
+  String get platformWhatsApp => 'WhatsApp';
+
+  @override
   String get missingConfigurationTitle => 'Missing configuration';
 
   @override

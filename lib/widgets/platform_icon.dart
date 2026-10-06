@@ -6,7 +6,7 @@
 //
 // Drawn here rather than pulled from an icon package: font_awesome_flutter does
 // not compile against Flutter 3.47, where IconData became a final class it can
-// no longer extend. Two glyphs are not worth waiting on someone else's release,
+// no longer extend. Three glyphs are not worth waiting on someone else's release,
 // and these have no font to download.
 //
 // They stay small and appear in three places only: on the monogram in the list,
@@ -32,9 +32,11 @@ class PlatformIcon extends StatelessWidget {
     return SizedBox.square(
       dimension: size,
       child: CustomPaint(
-        painter: platform == 'instagram'
-            ? _InstagramPainter(color)
-            : _MessengerPainter(color, filled: false),
+        painter: switch (platform) {
+          'instagram' => _InstagramPainter(color),
+          'whatsapp' => _WhatsAppPainter(color, filled: false),
+          _ => _MessengerPainter(color, filled: false),
+        },
       ),
     );
   }
@@ -70,9 +72,11 @@ class PlatformBadge extends StatelessWidget {
         ),
         padding: const EdgeInsets.all(3),
         child: CustomPaint(
-          painter: platform == 'instagram'
-              ? _InstagramPainter(Colors.white, strokeScale: 0.14)
-              : _MessengerPainter(Colors.white, filled: true),
+          painter: switch (platform) {
+            'instagram' => _InstagramPainter(Colors.white, strokeScale: 0.14),
+            'whatsapp' => _WhatsAppPainter(Colors.white, filled: true),
+            _ => _MessengerPainter(Colors.white, filled: true),
+          },
         ),
       ),
     );
@@ -180,5 +184,60 @@ class _MessengerPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_MessengerPainter old) =>
+      old.color != color || old.filled != filled;
+}
+
+/// The WhatsApp balloon — a round outline with the tail at the bottom start
+/// corner — and the handset inside it.
+class _WhatsAppPainter extends CustomPainter {
+  _WhatsAppPainter(this.color, {required this.filled});
+
+  final Color color;
+
+  /// As for Messenger: filled draws only the handset, on the coloured circle
+  /// of the badge.
+  final bool filled;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final s = size.shortestSide;
+
+    // The handset: a thick arc, earpiece at the top start, mouthpiece at the
+    // bottom end, as WhatsApp draws it.
+    final handset = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = s * (filled ? 0.17 : 0.13)
+      ..strokeCap = StrokeCap.round;
+    final r = s * (filled ? 0.26 : 0.19);
+    canvas.drawArc(
+      Rect.fromCircle(center: Offset(s * 0.5, s * 0.47), radius: r),
+      2.0, // down and to the start, round through the start side, to the top
+      2.3,
+      false,
+      handset,
+    );
+
+    if (filled) return;
+
+    final pen = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = s * 0.09
+      ..strokeJoin = StrokeJoin.round
+      ..strokeCap = StrokeCap.round;
+
+    // The ring leaves a gap at the bottom start for the tail.
+    final ring = Rect.fromCircle(center: Offset(s * 0.53, s * 0.47), radius: s * 0.41);
+    canvas.drawArc(ring, 2.45, 5.6, false, pen);
+    final tail = Path()
+      ..moveTo(s * 0.20, s * 0.70)
+      ..lineTo(s * 0.08, s * 0.94)
+      ..lineTo(s * 0.33, s * 0.84);
+    canvas.drawPath(tail, pen);
+  }
+
+  @override
+  bool shouldRepaint(_WhatsAppPainter old) =>
       old.color != color || old.filled != filled;
 }

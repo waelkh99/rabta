@@ -11,7 +11,7 @@ after meeting the buyers.
 - [ ] A — naming brief (candidates, checks run, top 3)
 - [ ] A — owner picks a name
 - [ ] A — rename what users see, new domain
-- [ ] B — owner adds WhatsApp product to the Meta app, hands back phone_number_id, WABA id, system-user token
+- [x] B — owner added WhatsApp to the Meta app; test number +1 555-633-5647, IDs and a never-expiring system-user token in `supabase/.env` (checked against Graph 6 Oct); staging webhook verified for WhatsApp
 - [ ] B1 — migration, parse, send, media, UI three-way switches, prompts (unit-tested)
 - [ ] B1 — connect-whatsapp script, end to end on staging with the test number
 - [ ] B1 — seen in Playwright (both languages, both widths)
@@ -204,3 +204,11 @@ B1 doesn't depend on this.
 
 **Naming brief:** every availability claim comes from a check that was actually run, with its
 source linked.
+- 2026-10-06 — B1 code done, not deployed: migration `20261006000001_whatsapp.sql`
+  (enum value + public `customer-media` bucket), WhatsApp send shape and
+  131047, media downloaded with the token into `customer-media`, name from the
+  payload, three-way platform switches + WhatsApp mark + strings, prompts name
+  WhatsApp, `npm run connect-whatsapp -- <email>`. 488 backend + 270 Flutter
+  tests pass; each new test shown failing first. Deploy to staging was held for
+  the owner's permission: `supabase db push`, then
+  `supabase functions deploy meta-webhook send-message`, then the connect script.

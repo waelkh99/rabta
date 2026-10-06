@@ -909,6 +909,9 @@ class LAr extends L {
   String get platformMessenger => 'ماسنجر';
 
   @override
+  String get platformWhatsApp => 'واتساب';
+
+  @override
   String get missingConfigurationTitle => 'إعدادات ناقصة';
 
   @override

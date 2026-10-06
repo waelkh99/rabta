@@ -288,6 +288,7 @@
 
   "platformInstagram": "Instagram",
   "platformMessenger": "Messenger",
+  "platformWhatsApp": "WhatsApp",
 
   "missingConfigurationTitle": "Missing configuration",
   "missingConfigurationBody": "SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY are compiled in. Run with --dart-define-from-file=env.json — see README.md.",

@@ -30,6 +30,7 @@ class RabtaColors extends ThemeExtension<RabtaColors> {
     required this.won,
     required this.instagram,
     required this.messenger,
+    required this.whatsapp,
   });
 
   /// Behind everything. Warm sand rather than a cold near-white: a ground
@@ -92,6 +93,7 @@ class RabtaColors extends ThemeExtension<RabtaColors> {
 
   final Color instagram;
   final Color messenger;
+  final Color whatsapp;
 
   /// Violet and saffron on sand. See docs/DECISIONS.md, 26 September 2026.
   static const light = RabtaColors(
@@ -114,6 +116,9 @@ class RabtaColors extends ThemeExtension<RabtaColors> {
     won: Color(0xFF1C7C3A),
     instagram: Color(0xFFE1306C),
     messenger: Color(0xFF0866FF),
+    // WhatsApp's own #25D366 is too light on white for a 14px mark; this is
+    // the darkest green that still reads as WhatsApp.
+    whatsapp: Color(0xFF1A9E4B),
   );
 
   /// Dark. Not wired up yet — `main.dart` has no dark theme and no toggle.
@@ -137,9 +142,14 @@ class RabtaColors extends ThemeExtension<RabtaColors> {
     won: Color(0xFF74D38F),
     instagram: Color(0xFFF06595),
     messenger: Color(0xFF5B9DFF),
+    whatsapp: Color(0xFF25D366),
   );
 
-  Color platform(String name) => name == 'instagram' ? instagram : messenger;
+  Color platform(String name) => switch (name) {
+        'instagram' => instagram,
+        'whatsapp' => whatsapp,
+        _ => messenger,
+      };
 
   @override
   RabtaColors copyWith() => this;
@@ -168,6 +178,7 @@ class RabtaColors extends ThemeExtension<RabtaColors> {
       won: l(won, other.won),
       instagram: l(instagram, other.instagram),
       messenger: l(messenger, other.messenger),
+      whatsapp: l(whatsapp, other.whatsapp),
     );
   }
 }

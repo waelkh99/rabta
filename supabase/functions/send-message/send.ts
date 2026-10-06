@@ -12,7 +12,7 @@
 // Deliberately free of Deno-specific APIs so the same code runs in Supabase
 // Edge Functions and in the test harness.
 
-const GRAPH = "https://graph.facebook.com/v26.0";
+export const GRAPH = "https://graph.facebook.com/v26.0";
 
 /**
  * Why a reply was not sent. The client maps each of these to a localised
@@ -38,6 +38,7 @@ export type Refusal =
 export const TEXT_LIMIT: Record<string, number> = {
   messenger: 2000,
   instagram: 1000,
+  whatsapp: 4096,
 };
 
 /** What is wrong with the text, if anything. */
@@ -85,7 +86,30 @@ export function sendRequest(
   // Instagram does not document it.
   content: string | { image: string },
   accessToken: string,
+  platform: string = "messenger",
 ): { url: string; init: RequestInit } {
+  // WhatsApp: the same endpoint shape, keyed by the phone number id, but its
+  // own body, and the token in a header — its documentation only promises that.
+  if (platform === "whatsapp") {
+    const message = typeof content === "string"
+      ? { type: "text", text: { body: content } }
+      : { type: "image", image: { link: content.image } };
+
+    return {
+      url: `${GRAPH}/${accountExternalId}/messages`,
+      init: {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          recipient_type: "individual",
+          to: customerExternalId,
+          ...message,
+        }),
+      },
+    };
+  }
+
   const message = typeof content === "string"
     ? { text: content }
     : { attachment: { type: "image", payload: { url: content.image } } };
@@ -120,10 +144,14 @@ export function readSendResult(
 ): { mid: string } | { refusal: Refusal; detail: string } {
   const result = body as {
     message_id?: string;
+    messages?: { id?: string }[];
     error?: { message?: string; code?: number; error_subcode?: number };
   };
 
   if (result?.message_id) return { mid: result.message_id };
+  // WhatsApp answers with a list, one per recipient.
+  const wamid = result?.messages?.[0]?.id;
+  if (wamid) return { mid: wamid };
 
   const error = result?.error ?? {};
   const detail = error.message ?? JSON.stringify(body);
@@ -159,7 +187,8 @@ function refusalFor(code?: number, subcode?: number): Refusal {
   // Outside the allowed window. We check the window ourselves before calling,
   // so reaching this means our clock and Meta's disagree, or the window closed
   // between the check and the call.
-  if (subcode === 2018278 || code === 10) return "window_closed";
+  // 131047 is WhatsApp's version.
+  if (subcode === 2018278 || code === 10 || code === 131047) return "window_closed";
 
   return "rejected";
 }

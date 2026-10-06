@@ -18,7 +18,8 @@
     "replay": "node scripts/replay.mjs",
     "seed-demo": "node scripts/seed-demo.mjs",
     "email-templates": "node scripts/email-templates.mjs",
-    "demo-shop": "node scripts/demo-shop.mjs"
+    "demo-shop": "node scripts/demo-shop.mjs",
+    "connect-whatsapp": "node scripts/connect-whatsapp.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",

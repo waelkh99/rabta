@@ -107,10 +107,11 @@ void main() {
         expect(colors.assistant, isNot(colors.urgent));
       });
 
-      test('$name: is not either platform colour', () {
+      test('$name: is not any platform colour', () {
         // Both appear in the same list, on the row the message belongs to.
         expect(colors.assistant, isNot(colors.instagram));
         expect(colors.assistant, isNot(colors.messenger));
+        expect(colors.assistant, isNot(colors.whatsapp));
       });
 
       test('$name: message text on it is readable', () {

@@ -11,6 +11,26 @@ double _contrast(Color a, Color b) {
 }
 
 void main() {
+  group('each platform has its own mark colour', () {
+    const c = RabtaColors.light;
+
+    test('WhatsApp is not drawn as Messenger', () {
+      expect(c.platform('whatsapp'), c.whatsapp);
+      expect(c.platform('instagram'), c.instagram);
+      expect(c.platform('messenger'), c.messenger);
+      expect({c.whatsapp, c.instagram, c.messenger}, hasLength(3));
+    });
+
+    // 3:1 is the threshold for a graphic. The mark beside a name, and the
+    // white glyph on the badge.
+    for (final name in ['instagram', 'messenger', 'whatsapp']) {
+      test('$name: the mark is visible on the list and its badge glyph on it', () {
+        expect(_contrast(c.platform(name), c.surface), greaterThanOrEqualTo(3));
+        expect(_contrast(Colors.white, c.platform(name)), greaterThanOrEqualTo(3));
+      });
+    }
+  });
+
   group('every pair of text and ground the interface draws is readable', () {
     const c = RabtaColors.light;
 

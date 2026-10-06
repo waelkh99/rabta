@@ -387,6 +387,7 @@
 
   "platformInstagram": "إنستغرام",
   "platformMessenger": "ماسنجر",
+  "platformWhatsApp": "واتساب",
 
   "missingConfigurationTitle": "إعدادات ناقصة",
   "missingConfigurationBody": "قيمتا SUPABASE_URL و SUPABASE_PUBLISHABLE_KEY تُدمجان وقت البناء. شغّل التطبيق مع ‎--dart-define-from-file=env.json‎ — انظر README.md.",

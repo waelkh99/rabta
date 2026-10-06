@@ -1657,6 +1657,12 @@ abstract class L {
   /// **'ماسنجر'**
   String get platformMessenger;
 
+  /// No description provided for @platformWhatsApp.
+  ///
+  /// In ar, this message translates to:
+  /// **'واتساب'**
+  String get platformWhatsApp;
+
   /// No description provided for @missingConfigurationTitle.
   ///
   /// In ar, this message translates to:
