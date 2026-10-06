@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:rabta/data.dart';
+import 'package:rabta/pages/inbox_page.dart';
 import 'package:rabta/widgets/details_panel.dart';
 import 'package:rabta/l10n/app_localizations.dart';
 import 'package:rabta/strings.dart';
@@ -134,6 +135,7 @@ void main() {
   _groupLabels();
   _elapsed();
   _arabic();
+  _captions();
   _numerals();
 
 }
@@ -216,6 +218,41 @@ void _elapsed() {
         isFalse,
       );
     });
+  });
+}
+
+void _captions() {
+  testWidgets('a photo with a caption shows both, photo first', (tester) async {
+    // WhatsApp puts a caption on the photo's own message. Showing only the
+    // text hid the photo — seen on staging, 7 October.
+    await tester.pumpWidget(MaterialApp(
+      theme: rabtaTheme(brightness: Brightness.light),
+      supportedLocales: L.supportedLocales,
+      localizationsDelegates: L.localizationsDelegates,
+      home: Scaffold(
+        body: MessageBody(
+          inbound: true,
+          message: Message(
+            id: 'r',
+            mid: 'wamid.P',
+            text: 'How much is this?',
+            attachments: const [
+              {'type': 'image', 'payload': {'url': 'https://example.test/p.jpg'}},
+            ],
+            inbound: true,
+            sentAt: _now,
+          ),
+        ),
+      ),
+    ));
+
+    expect(find.text('How much is this?'), findsOneWidget);
+    final photo = find.byType(Image);
+    expect(photo, findsOneWidget);
+    expect(
+      tester.getTopLeft(photo).dy,
+      lessThan(tester.getTopLeft(find.text('How much is this?')).dy),
+    );
   });
 }
 

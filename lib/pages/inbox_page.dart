@@ -2254,10 +2254,10 @@ class _Bubble extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 4),
-                          _Body(message: message, inbound: inbound),
+                          MessageBody(message: message, inbound: inbound),
                         ],
                       )
-                    : _Body(message: message, inbound: inbound),
+                    : MessageBody(message: message, inbound: inbound),
               ),
             ),
           ),
@@ -2274,8 +2274,13 @@ class _Bubble extends StatelessWidget {
   }
 }
 
-class _Body extends StatelessWidget {
-  const _Body({required this.message, required this.inbound});
+/// What a bubble holds: its photo or attachment, its text, or both.
+///
+/// Both happens on WhatsApp, where a photo carries its caption on the same
+/// message. Messenger sends them as two messages, which is why this once showed
+/// one or the other and a WhatsApp photo with a caption lost its photo.
+class MessageBody extends StatelessWidget {
+  const MessageBody({super.key, required this.message, required this.inbound});
 
   final Message message;
   final bool inbound;
@@ -2286,22 +2291,39 @@ class _Body extends StatelessWidget {
     final onAccent = !inbound;
     final quiet = onAccent ? colors.onAccent.withValues(alpha: 0.75) : colors.muted;
     final text = message.text;
+    final words = text == null || text.isEmpty
+        ? null
+        : Text(
+            text,
+            style: Style.message.copyWith(
+              color: onAccent ? colors.onAccent : colors.ink,
+            ),
+          );
 
-    if (text != null && text.isNotEmpty) {
-      return Text(
-        text,
-        style: Style.message.copyWith(
-          color: onAccent ? colors.onAccent : colors.ink,
-        ),
+    final attachment = message.attachments.isEmpty
+        ? null
+        : _attachment(context, message.attachments.first as Map<String, dynamic>, quiet);
+
+    if (attachment != null && words != null) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [attachment, const SizedBox(height: 8), words],
       );
     }
 
-    final first = message.attachments.isEmpty
-        ? null
-        : message.attachments.first as Map<String, dynamic>;
-    final url = first?['payload']?['url'] as String?;
+    return words ??
+        attachment ??
+        Text(
+          attachmentLabel(context, null),
+          style: Style.preview.copyWith(color: quiet),
+        );
+  }
 
-    if (first?['type'] == 'image' && url != null) {
+  Widget _attachment(BuildContext context, Map<String, dynamic> first, Color quiet) {
+    final url = first['payload']?['url'] as String?;
+
+    if (first['type'] == 'image' && url != null) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(Radii.control),
         child: Image.network(
@@ -2343,7 +2365,7 @@ class _Body extends StatelessWidget {
     }
 
     return Text(
-      attachmentLabel(context, first?['type'] as String?),
+      attachmentLabel(context, first['type'] as String?),
       style: Style.preview.copyWith(color: quiet),
     );
   }

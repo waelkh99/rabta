@@ -226,3 +226,9 @@ source linked.
   thread and details, English and Arabic, 1366 and 390; Instagram and
   Messenger on the sign-in page. Still not seen: a customer photo, the
   Accounts page.
+- 2026-10-07 — A customer photo arrived, was downloaded into `customer-media`
+  and stored with its URL, but the bubble showed only the caption: it drew
+  text OR attachment, and WhatsApp puts a caption on the photo's own message.
+  Fixed (`MessageBody` shows the photo, then the caption); widget test shown
+  failing with the old branch. Seen in Playwright, English desktop and Arabic
+  phone. Still not seen: the Accounts page.
