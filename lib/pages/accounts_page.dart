@@ -104,6 +104,8 @@ class _ConnectPromptState extends State<ConnectPrompt> {
   }
 }
 
+const _whatsappSignup = false;
+
 /// Both ways in: Meta (Pages and Instagram) as the accent, WhatsApp beside it
 /// in outline, because the screen keeps one accent and most sellers start with
 /// a Page.
@@ -128,15 +130,19 @@ class ConnectButtons extends StatelessWidget {
           onPressed: onConnect == null ? null : () => onConnect(false),
           busy: busy,
         ),
-        OutlinedButton.icon(
-          onPressed: onConnect == null ? null : () => onConnect(true),
-          icon: const PlatformIcon(platform: 'whatsapp', size: 16),
-          label: Text(l.connectWhatsApp),
-          style: OutlinedButton.styleFrom(
-            shape: const RoundedRectangleBorder(),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 17),
+        // Hidden until Rabta is a Meta Tech Provider: WhatsApp's signup needs
+        // it, and until then the button could only say connecting failed.
+        // NEXT.md, B2. Numbers are connected with `npm run connect-whatsapp`.
+        if (_whatsappSignup)
+          OutlinedButton.icon(
+            onPressed: onConnect == null ? null : () => onConnect(true),
+            icon: const PlatformIcon(platform: 'whatsapp', size: 16),
+            label: Text(l.connectWhatsApp),
+            style: OutlinedButton.styleFrom(
+              shape: const RoundedRectangleBorder(),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 17),
+            ),
           ),
-        ),
       ],
     );
   }

@@ -14,8 +14,9 @@ after meeting the buyers.
    Business Verification: the same blocker as Instagram. Also, Embedded Signup
    v4 launches only through the JavaScript SDK (`FB.login` with the
    config_id); the redirect flow built on 7 October would need reworking when
-   this unblocks. Proposed to the owner: hide the button until then (it only
-   shows "Could not start connecting"); server code stays. Awaiting a yes.
+   this unblocks. Hidden at the owner's request (11 October): `_whatsappSignup = false`
+   in `lib/pages/accounts_page.dart`; flip it back when this unblocks. The
+   server path (`meta-oauth/start?kind=whatsapp`) stays deployed.
    - On the buyer-owns-the-app route the button is not needed: their numbers
      are connected once, as the test number was (`npm run connect-whatsapp`).
 2. (Kept for when it unblocks) Configuration: Facebook Login for Business →
@@ -49,7 +50,7 @@ then). After resizing the browser, wait a few seconds before a screenshot.
 - [x] B1 — connect-whatsapp script, end to end on staging with the test number (receive, reply, photo, stop, reconnect)
 - [x] B1 — seen in Playwright (both languages, both widths)
 - [x] B2 — "Connect WhatsApp" button built and deployed to staging (Embedded Signup via the OAuth dialog, same callback, `business_account_id` stored) — **seen** reaching the server, which answers `not_configured`
-- [ ] B2 — end to end: **blocked** on Tech Provider status (Business Verification), found 11 Oct; hide the button meanwhile? (asked)
+- [ ] B2 — end to end: **blocked** on Tech Provider status (Business Verification), found 11 Oct; button hidden meanwhile (11 Oct)
 - [ ] Owner decision — production access route (buyer owns the Meta app, or register a business)
 - [x] Docs — docs/DECISIONS.md, CLAUDE.md, docs/CHECKLIST.md (section 15), docs/LAUNCH.md header — 7 Oct
 
@@ -291,3 +292,6 @@ source linked.
   Embedded Signup requires Tech Provider status (Meta's implementation docs),
   and v4 is JS-SDK only. B2 blocked with the production decision; proposed
   hiding the button. Docs: developers.facebook.com/docs/whatsapp/embedded-signup/implementation
+- 2026-10-11 — Owner agreed: "Connect WhatsApp" hidden behind
+  `_whatsappSignup = false`. Seen in Playwright: Accounts page shows only
+  "Connect with Meta", English and Arabic, 1366 and 390. 271 Flutter tests pass.

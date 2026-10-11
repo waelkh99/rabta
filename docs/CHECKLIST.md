@@ -1002,7 +1002,8 @@ Plan and log in `NEXT.md`.
 - [x] Stop removes the link from the Accounts page and nothing more arrives;
       reconnecting brings it back — **seen** on staging
 - [x] `npm run connect-whatsapp -- <email>` connects a number by hand
-- [ ] "Connect WhatsApp" button end to end — built and deployed, **seen**
-      reaching the server; blocked on the owner creating Meta's WhatsApp
-      Embedded Signup configuration (`NEXT.md`, "Next session")
+- [ ] "Connect WhatsApp" button end to end — built and deployed; **blocked**:
+      Embedded Signup needs Tech Provider status (found 11 October). Button
+      hidden until then (`_whatsappSignup`), **seen** gone in both languages
+      at both widths
 - [ ] A real seller's number — blocked on the production decision
