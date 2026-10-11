@@ -7,24 +7,22 @@ after meeting the buyers.
 
 ## Next session — start here
 
-1. **Owner, in Meta (about 10 minutes):** developers.facebook.com → Rabta app →
-   Facebook Login for Business → Configurations → Create configuration.
-   - Name: `WhatsApp signup`
-   - Login variation: **WhatsApp Embedded Signup**
-   - Access token: **System-user access token**, expiry **Never**
-   - Assets: **WhatsApp accounts**
-   - Permissions: `whatsapp_business_management`, `whatsapp_business_messaging`
-   - Hand back the **Configuration ID**.
-2. **Claude:** `supabase secrets set META_WHATSAPP_CONFIG_ID=<id>` on staging,
-   then press Connect WhatsApp in the app as the owner and pick the test
-   account. Check: the number shows on Accounts, `business_account_id` is
-   stored, a message arrives, Stop unsubscribes the business account (no
-   `unsubscribe_refused` in `ops_log`). If Meta's dialog rejects the redirect
-   flow for Embedded Signup, the fallback is Meta's JavaScript SDK popup — say
-   so before building it.
-   - Known gap: a brand-new number (not one already on the Cloud API) also
-     needs `POST /{phone}/register` with a two-step PIN. Logged as
-     `whatsapp_number_not_registered`, not done — a product decision.
+1. **Blocked — the "Connect WhatsApp" button cannot work yet** (found
+   11 October). Meta's Embedded Signup docs: "You must already be a Solution
+   Partner or Tech Provider" — so the "WhatsApp Embedded Signup" login
+   variation does not appear in this app's Configurations. Tech Provider needs
+   Business Verification: the same blocker as Instagram. Also, Embedded Signup
+   v4 launches only through the JavaScript SDK (`FB.login` with the
+   config_id); the redirect flow built on 7 October would need reworking when
+   this unblocks. Proposed to the owner: hide the button until then (it only
+   shows "Could not start connecting"); server code stays. Awaiting a yes.
+   - On the buyer-owns-the-app route the button is not needed: their numbers
+     are connected once, as the test number was (`npm run connect-whatsapp`).
+2. (Kept for when it unblocks) Configuration: Facebook Login for Business →
+   Configurations → Create configuration (or "Create from template" → WhatsApp
+   Embedded Signup), variation WhatsApp Embedded Signup; then
+   `supabase secrets set META_WHATSAPP_CONFIG_ID=<id>` and test. A brand-new
+   number also needs `POST /{phone}/register` with a PIN — a product decision.
 3. **Then Track A — the naming brief.** Nothing done yet.
 4. **Still open, the owner's call:** production route for WhatsApp and
    Instagram (buyer owns the Meta app, or register a business). Buyer-meeting
@@ -51,7 +49,7 @@ then). After resizing the browser, wait a few seconds before a screenshot.
 - [x] B1 — connect-whatsapp script, end to end on staging with the test number (receive, reply, photo, stop, reconnect)
 - [x] B1 — seen in Playwright (both languages, both widths)
 - [x] B2 — "Connect WhatsApp" button built and deployed to staging (Embedded Signup via the OAuth dialog, same callback, `business_account_id` stored) — **seen** reaching the server, which answers `not_configured`
-- [ ] B2 — **owner creates Meta's WhatsApp Embedded Signup configuration** (see "Next session"), then test the button end to end
+- [ ] B2 — end to end: **blocked** on Tech Provider status (Business Verification), found 11 Oct; hide the button meanwhile? (asked)
 - [ ] Owner decision — production access route (buyer owns the Meta app, or register a business)
 - [x] Docs — docs/DECISIONS.md, CLAUDE.md, docs/CHECKLIST.md (section 15), docs/LAUNCH.md header — 7 Oct
 
@@ -289,3 +287,7 @@ source linked.
   desktop and English phone with both buttons; pressing Connect WhatsApp
   reaches the server (503 `not_configured`) and shows the failure message.
   271 Flutter + 492 backend tests pass. Session ended here.
+- 2026-10-11 — The owner found no WhatsApp option in Configurations. Cause:
+  Embedded Signup requires Tech Provider status (Meta's implementation docs),
+  and v4 is JS-SDK only. B2 blocked with the production decision; proposed
+  hiding the button. Docs: developers.facebook.com/docs/whatsapp/embedded-signup/implementation
