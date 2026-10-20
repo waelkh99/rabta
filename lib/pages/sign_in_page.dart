@@ -9,6 +9,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/link.dart';
 
 import '../widgets/locale_switch.dart';
 import '../widgets/platform_icon.dart';
@@ -269,6 +270,8 @@ class AuthFrame extends StatelessWidget {
                                 padding: EdgeInsets.symmetric(horizontal: 6),
                                 child: _Pitch(onDark: false),
                               ),
+                              const SizedBox(height: 8),
+                              const LegalLinks(),
                             ],
                           ),
                         ),
@@ -297,7 +300,15 @@ class AuthFrame extends StatelessWidget {
                           ),
                           child: ConstrainedBox(
                             constraints: const BoxConstraints(maxWidth: 420),
-                            child: card,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                card,
+                                const SizedBox(height: 18),
+                                const LegalLinks(),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -314,6 +325,42 @@ class AuthFrame extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+}
+
+/// The privacy policy and data-deletion pages, reachable without signing in:
+/// Meta's App Review, and anyone deciding whether to trust the product, look
+/// for them on the first page. Real links, so they open in a new tab and can
+/// be copied; the Arabic interface opens the pages' Arabic half.
+class LegalLinks extends StatelessWidget {
+  const LegalLinks({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.rabta;
+    final l = context.l;
+    final hash = Localizations.localeOf(context).languageCode == 'ar' ? '#ar' : '';
+
+    Widget link(String label, String page) => Link(
+          uri: Uri.base.resolve('/$page$hash'),
+          target: LinkTarget.blank,
+          builder: (context, open) => TextButton(
+            onPressed: open,
+            child: Text(label, style: Style.meta.copyWith(
+              color: colors.muted,
+              decoration: TextDecoration.underline,
+              decorationColor: colors.muted,
+            )),
+          ),
+        );
+
+    return Wrap(
+      alignment: WrapAlignment.center,
+      children: [
+        link(l.privacyPolicy, 'privacy.html'),
+        link(l.dataDeletion, 'data-deletion.html'),
+      ],
     );
   }
 }

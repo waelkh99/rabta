@@ -408,6 +408,8 @@
   "inviteSentTitle": "The invitation is on its way",
   "inviteSentBody": "We emailed {email} a link to choose their password. It works once, for a limited time. If it does not arrive, ask them to check their spam folder.",
   "@inviteSentBody": {"placeholders": {"email": {"type": "String"}}},
+  "privacyPolicy": "Privacy policy",
+  "dataDeletion": "Data deletion",
   "forgotPassword": "Forgot your password?",
   "forgotPasswordNeedEmail": "Type your email first, then press \"Forgot your password?\".",
   "forgotPasswordSent": "If {email} has a Rabta account, we have sent it a link to choose a new password.",

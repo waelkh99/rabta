@@ -2359,6 +2359,18 @@ abstract class L {
   /// **'أرسلنا إلى {email} رابطاً ليختار كلمة المرور. يعمل مرة واحدة ولفترة محدودة. إذا لم يصله، اطلب منه أن يتفقّد مجلد الرسائل غير المرغوب فيها.'**
   String inviteSentBody(String email);
 
+  /// No description provided for @privacyPolicy.
+  ///
+  /// In ar, this message translates to:
+  /// **'سياسة الخصوصية'**
+  String get privacyPolicy;
+
+  /// No description provided for @dataDeletion.
+  ///
+  /// In ar, this message translates to:
+  /// **'حذف البيانات'**
+  String get dataDeletion;
+
   /// No description provided for @forgotPassword.
   ///
   /// In ar, this message translates to:

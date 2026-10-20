@@ -515,6 +515,8 @@
   "inviteSentTitle": "أُرسلت الدعوة",
   "inviteSentBody": "أرسلنا إلى {email} رابطاً ليختار كلمة المرور. يعمل مرة واحدة ولفترة محدودة. إذا لم يصله، اطلب منه أن يتفقّد مجلد الرسائل غير المرغوب فيها.",
   "@inviteSentBody": {"placeholders": {"email": {"type": "String"}}},
+  "privacyPolicy": "سياسة الخصوصية",
+  "dataDeletion": "حذف البيانات",
   "forgotPassword": "نسيت كلمة المرور؟",
   "forgotPasswordNeedEmail": "اكتب بريدك الإلكتروني أولاً، ثم اضغط «نسيت كلمة المرور؟».",
   "forgotPasswordSent": "إذا كان لـ {email} حساب في ربطة، فقد أرسلنا إليه رابطاً لاختيار كلمة مرور جديدة.",

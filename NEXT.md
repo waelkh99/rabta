@@ -25,10 +25,13 @@ after meeting the buyers.
    `supabase secrets set META_WHATSAPP_CONFIG_ID=<id>` and test. A brand-new
    number also needs `POST /{phone}/register` with a PIN — a product decision.
 3. **Then Track A — the naming brief.** Nothing done yet.
-4. **Still open, the owner's call:** production route for WhatsApp and
-   Instagram (buyer owns the Meta app, or register a business). Buyer-meeting
-   outcomes will change priorities; ask before building anything for bigger
-   companies.
+4. **Decided 20–21 October: route (b), register a business.** Registered as
+   مؤسسة وائل خالد صالح للبرمجة الحاسوبية (no. 625413, 20/10/2026); Meta
+   Business Verification submitted 21 October, "In review" (about two working
+   days). When it passes: Access Verification, then App Review (LAUNCH.md
+   step 5), then item 2 above. Settle the new name before App Review.
+   Buyer-meeting outcomes will change priorities; ask before building
+   anything for bigger companies.
 
 Working notes: staging is `xejtffbpfguwvybrwqqj` (the CLI is linked to it);
 WhatsApp test values are in `supabase/.env` (`WHATSAPP_*`);
@@ -51,7 +54,7 @@ then). After resizing the browser, wait a few seconds before a screenshot.
 - [x] B1 — seen in Playwright (both languages, both widths)
 - [x] B2 — "Connect WhatsApp" button built and deployed to staging (Embedded Signup via the OAuth dialog, same callback, `business_account_id` stored) — **seen** reaching the server, which answers `not_configured`
 - [ ] B2 — end to end: **blocked** on Tech Provider status (Business Verification), found 11 Oct; button hidden meanwhile (11 Oct)
-- [ ] Owner decision — production access route (buyer owns the Meta app, or register a business)
+- [x] Owner decision — production access route: (b), business registered 20 Oct, Meta Business Verification submitted 21 Oct
 - [x] Docs — docs/DECISIONS.md, CLAUDE.md, docs/CHECKLIST.md (section 15), docs/LAUNCH.md header — 7 Oct
 
 ## Log
@@ -295,3 +298,36 @@ source linked.
 - 2026-10-11 — Owner agreed: "Connect WhatsApp" hidden behind
   `_whatsappSignup = false`. Seen in Playwright: Accounts page shows only
   "Connect with Meta", English and Arabic, 1366 and 390. 271 Flutter tests pass.
+- 2026-10-11 — Track A: owner asked for a PDF of names with objective pros
+  and cons, no recommendation: `docs/name-options.pdf` (30 names). Checked:
+  .com/.app/.chat by registry RDAP, App Store (JO+US) and Play, web search
+  for same-space products. Ruled out by same-space products: Jawab, Wared,
+  Mersal, ReplyDesk, Replyo; near: Radd (Radad AI), Zboon (Zbooni, Jordan).
+  Not checked: Instagram/Facebook handles (sign-in wall), Jordan trademark
+  register (no public online search found). Owner picks next.
+- 2026-10-11 — Owner likes "Hub": `docs/hub-name-options.pdf` (18 names, same
+  checks). Same-space conflicts: ChatHub, ConvoHub, MessageHub, JawabHub.
+  None found: InboxHub, DMHub, HiwarHub, AhlanHub, Mehwar (Arabic for hub).
+- 2026-10-11 — "MetaHub" checked and advised against: Meta's trademark page
+  forbids using "Meta" as part of a company/product/domain name without
+  permission, and the product needs Meta's App Review. All three domains taken.
+- 2026-10-21 — Route (b) taken: business registered (مؤسسة وائل خالد صالح
+  للبرمجة الحاسوبية, commercial registration 625413). Meta Business
+  Verification submitted with use case "App requires access to permissions on
+  Meta for Developers"; Arabic legal name accepted; "In review". Privacy page
+  now names the registered business and address (both languages; seen in
+  Playwright, Arabic at desktop, English at 390).
+- 2026-10-21 — Meta rejected the phone proof (+962786548768): certificate
+  "isn't an accepted type" (likely the skewed photo / Arabic-only text).
+  Resubmitted as a clean PDF scan. If rejected again: an English copy of the
+  certificate from MoITS, or a translation page, then a business bank letter
+  showing the legal name and phone. Not a personal phone bill (wrong name).
+- 2026-10-21 — Signed-out screens link "Privacy policy · Data deletion"
+  (Arabic opens the pages' #ar half); test shown failing without the
+  phone-width links; 272 tests pass. **Deployed to production** together with
+  the privacy page, built from `bfb1ee3` (the 27 Sept production code) plus
+  only these two changes, because production's database lacks the WhatsApp
+  migrations: `tool\deploy.ps1` from HEAD would ship code that expects them.
+  Seen live on rabta.chat: English at 1366, Arabic at 390, both links open
+  their pages. Next production deploy must either be the same kind of
+  patch or come with `supabase db push` to production first.

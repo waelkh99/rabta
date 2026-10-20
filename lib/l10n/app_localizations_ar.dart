@@ -1294,6 +1294,12 @@ class LAr extends L {
   }
 
   @override
+  String get privacyPolicy => 'سياسة الخصوصية';
+
+  @override
+  String get dataDeletion => 'حذف البيانات';
+
+  @override
   String get forgotPassword => 'نسيت كلمة المرور؟';
 
   @override

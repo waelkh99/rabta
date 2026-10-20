@@ -1293,6 +1293,12 @@ class LEn extends L {
   }
 
   @override
+  String get privacyPolicy => 'Privacy policy';
+
+  @override
+  String get dataDeletion => 'Data deletion';
+
+  @override
   String get forgotPassword => 'Forgot your password?';
 
   @override

@@ -12,6 +12,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:url_launcher/link.dart';
 
 import 'package:rabta/l10n/app_localizations.dart';
 import 'package:rabta/pages/sign_in_page.dart';
@@ -103,5 +104,28 @@ void main() {
       findsOneWidget,
     );
     expect(find.textContaining('Could not send the link'), findsNothing);
+  });
+
+  testWidgets('privacy and data deletion are linked before signing in, at both widths',
+      (tester) async {
+    addTearDown(tester.view.reset);
+
+    for (final (width, locale, hash) in [
+      (1366.0, const Locale('en'), ''),
+      (390.0, const Locale('en'), ''),
+      (390.0, const Locale('ar'), '#ar'),
+    ]) {
+      tester.view.physicalSize = Size(width, 900);
+      tester.view.devicePixelRatio = 1;
+      await tester.pumpWidget(_app(locale: locale));
+      await tester.pumpAndSettle();
+
+      final uris = tester
+          .widgetList<Link>(find.byType(Link))
+          .map((link) => link.uri!.path + (link.uri!.hasFragment ? '#${link.uri!.fragment}' : ''))
+          .toList();
+      expect(uris, ['/privacy.html$hash', '/data-deletion.html$hash'],
+          reason: 'at $width in ${locale.languageCode}');
+    }
   });
 }
