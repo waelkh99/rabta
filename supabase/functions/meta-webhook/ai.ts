@@ -61,11 +61,8 @@ export const SELLER_PRESENT_MINUTES = 15;
  * assistant said "we'll get back to you" and went silent. The product owner:
  * "remove the message limit, as long as the conversation is going. Freezing is
  * not an option." It only ever answers a customer's own message, so it cannot
- * talk to itself; the monthly ceiling below is the cost backstop.
+ * talk to itself; the plan's monthly limit is the cost backstop.
  */
-
-/** Roughly $7 of Haiku at the prices in docs/DECISIONS.md. A backstop, not a quota. */
-export const MONTHLY_CEILING = 2000;
 
 // ---------------------------------------------------------------------------
 // The catalog
@@ -115,9 +112,55 @@ export interface Shop {
   /// Neither invents a discount. What the assistant may say about money comes
   /// from the catalog, and will come from the sales section when that exists.
   priceStance: PriceStance;
+
+  /// How the seller wants conversations run, in their own words, and the
+  /// reading of it they were shown as a diagram. See the `guide` function.
+  guide?: string | null;
+  guideSteps?: GuideSteps | null;
 }
 
 export type PriceStance = "strict" | "notify";
+
+/**
+ * The seller's guide, read into steps. `when: null` is a rule for every
+ * conversation. `cannot` is what the seller asked for that the assistant has
+ * no way to do — call someone, take a payment — kept so the diagram can say so
+ * rather than drop it, and never given to the assistant as an instruction.
+ */
+export interface GuideSteps {
+  rules: { when: string | null; do: string[]; handover: boolean }[];
+  cannot: { text: string; why: string }[];
+}
+
+/**
+ * The guide as the assistant reads it: the seller's words, then the steps the
+ * seller saw drawn and left standing. Both, because the words carry the
+ * seller's tone and the steps are the reading the seller checked.
+ *
+ * Inside the facts, so a fee or a discount the seller wrote here is grounded
+ * the same way one written in "about" is: the shop wrote it down.
+ */
+export function renderGuide(
+  guide: string | null | undefined,
+  steps: GuideSteps | null | undefined,
+): string | null {
+  const words = guide?.trim();
+  if (!words) return null;
+
+  const parts = [`How the seller wants conversations handled, in their own words:\n${words}`];
+
+  const rules = steps?.rules ?? [];
+  if (rules.length > 0) {
+    const lines = rules.map((rule) => {
+      const actions = rule.do.join("; ");
+      const end = rule.handover ? `${actions ? "; then " : ""}hand the conversation to the seller` : "";
+      return `- ${rule.when ? `When ${rule.when}` : "Always"}: ${actions}${end}`;
+    });
+    parts.push(`The same guidance as steps, which the seller has checked:\n${lines.join("\n")}`);
+  }
+
+  return parts.join("\n\n");
+}
 
 export interface DeliveryZone {
   name: string;
@@ -414,6 +457,9 @@ export function renderFacts(
   if (shop?.hours?.trim()) sections.push(`Opening hours:\n${shop.hours.trim()}`);
   if (shop?.about?.trim()) sections.push(`About this shop:\n${shop.about.trim()}`);
 
+  const guide = renderGuide(shop?.guide, shop?.guideSteps);
+  if (guide) sections.push(guide);
+
   const offers = input.today
     ? renderOffers(input.offers ?? [], input.products, currency, input.today)
     : null;
@@ -553,7 +599,7 @@ export type EscalationCode =
  * this again.
  */
 export function isSpoken(reason: GuardReason, context: ReplyContext): boolean {
-  if (reason === "ceiling") return context.aiRepliesThisMonth === MONTHLY_CEILING;
+  if (reason === "ceiling") return context.aiRepliesThisMonth === context.aiReplyLimit;
   return false;
 }
 
@@ -575,6 +621,8 @@ export interface ReplyContext {
   /** The seller's own most recent outbound message, not the AI's. */
   lastSellerReplyAt: string | null;
   aiRepliesThisMonth: number;
+  /** The workspace plan's replies a month, from the `plans` table. */
+  aiReplyLimit: number;
 }
 
 /**
@@ -611,7 +659,7 @@ export function guard(context: ReplyContext, now: Date): GuardReason | null {
     }
   }
 
-  if (context.aiRepliesThisMonth >= MONTHLY_CEILING) return "ceiling";
+  if (context.aiRepliesThisMonth >= context.aiReplyLimit) return "ceiling";
 
   return null;
 }
@@ -924,6 +972,17 @@ something written down in front of you: no "بظن", no "حسب ما بعرف", 
 عندي معلومة", no "على ما أعتقد", no "I think", no "probably", no "as far as I \
 know". A shop that sounds unsure about its own prices is a shop nobody buys \
 from.
+
+THE SELLER'S OWN GUIDANCE
+
+The shop's facts may say how the seller wants conversations handled. Follow it. \
+It is how this shop runs, and where it differs from the habits described here, \
+it wins: if it says to ask which size before anything else, ask; if it says a \
+kind of conversation goes to them, set handOver for it. It does not win over \
+four things — no terms of endearment, never stating something nobody wrote \
+down, never mentioning anyone else in the shop, and never leaving the customer \
+with nothing. Do not quote the guidance to the customer or say that you were \
+told to do something. Just do it.
 
 When you genuinely do not know, that is not hedging either. Say once, plainly, \
 that you will come back with an answer — then stop. One commitment per reply, \

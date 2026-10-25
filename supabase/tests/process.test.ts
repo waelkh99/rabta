@@ -15,7 +15,9 @@ import type {
   AiPrompt,
   Store,
 } from "../functions/meta-webhook/process.ts";
-import { HANDOVER_LINE, MONTHLY_CEILING } from "../functions/meta-webhook/ai.ts";
+import { HANDOVER_LINE } from "../functions/meta-webhook/ai.ts";
+
+const LIMIT = 1000;
 import type { CustomerProfile } from "../functions/meta-webhook/profile.ts";
 import type { NormalisedMessage, Platform } from "../functions/meta-webhook/parse.ts";
 
@@ -114,6 +116,7 @@ class FakeStore implements Store {
     lastMessageAt: new Date(SENT_MS).toISOString(),
     lastSellerReplyAt: null,
     aiRepliesThisMonth: 0,
+    aiReplyLimit: LIMIT,
   };
 
   prompt: AiPrompt = {
@@ -814,7 +817,7 @@ test("reaching the monthly ceiling tells the customer instead of going quiet", a
   // which from the customer's side is identical to the assistant having died.
   const store = new FakeStore();
   store.tokens.set(`acct_messenger_${PAGE_ID}`, "page-token");
-  store.context = { ...store.context!, aiRepliesThisMonth: MONTHLY_CEILING };
+  store.context = { ...store.context!, aiRepliesThisMonth: LIMIT };
   const { message, outcome } = await storedInbound(store);
 
   const { fetcher, calls } = assistant({ handOver: false, text: "never asked for" });
@@ -834,7 +837,7 @@ test("the hand-over line is said once, not on every message after it", async () 
   // A customer who keeps writing must not keep receiving the same sentence.
   const store = new FakeStore();
   store.tokens.set(`acct_messenger_${PAGE_ID}`, "page-token");
-  store.context = { ...store.context!, aiRepliesThisMonth: MONTHLY_CEILING + 1 };
+  store.context = { ...store.context!, aiRepliesThisMonth: LIMIT + 1 };
   const { message, outcome } = await storedInbound(store);
 
   const { fetcher } = assistant({ handOver: false, text: "never asked for" });
@@ -848,7 +851,7 @@ test("an English customer is handed over in English", async () => {
   const store = new FakeStore();
   store.tokens.set(`acct_messenger_${PAGE_ID}`, "page-token");
   store.connect("messenger", PAGE_ID);
-  store.context = { ...store.context!, aiRepliesThisMonth: MONTHLY_CEILING };
+  store.context = { ...store.context!, aiRepliesThisMonth: LIMIT };
 
   const message = inbound("en_1", "do you have it in blue?");
   const outcome = await processMessage(store, message);
@@ -867,7 +870,7 @@ test("nothing is said when the send would fail anyway", async () => {
   store.context = {
     ...store.context!,
     windowExpiresAt: new Date(SENT_MS - 1000).toISOString(),
-    aiRepliesThisMonth: MONTHLY_CEILING,
+    aiRepliesThisMonth: LIMIT,
   };
   const { message, outcome } = await storedInbound(store);
 

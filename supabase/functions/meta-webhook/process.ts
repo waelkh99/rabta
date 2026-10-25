@@ -25,6 +25,7 @@ import {
   type Usage,
   usageCost,
   numbersAreGrounded,
+  type GuideSteps,
   type Offer,
   photosMissing,
   photosToSend,
@@ -913,6 +914,20 @@ export function createSupabaseStore(client: SupabaseLike): Store {
 
       if (counted.error) throw new Error(`ai count failed: ${counted.error.message}`);
 
+      // The limit comes with the plan. Every workspace has one — the column
+      // is not null with a foreign key — so a missing answer is an error, not
+      // a reason to guess a number in either direction.
+      const plan = await client
+        .from("workspaces")
+        .select("plans(replies_per_month)")
+        .eq("id", workspaceId)
+        .single();
+
+      if (plan.error) throw new Error(`plan failed: ${plan.error.message}`);
+
+      const limit = (plan.data?.plans as { replies_per_month?: unknown } | null)?.replies_per_month;
+      if (typeof limit !== "number") throw new Error("plan failed: no limit");
+
       return {
         workspaceId,
         enabled,
@@ -921,6 +936,7 @@ export function createSupabaseStore(client: SupabaseLike): Store {
         lastMessageAt: data.last_message_at ?? null,
         lastSellerReplyAt,
         aiRepliesThisMonth: counted.count ?? 0,
+        aiReplyLimit: limit,
       };
     },
 
@@ -963,7 +979,7 @@ export function createSupabaseStore(client: SupabaseLike): Store {
       // conversation.
       const shopRow = await client
         .from("shop")
-        .select("currency, delivery_note, locations, hours, about, price_stance")
+        .select("currency, delivery_note, locations, hours, about, price_stance, guide, guide_steps")
         .eq("workspace_id", workspaceId)
         .maybeSingle();
 
@@ -1041,6 +1057,8 @@ export function createSupabaseStore(client: SupabaseLike): Store {
               // never heard of must not silently become a licence to tell
               // customers the price is final.
               priceStance: shopRow.data.price_stance === "strict" ? "strict" : "notify",
+              guide: (shopRow.data.guide ?? null) as string | null,
+              guideSteps: (shopRow.data.guide_steps ?? null) as GuideSteps | null,
             }
           : null,
         zones: (zones.data ?? []).map((row: Record<string, unknown>) => ({

@@ -7,6 +7,14 @@ after meeting the buyers.
 
 ## Next session — start here
 
+0. **(26 October) Plans and the assistant guide are built and unit-tested,
+   not deployed and not seen.** Needs, from the owner: a working Anthropic
+   key (the one in `supabase/.env`, `.env.local` and the staging secret is
+   revoked — the staging assistant cannot answer anyone), and the go-ahead
+   to deploy to staging: `supabase db push`, then
+   `supabase functions deploy guide meta-webhook`. Then `npm run guide-eval`
+   and Playwright (docs/CHECKLIST.md section 16). The app icon is still the
+   Rabta knot — the owner's call.
 1. **Blocked — the "Connect WhatsApp" button cannot work yet** (found
    11 October). Meta's Embedded Signup docs: "You must already be a Solution
    Partner or Tech Provider" — so the "WhatsApp Embedded Signup" login
@@ -46,8 +54,8 @@ then). After resizing the browser, wait a few seconds before a screenshot.
 
 - [x] Step 0 — plan in the repo, pointed to from CLAUDE.md
 - [ ] A — naming brief (candidates, checks run, top 3)
-- [ ] A — owner picks a name
-- [ ] A — rename what users see, new domain
+- [x] A — owner picks a name: **Inboxara** (26 Oct)
+- [x] A — rename what users see (26 Oct; seen in Playwright) — domain, icon and support mailbox wait on the owner
 - [x] B — owner added WhatsApp to the Meta app; test number +1 555-633-5647, IDs and a never-expiring system-user token in `supabase/.env` (checked against Graph 6 Oct); staging webhook verified for WhatsApp
 - [x] B1 — migration, parse, send, media, UI three-way switches, prompts (unit-tested)
 - [x] B1 — connect-whatsapp script, end to end on staging with the test number (receive, reply, photo, stop, reconnect)
@@ -331,3 +339,58 @@ source linked.
   Seen live on rabta.chat: English at 1366, Arabic at 390, both links open
   their pages. Next production deploy must either be the same kind of
   patch or come with `supabase db push` to production first.
+- 2026-10-22 — Criteria changed with the owner: the name no longer has to
+  describe the product (feedback: Arabic words too formal, "inbox"/"DM" too
+  narrow); no Levantine words; short .com is unaffordable, so .app/.chat/
+  get…com matter. Owner likes **Nexira** (Latin nexus). Rechecked 22 Oct:
+  nexira.chat, getnexira.com, usenexira.com free; nexira.com is Nexira SAS
+  (French acacia-gum company, est. 1895); nexira.app registered Jan 2026.
+  No software product named Nexira found. Not yet: name confirmed, domains
+  bought, Jordan trademark search, Instagram/Facebook handles.
+- 2026-10-22 — More Nexira-style names checked (Latin/Greek root + -ira).
+  Clean on .app/.chat/get…com with no apps: Fonira (phōnē, voice),
+  Kentira, Junira, Socira, Sermira. Closest in sound: Lexira (.chat and
+  getlexira.com only). Owner to choose.
+- 2026-10-22 — Owner rejected the made-up names (not catchy) and chose two
+  styles: Arabic-rooted brand (Careem, Talabat) and two-word blend (HubSpot).
+  Single everyday Arabic words are all taken by regional apps (Hader, Lahza,
+  Tamam, Fawran, Mawjood; Rasayel is a WhatsApp inbox). Blends with every
+  domain free incl. .com on 22 Oct: DallaHub, HaderHub, AhlanHub, RaddHub.
+  Recommended DallaHub. Finjan is a Jordanian café-ordering app.
+- 2026-10-22 — Owner's brief sharpened: professional (buyers are companies),
+  open/uncrowded, not cliché; either fully abstract or fully literal.
+  Real English words all taken. Abstract and open (.ai/.io/.app/…hq.com
+  free, no apps, no company found): Teldan, Kerran, Kinsel, Kendel.
+  Literal: CustomerThread and CustomerHall free on every domain incl .com;
+  CustomerLine/Deck/Wire free except .com. Corran dropped (sounds like قرآن).
+- 2026-10-22 — Owner likes **Kendel**. Checked: kendel.ai/.io/.app/.chat,
+  kendelhq.com, getkendel.com, usekendel.com free; kendel.com listed for
+  sale (registered 1999, price on request); kendel.co taken. Only app:
+  "Kendel Driver" (Business, Afom bokre). No company using the name found
+  (near: Kendox, Kendle — both document/retail software). Flagged: in
+  Arabic script it is written like Kindle (كيندل). Not yet: owner's final
+  call, domains bought, handles, Jordan trademark search.
+- 2026-10-22 — Three more in Kendel's style, all free on .ai/.io/.app and
+  …hq.com, no company found: Kenzel (.com unused), Tenzel (.com held by a
+  premium-domain broker), Kentel (.com unused; one food app). Kestel also
+  open (Turkish town; kestel.com a photo site).
+- 2026-10-22 — Final four for the owner: Kendel, Teldan, Sorran,
+  CustomerLine (all checked today). Recommended Teldan: one obvious way to
+  say it in both languages. Owner to pick one.
+- 2026-10-22 — CustomerLine shortened: "Cus-/Cust-" ruled out (sounds like a
+  vulgar Arabic word). CXLine, LineCX, CustomerLine, BuyerLine, SaleLine all
+  free on .ai/.io/.app/…hq.com (not .com), no apps, no product found.
+  Recommended CXLine.
+- 2026-10-26 — Owner: name settled as **Inboxara**; Meta Business
+  Verification passed. Next per item 4: Access Verification, then App Review
+  (rename first — App Review should see the final name). New work asked for:
+  AI usage limits and plans; a seller-written workflow for the assistant,
+  shown back as a diagram. Proposal and open questions sent to the owner;
+  nothing built yet.
+- 2026-10-26 — Renamed to Inboxara (strings, wordmark, web pages, emails,
+  OAuth text); seen in Playwright, Arabic at 390 and 1366, English at 1366.
+  Built plans (Basic 1,000 / Ultimate 5,000 replies) and the assistant guide
+  (`guide` function, diagram page, `renderFacts`). 513 backend + 278 Flutter
+  tests pass, new ones shown failing first. Not deployed, not seen: the
+  Anthropic key is revoked everywhere we hold it, and staging deploy waits
+  on the owner.

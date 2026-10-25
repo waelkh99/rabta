@@ -662,7 +662,7 @@ class LEn extends L {
 
   @override
   String get inviteBody =>
-      'This creates a new Rabta account. They choose their own password from the link, so we never know it and it never travels through a chat.';
+      'This creates a new Inboxara account. They choose their own password from the link, so we never know it and it never travels through a chat.';
 
   @override
   String get inviteAction => 'Create invitation';
@@ -711,7 +711,7 @@ class LEn extends L {
 
   @override
   String get setPasswordWelcome =>
-      'Welcome to Rabta. Choose a password for your account, and use it to sign in from now on.';
+      'Welcome to Inboxara. Choose a password for your account, and use it to sign in from now on.';
 
   @override
   String get setPasswordRenew => 'Choose a new password for your account.';
@@ -770,7 +770,7 @@ class LEn extends L {
   String get noAccountsRow => 'No account connected';
 
   @override
-  String get accountsBody => 'The accounts whose messages reach Rabta.';
+  String get accountsBody => 'The accounts whose messages reach Inboxara.';
 
   @override
   String get accountActive => 'Receiving messages';
@@ -1150,7 +1150,7 @@ class LEn extends L {
   String get resultsRetry => 'Try again';
 
   @override
-  String get newVersion => 'A new version of Rabta is ready.';
+  String get newVersion => 'A new version of Inboxara is ready.';
 
   @override
   String get reload => 'Reload';
@@ -1159,7 +1159,7 @@ class LEn extends L {
   String get admin => 'Admin';
 
   @override
-  String get adminTitle => 'Rabta admin';
+  String get adminTitle => 'Inboxara admin';
 
   @override
   String get adminRefresh => 'Refresh';
@@ -1307,10 +1307,108 @@ class LEn extends L {
 
   @override
   String forgotPasswordSent(String email) {
-    return 'If $email has a Rabta account, we have sent it a link to choose a new password.';
+    return 'If $email has an Inboxara account, we have sent it a link to choose a new password.';
   }
 
   @override
   String get forgotPasswordFailed =>
       'Could not send the link. Wait a minute and try again.';
+
+  @override
+  String get planBasic => 'Basic';
+
+  @override
+  String get planUltimate => 'Ultimate';
+
+  @override
+  String allowancePlan(String plan) {
+    return '$plan plan';
+  }
+
+  @override
+  String allowanceUsed(String used, String limit) {
+    return 'Assistant replies this month: $used of $limit';
+  }
+
+  @override
+  String get allowanceNearly =>
+      'Most of this month\'s replies are used. When they run out, the assistant passes new questions to you until the 1st of next month.';
+
+  @override
+  String get allowanceUsedUp =>
+      'This month\'s replies are used up. The assistant is passing new questions to you until the 1st of next month.';
+
+  @override
+  String get guideTitle => 'Guide the assistant';
+
+  @override
+  String get guideRowEmpty =>
+      'Tell it in your own words how you want conversations handled.';
+
+  @override
+  String get guideRowSet =>
+      'In use. Open it to see how the assistant understood you.';
+
+  @override
+  String get guideOpen => 'Open';
+
+  @override
+  String get guideBody =>
+      'Write how you want the assistant to handle your customers, the way you would explain it to a new employee. It draws back how it understood you, so you can check it before it reaches a customer.';
+
+  @override
+  String get guideHint =>
+      'Always ask which size they wear first. If someone wants to order, take their name, area and phone number, then pass it to me. Anyone who complains comes straight to me.';
+
+  @override
+  String get guideSave => 'Save and draw it';
+
+  @override
+  String get guideSaving => 'Reading your guide…';
+
+  @override
+  String get guideUnderstood => 'How the assistant understood it';
+
+  @override
+  String get guideFix => 'Something wrong? Change your words and save again.';
+
+  @override
+  String get guideStale =>
+      'You\'ve changed the text. Save to see the new reading.';
+
+  @override
+  String get guideNothing =>
+      'Nothing here reads as guidance for the assistant yet.';
+
+  @override
+  String get guideStart => 'A customer writes';
+
+  @override
+  String get guideAlways => 'In every conversation';
+
+  @override
+  String get guideWhen => 'When';
+
+  @override
+  String get guideHandover => 'Comes to you';
+
+  @override
+  String get guideCannot => 'It can\'t do these';
+
+  @override
+  String get guideSaved => 'Saved. The assistant follows this from now on.';
+
+  @override
+  String get guideCleared => 'Guide removed.';
+
+  @override
+  String get guideFailed =>
+      'Couldn\'t read your guide, so nothing was changed. Try again.';
+
+  @override
+  String get guideTooLong =>
+      'That\'s too long. Keep it under 4,000 characters.';
+
+  @override
+  String get adminPlan => 'Plan';
 }

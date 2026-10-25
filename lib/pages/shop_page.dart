@@ -15,11 +15,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../widgets/alerts_switch.dart';
 import '../data.dart';
+import 'guide_page.dart';
 import '../widgets/locale_switch.dart';
 import '../strings.dart';
 import '../theme.dart';
 
-typedef _ShopView = ({Shop shop, List<DeliveryZone> zones, int products});
+typedef _ShopView = ({Shop shop, List<DeliveryZone> zones, int products, Allowance? allowance});
 
 class ShopPage extends StatefulWidget {
   const ShopPage({super.key, required this.inbox});
@@ -38,7 +39,15 @@ class _ShopPageState extends State<ShopPage> {
     final shop = await widget.inbox.shop();
     final zones = await widget.inbox.deliveryZones();
     final products = await widget.inbox.products();
-    return (shop: shop, zones: zones, products: products.length);
+
+    // The meter is a courtesy, not the page: if it cannot be read, the shop
+    // still opens and the line is simply not drawn.
+    Allowance? allowance;
+    try {
+      allowance = await widget.inbox.allowance();
+    } catch (_) {}
+
+    return (shop: shop, zones: zones, products: products.length, allowance: allowance);
   }
 
   void _reload() {
@@ -149,8 +158,17 @@ class _ShopPageState extends State<ShopPage> {
                       _AssistantCard(
                         shop: shop,
                         hasProducts: view.products > 0,
+                        allowance: view.allowance,
                         busy: busy,
                         onChanged: _save,
+                        onGuide: () async {
+                          await Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => GuidePage(inbox: widget.inbox, shop: shop),
+                            ),
+                          );
+                          _reload();
+                        },
                       ),
                       const SizedBox(height: 32),
 
@@ -679,14 +697,18 @@ class _AssistantCard extends StatelessWidget {
   const _AssistantCard({
     required this.shop,
     required this.hasProducts,
+    required this.allowance,
     required this.busy,
     required this.onChanged,
+    required this.onGuide,
   });
 
   final Shop shop;
   final bool hasProducts;
+  final Allowance? allowance;
   final bool busy;
   final ValueChanged<Map<String, dynamic>> onChanged;
+  final VoidCallback onGuide;
 
   @override
   Widget build(BuildContext context) {
@@ -728,6 +750,36 @@ class _AssistantCard extends StatelessWidget {
           Text(
             blocked ? l.assistantNeedsCatalog : l.assistantBody,
             style: Style.preview.copyWith(color: colors.muted, height: 1.6),
+          ),
+          if (allowance != null) ...[
+            const SizedBox(height: 16),
+            AllowanceMeter(allowance: allowance!),
+          ],
+          const SizedBox(height: 14),
+          Divider(height: 1, color: colors.line),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Icon(Icons.alt_route, size: 18, color: colors.muted),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(l.guideTitle, style: Style.name.copyWith(color: colors.ink)),
+                    const SizedBox(height: 2),
+                    Text(
+                      shop.guide?.trim().isNotEmpty == true ? l.guideRowSet : l.guideRowEmpty,
+                      style: Style.meta.copyWith(color: colors.muted, height: 1.5),
+                    ),
+                  ],
+                ),
+              ),
+              TextButton(
+                onPressed: onGuide,
+                child: Text(l.guideOpen, style: Style.name.copyWith(color: colors.accent)),
+              ),
+            ],
           ),
         ],
       ),
@@ -1039,6 +1091,72 @@ class _Notice extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// The plan, and how much of this month's assistant replies it has used.
+///
+/// Says what happens at the limit before it happens, because "the assistant
+/// went quiet" discovered from a customer is the worst way to learn it.
+class AllowanceMeter extends StatelessWidget {
+  const AllowanceMeter({super.key, required this.allowance});
+
+  final Allowance allowance;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.rabta;
+    final l = context.l;
+    final a = allowance;
+
+    final plan = switch (a.plan) {
+      'basic' => l.planBasic,
+      'ultimate' => l.planUltimate,
+      _ => a.plan,
+    };
+
+    final tint = a.usedUp ? colors.urgent : a.nearlyUsed ? colors.accent : colors.assistant;
+    final warning = a.usedUp ? l.allowanceUsedUp : a.nearlyUsed ? l.allowanceNearly : null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                l.allowanceUsed('${a.used}', '${a.limit}'),
+                style: Style.meta.copyWith(color: colors.ink),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: colors.raised,
+                borderRadius: BorderRadius.circular(Radii.control),
+                border: Border.all(color: colors.line),
+              ),
+              child: Text(l.allowancePlan(plan), style: Style.meta.copyWith(color: colors.muted)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(99),
+          child: LinearProgressIndicator(
+            value: a.limit == 0 ? 1 : (a.used / a.limit).clamp(0, 1).toDouble(),
+            minHeight: 6,
+            color: tint,
+            backgroundColor: colors.line,
+          ),
+        ),
+        if (warning != null) ...[
+          const SizedBox(height: 8),
+          Text(warning, style: Style.meta.copyWith(color: tint, height: 1.5)),
+        ],
+      ],
     );
   }
 }

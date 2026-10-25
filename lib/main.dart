@@ -106,7 +106,7 @@ class RabtaApp extends StatelessWidget {
 
   Widget _app(Locale? chosen) {
     return MaterialApp(
-      onGenerateTitle: (context) => 'Rabta',
+      onGenerateTitle: (context) => 'Inboxara',
       debugShowCheckedModeBanner: false,
       theme: rabtaTheme(brightness: Brightness.light),
 

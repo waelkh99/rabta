@@ -586,6 +586,8 @@ class Shop {
     this.about,
     this.assistantEnabled = false,
     this.priceStance = PriceStance.notify,
+    this.guide,
+    this.guideSteps,
   });
 
   /// Written as the seller writes it and repeated back the same way. Not a
@@ -613,6 +615,13 @@ class Shop {
   /// is also what makes the strict claim legitimate, because the guard that
   /// refuses invented price policies searches that same text.
   final PriceStance priceStance;
+
+  /// How the seller wants conversations run, in their own words.
+  final String? guide;
+
+  /// The assistant's reading of [guide], drawn back as a diagram. Saved with
+  /// it by the `guide` function, so it is always the reading of these words.
+  final GuideSteps? guideSteps;
 
   Shop copyWith({
     String? currency,
@@ -643,7 +652,78 @@ class Shop {
         about: row['about'] as String?,
         assistantEnabled: row['assistant_enabled'] as bool? ?? false,
         priceStance: PriceStance.of(row['price_stance'] as String?),
+        guide: row['guide'] as String?,
+        guideSteps: GuideSteps.fromJson(row['guide_steps']),
       );
+}
+
+/// The seller's guide, read into situations and what to do in each.
+///
+/// [when] null is a rule for every conversation. [cannot] is what the seller
+/// asked for that the assistant has no way to do, shown so it is not silently
+/// dropped.
+class GuideSteps {
+  const GuideSteps({required this.rules, required this.cannot});
+
+  final List<GuideRule> rules;
+  final List<({String text, String why})> cannot;
+
+  bool get isEmpty => rules.isEmpty && cannot.isEmpty;
+
+  /// Null for anything that is not a reading, so a malformed row draws
+  /// nothing rather than throwing on the seller's screen.
+  static GuideSteps? fromJson(Object? json) {
+    if (json is! Map) return null;
+    final rules = json['rules'];
+    final cannot = json['cannot'];
+    if (rules is! List || cannot is! List) return null;
+
+    return GuideSteps(
+      rules: [
+        for (final r in rules)
+          if (r is Map)
+            GuideRule(
+              when: r['when'] is String ? r['when'] as String : null,
+              actions: [for (final a in (r['do'] as List?) ?? const []) if (a is String) a],
+              handover: r['handover'] == true,
+            ),
+      ],
+      cannot: [
+        for (final c in cannot)
+          if (c is Map && c['text'] is String)
+            (text: c['text'] as String, why: c['why'] is String ? c['why'] as String : ''),
+      ],
+    );
+  }
+}
+
+class GuideRule {
+  const GuideRule({required this.when, required this.actions, required this.handover});
+
+  final String? when;
+  final List<String> actions;
+  final bool handover;
+}
+
+/// The workspace's plan, and how much of this month's assistant replies it
+/// has used.
+class Allowance {
+  const Allowance({required this.plan, required this.limit, required this.used});
+
+  final String plan;
+  final int limit;
+  final int used;
+
+  /// From 80%: early enough to do something about it, late enough not to nag.
+  bool get nearlyUsed => !usedUp && used >= limit * 0.8;
+
+  bool get usedUp => used >= limit;
+}
+
+/// Why the guide was not saved. Codes from the function, worded here.
+class GuideRefused implements Exception {
+  const GuideRefused(this.reason);
+  final String reason;
 }
 
 /// Somewhere the shop delivers to, and what it charges.
@@ -1780,7 +1860,7 @@ class Inbox {
         .from('shop')
         .select(
           'currency, delivery_note, locations, hours, about, '
-          'assistant_enabled, price_stance',
+          'assistant_enabled, price_stance, guide, guide_steps',
         )
         .maybeSingle();
 
@@ -1808,6 +1888,49 @@ class Inbox {
 
   /// An empty box means "not set", which is null rather than an empty string.
   static String? textOrNull(String? value) => _orNull(value);
+
+  /// The plan, its monthly replies, and how many the assistant has sent.
+  ///
+  /// Counted the way the server counts before it answers — AI messages since
+  /// the start of the month in UTC — so the number here is the number that
+  /// stops it.
+  Future<Allowance> allowance() async {
+    final row = await _db
+        .from('workspaces')
+        .select('plan, plans(replies_per_month)')
+        .limit(1)
+        .single();
+
+    final now = DateTime.now().toUtc();
+    final used = await _db
+        .from('messages')
+        .count(CountOption.exact)
+        .eq('origin', 'ai')
+        .gte('created_at', DateTime.utc(now.year, now.month).toIso8601String());
+
+    return Allowance(
+      plan: row['plan'] as String,
+      limit: ((row['plans'] as Map?)?['replies_per_month'] as num?)?.toInt() ?? 0,
+      used: used,
+    );
+  }
+
+  /// Saves the guide and gives back the assistant's reading of it.
+  ///
+  /// Through the `guide` function, which reads it and saves the words and the
+  /// reading together. An empty guide clears both and reads as null.
+  Future<GuideSteps?> saveGuide(String guide) async {
+    try {
+      final response = await _db.functions.invoke('guide', body: {'guide': guide});
+      return GuideSteps.fromJson((response.data as Map?)?['steps']);
+    } on FunctionException catch (error) {
+      final details = error.details;
+      final reason = details is Map ? details['reason'] : null;
+      throw GuideRefused(reason is String ? reason : 'failed');
+    } catch (_) {
+      throw const GuideRefused('failed');
+    }
+  }
 
   /// Where the shop delivers, in the order the assistant reads it.
   Future<List<DeliveryZone>> deliveryZones() async {
@@ -1918,6 +2041,11 @@ class Inbox {
     final data = await _db.rpc('admin_overview');
     return Map<String, dynamic>.from(data as Map);
   }
+
+  /// Moves a seller to another plan. Refused by the database for anyone who
+  /// is not an admin.
+  Future<void> setPlan(String workspaceId, String plan) =>
+      _db.rpc('admin_set_plan', params: {'p_workspace': workspaceId, 'p_plan': plan});
 
   /// The seller's own word on how a conversation ended. Wins over the
   /// assistant's reading until the customer writes again.

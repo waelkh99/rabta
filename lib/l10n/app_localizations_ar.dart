@@ -662,7 +662,7 @@ class LAr extends L {
 
   @override
   String get inviteBody =>
-      'يُنشئ هذا حساباً جديداً على ربطة. يختار صاحبه كلمة المرور بنفسه من الرابط، فلا نعرفها ولا تمر في محادثة.';
+      'يُنشئ هذا حساباً جديداً على إنبوكسارا. يختار صاحبه كلمة المرور بنفسه من الرابط، فلا نعرفها ولا تمر في محادثة.';
 
   @override
   String get inviteAction => 'إنشاء دعوة';
@@ -711,7 +711,7 @@ class LAr extends L {
 
   @override
   String get setPasswordWelcome =>
-      'أهلاً بك في ربطة. اختر كلمة مرور لحسابك لتدخل بها من الآن فصاعداً.';
+      'أهلاً بك في إنبوكسارا. اختر كلمة مرور لحسابك لتدخل بها من الآن فصاعداً.';
 
   @override
   String get setPasswordRenew => 'اختر كلمة مرور جديدة لحسابك.';
@@ -769,7 +769,7 @@ class LAr extends L {
   String get noAccountsRow => 'لا يوجد حساب مربوط';
 
   @override
-  String get accountsBody => 'الحسابات التي تصل رسائلها إلى ربطة.';
+  String get accountsBody => 'الحسابات التي تصل رسائلها إلى إنبوكسارا.';
 
   @override
   String get accountActive => 'يستقبل الرسائل';
@@ -1151,7 +1151,7 @@ class LAr extends L {
   String get resultsRetry => 'حاول مرة أخرى';
 
   @override
-  String get newVersion => 'نسخة جديدة من ربطة جاهزة.';
+  String get newVersion => 'نسخة جديدة من إنبوكسارا جاهزة.';
 
   @override
   String get reload => 'إعادة التحميل';
@@ -1160,7 +1160,7 @@ class LAr extends L {
   String get admin => 'الإدارة';
 
   @override
-  String get adminTitle => 'إدارة ربطة';
+  String get adminTitle => 'إدارة إنبوكسارا';
 
   @override
   String get adminRefresh => 'تحديث';
@@ -1308,10 +1308,103 @@ class LAr extends L {
 
   @override
   String forgotPasswordSent(String email) {
-    return 'إذا كان لـ $email حساب في ربطة، فقد أرسلنا إليه رابطاً لاختيار كلمة مرور جديدة.';
+    return 'إذا كان لـ $email حساب في إنبوكسارا، فقد أرسلنا إليه رابطاً لاختيار كلمة مرور جديدة.';
   }
 
   @override
   String get forgotPasswordFailed =>
       'تعذّر إرسال الرابط. انتظر دقيقة ثم حاول مرة أخرى.';
+
+  @override
+  String get planBasic => 'الأساسية';
+
+  @override
+  String get planUltimate => 'الشاملة';
+
+  @override
+  String allowancePlan(String plan) {
+    return 'الباقة $plan';
+  }
+
+  @override
+  String allowanceUsed(String used, String limit) {
+    return 'ردود المساعد هذا الشهر: $used من $limit';
+  }
+
+  @override
+  String get allowanceNearly =>
+      'استُخدم معظم ردود هذا الشهر. عندما تنتهي، يحوّل المساعد الأسئلة الجديدة إليك حتى بداية الشهر القادم.';
+
+  @override
+  String get allowanceUsedUp =>
+      'انتهت ردود هذا الشهر. يحوّل المساعد الأسئلة الجديدة إليك حتى بداية الشهر القادم.';
+
+  @override
+  String get guideTitle => 'توجيه المساعد';
+
+  @override
+  String get guideRowEmpty => 'اكتب بكلماتك كيف تريد أن يتعامل مع المحادثات.';
+
+  @override
+  String get guideRowSet => 'مفعّل. افتحه لترى كيف فهمك المساعد.';
+
+  @override
+  String get guideOpen => 'فتح';
+
+  @override
+  String get guideBody =>
+      'اكتب كيف تريد أن يتعامل المساعد مع زبائنك، كما تشرح لموظف جديد. سيرسم لك كيف فهم كلامك، لتتأكد منه قبل أن يصل إلى زبائنك.';
+
+  @override
+  String get guideHint =>
+      'اسأل الزبون دايماً عن مقاسه أول إشي. إذا بدو يطلب، خذ اسمه ومنطقته ورقمه وحوّله إلي. أي حدا بشتكي حوّله إلي فوراً.';
+
+  @override
+  String get guideSave => 'احفظ وارسم';
+
+  @override
+  String get guideSaving => 'يقرأ المساعد كلامك…';
+
+  @override
+  String get guideUnderstood => 'كيف فهمه المساعد';
+
+  @override
+  String get guideFix => 'هناك خطأ؟ عدّل كلامك واحفظ مرة أخرى.';
+
+  @override
+  String get guideStale => 'غيّرت النص. احفظ لترى الفهم الجديد.';
+
+  @override
+  String get guideNothing => 'لا يوجد في النص توجيه للمساعد بعد.';
+
+  @override
+  String get guideStart => 'زبون يكتب';
+
+  @override
+  String get guideAlways => 'في كل محادثة';
+
+  @override
+  String get guideWhen => 'إذا';
+
+  @override
+  String get guideHandover => 'تصلك المحادثة';
+
+  @override
+  String get guideCannot => 'لا يستطيع فعل هذا';
+
+  @override
+  String get guideSaved => 'تم الحفظ. سيتبع المساعد هذا من الآن.';
+
+  @override
+  String get guideCleared => 'حُذف التوجيه.';
+
+  @override
+  String get guideFailed =>
+      'تعذّرت قراءة التوجيه، فلم يتغيّر شيء. حاول مرة أخرى.';
+
+  @override
+  String get guideTooLong => 'النص طويل جداً. اجعله أقل من 4000 حرف.';
+
+  @override
+  String get adminPlan => 'الباقة';
 }

@@ -227,6 +227,24 @@ built until the owner reports back from the buyer meetings.
 
 ---
 
+## Plans and the assistant guide
+
+Requested by the product owner on 26 October 2026, with the name **Inboxara**
+settled and Meta Business Verification passed.
+
+- **Plans:** Basic and Ultimate, differing only in assistant replies a month
+  (1,000 and 5,000, in the `plans` table). Admins assign them; there is no
+  payment.
+- **The guide:** the seller writes in plain words how the assistant should
+  handle conversations; the `guide` function reads it into steps, drawn back
+  as a read-only diagram. One per shop. It is the fourth worked example of the
+  rule above: it feeds `renderFacts`, and grounds what it says.
+
+`docs/DECISIONS.md` (26 October) has the reasoning; `docs/CHECKLIST.md`
+section 16 the status.
+
+---
+
 ## How conversations end
 
 Requested by the product owner on 24 September 2026. The product owner counts

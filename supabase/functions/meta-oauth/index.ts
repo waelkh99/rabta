@@ -378,12 +378,12 @@ async function callback(params: URLSearchParams): Promise<Response> {
     return text(
       `Almost there.
 
-Rabta receives your messages through a Facebook Page, and no Page was
+Inboxara receives your messages through a Facebook Page, and no Page was
 included. On Meta's permission screen, choose the Page you sell from and allow
 access to its messages.
 
 If this account has no Page yet, one has to be created before Instagram or
-Messenger conversations can reach Rabta.`,
+Messenger conversations can reach Inboxara.`,
       200,
     );
   }
@@ -502,7 +502,7 @@ async function connectWhatsApp(
     return text(
       `Almost there.
 
-No WhatsApp number was included. Go back to Rabta, press Connect WhatsApp
+No WhatsApp number was included. Go back to Inboxara, press Connect WhatsApp
 again, and choose the number you sell from.`,
       200,
     );

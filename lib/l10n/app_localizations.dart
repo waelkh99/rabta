@@ -1195,7 +1195,7 @@ abstract class L {
   /// **'التنبيهات محظورة في المتصفّح'**
   String get alertsDenied;
 
-  /// Safari on iPhone has no notification API for a site open in a tab — the seller has to add Rabta to the home screen first. Not the same as refused, and it must not read as an error.
+  /// Safari on iPhone has no notification API for a site open in a tab — the seller has to add Inboxara to the home screen first. Not the same as refused, and it must not read as an error.
   ///
   /// In ar, this message translates to:
   /// **'التنبيهات غير متاحة هنا'**
@@ -1216,7 +1216,7 @@ abstract class L {
   /// No description provided for @inviteBody.
   ///
   /// In ar, this message translates to:
-  /// **'يُنشئ هذا حساباً جديداً على ربطة. يختار صاحبه كلمة المرور بنفسه من الرابط، فلا نعرفها ولا تمر في محادثة.'**
+  /// **'يُنشئ هذا حساباً جديداً على إنبوكسارا. يختار صاحبه كلمة المرور بنفسه من الرابط، فلا نعرفها ولا تمر في محادثة.'**
   String get inviteBody;
 
   /// No description provided for @inviteAction.
@@ -1306,7 +1306,7 @@ abstract class L {
   /// Arriving from an invitation. The account exists; it has no password yet.
   ///
   /// In ar, this message translates to:
-  /// **'أهلاً بك في ربطة. اختر كلمة مرور لحسابك لتدخل بها من الآن فصاعداً.'**
+  /// **'أهلاً بك في إنبوكسارا. اختر كلمة مرور لحسابك لتدخل بها من الآن فصاعداً.'**
   String get setPasswordWelcome;
 
   /// No description provided for @setPasswordRenew.
@@ -1414,7 +1414,7 @@ abstract class L {
   /// No description provided for @accountsBody.
   ///
   /// In ar, this message translates to:
-  /// **'الحسابات التي تصل رسائلها إلى ربطة.'**
+  /// **'الحسابات التي تصل رسائلها إلى إنبوكسارا.'**
   String get accountsBody;
 
   /// No description provided for @accountActive.
@@ -2080,7 +2080,7 @@ abstract class L {
   /// No description provided for @newVersion.
   ///
   /// In ar, this message translates to:
-  /// **'نسخة جديدة من ربطة جاهزة.'**
+  /// **'نسخة جديدة من إنبوكسارا جاهزة.'**
   String get newVersion;
 
   /// No description provided for @reload.
@@ -2098,7 +2098,7 @@ abstract class L {
   /// No description provided for @adminTitle.
   ///
   /// In ar, this message translates to:
-  /// **'إدارة ربطة'**
+  /// **'إدارة إنبوكسارا'**
   String get adminTitle;
 
   /// No description provided for @adminRefresh.
@@ -2386,7 +2386,7 @@ abstract class L {
   /// No description provided for @forgotPasswordSent.
   ///
   /// In ar, this message translates to:
-  /// **'إذا كان لـ {email} حساب في ربطة، فقد أرسلنا إليه رابطاً لاختيار كلمة مرور جديدة.'**
+  /// **'إذا كان لـ {email} حساب في إنبوكسارا، فقد أرسلنا إليه رابطاً لاختيار كلمة مرور جديدة.'**
   String forgotPasswordSent(String email);
 
   /// No description provided for @forgotPasswordFailed.
@@ -2394,6 +2394,174 @@ abstract class L {
   /// In ar, this message translates to:
   /// **'تعذّر إرسال الرابط. انتظر دقيقة ثم حاول مرة أخرى.'**
   String get forgotPasswordFailed;
+
+  /// No description provided for @planBasic.
+  ///
+  /// In ar, this message translates to:
+  /// **'الأساسية'**
+  String get planBasic;
+
+  /// No description provided for @planUltimate.
+  ///
+  /// In ar, this message translates to:
+  /// **'الشاملة'**
+  String get planUltimate;
+
+  /// No description provided for @allowancePlan.
+  ///
+  /// In ar, this message translates to:
+  /// **'الباقة {plan}'**
+  String allowancePlan(String plan);
+
+  /// No description provided for @allowanceUsed.
+  ///
+  /// In ar, this message translates to:
+  /// **'ردود المساعد هذا الشهر: {used} من {limit}'**
+  String allowanceUsed(String used, String limit);
+
+  /// No description provided for @allowanceNearly.
+  ///
+  /// In ar, this message translates to:
+  /// **'استُخدم معظم ردود هذا الشهر. عندما تنتهي، يحوّل المساعد الأسئلة الجديدة إليك حتى بداية الشهر القادم.'**
+  String get allowanceNearly;
+
+  /// No description provided for @allowanceUsedUp.
+  ///
+  /// In ar, this message translates to:
+  /// **'انتهت ردود هذا الشهر. يحوّل المساعد الأسئلة الجديدة إليك حتى بداية الشهر القادم.'**
+  String get allowanceUsedUp;
+
+  /// No description provided for @guideTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'توجيه المساعد'**
+  String get guideTitle;
+
+  /// No description provided for @guideRowEmpty.
+  ///
+  /// In ar, this message translates to:
+  /// **'اكتب بكلماتك كيف تريد أن يتعامل مع المحادثات.'**
+  String get guideRowEmpty;
+
+  /// No description provided for @guideRowSet.
+  ///
+  /// In ar, this message translates to:
+  /// **'مفعّل. افتحه لترى كيف فهمك المساعد.'**
+  String get guideRowSet;
+
+  /// No description provided for @guideOpen.
+  ///
+  /// In ar, this message translates to:
+  /// **'فتح'**
+  String get guideOpen;
+
+  /// No description provided for @guideBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'اكتب كيف تريد أن يتعامل المساعد مع زبائنك، كما تشرح لموظف جديد. سيرسم لك كيف فهم كلامك، لتتأكد منه قبل أن يصل إلى زبائنك.'**
+  String get guideBody;
+
+  /// No description provided for @guideHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'اسأل الزبون دايماً عن مقاسه أول إشي. إذا بدو يطلب، خذ اسمه ومنطقته ورقمه وحوّله إلي. أي حدا بشتكي حوّله إلي فوراً.'**
+  String get guideHint;
+
+  /// No description provided for @guideSave.
+  ///
+  /// In ar, this message translates to:
+  /// **'احفظ وارسم'**
+  String get guideSave;
+
+  /// No description provided for @guideSaving.
+  ///
+  /// In ar, this message translates to:
+  /// **'يقرأ المساعد كلامك…'**
+  String get guideSaving;
+
+  /// No description provided for @guideUnderstood.
+  ///
+  /// In ar, this message translates to:
+  /// **'كيف فهمه المساعد'**
+  String get guideUnderstood;
+
+  /// No description provided for @guideFix.
+  ///
+  /// In ar, this message translates to:
+  /// **'هناك خطأ؟ عدّل كلامك واحفظ مرة أخرى.'**
+  String get guideFix;
+
+  /// No description provided for @guideStale.
+  ///
+  /// In ar, this message translates to:
+  /// **'غيّرت النص. احفظ لترى الفهم الجديد.'**
+  String get guideStale;
+
+  /// No description provided for @guideNothing.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا يوجد في النص توجيه للمساعد بعد.'**
+  String get guideNothing;
+
+  /// No description provided for @guideStart.
+  ///
+  /// In ar, this message translates to:
+  /// **'زبون يكتب'**
+  String get guideStart;
+
+  /// No description provided for @guideAlways.
+  ///
+  /// In ar, this message translates to:
+  /// **'في كل محادثة'**
+  String get guideAlways;
+
+  /// No description provided for @guideWhen.
+  ///
+  /// In ar, this message translates to:
+  /// **'إذا'**
+  String get guideWhen;
+
+  /// No description provided for @guideHandover.
+  ///
+  /// In ar, this message translates to:
+  /// **'تصلك المحادثة'**
+  String get guideHandover;
+
+  /// No description provided for @guideCannot.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا يستطيع فعل هذا'**
+  String get guideCannot;
+
+  /// No description provided for @guideSaved.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم الحفظ. سيتبع المساعد هذا من الآن.'**
+  String get guideSaved;
+
+  /// No description provided for @guideCleared.
+  ///
+  /// In ar, this message translates to:
+  /// **'حُذف التوجيه.'**
+  String get guideCleared;
+
+  /// No description provided for @guideFailed.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعذّرت قراءة التوجيه، فلم يتغيّر شيء. حاول مرة أخرى.'**
+  String get guideFailed;
+
+  /// No description provided for @guideTooLong.
+  ///
+  /// In ar, this message translates to:
+  /// **'النص طويل جداً. اجعله أقل من 4000 حرف.'**
+  String get guideTooLong;
+
+  /// No description provided for @adminPlan.
+  ///
+  /// In ar, this message translates to:
+  /// **'الباقة'**
+  String get adminPlan;
 }
 
 class _LDelegate extends LocalizationsDelegate<L> {

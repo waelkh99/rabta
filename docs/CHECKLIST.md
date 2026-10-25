@@ -1007,3 +1007,22 @@ Plan and log in `NEXT.md`.
       hidden until then (`_whatsappSignup`), **seen** gone in both languages
       at both widths
 - [ ] A real seller's number — blocked on the production decision
+
+## 16. Plans and the assistant guide — started 26 October 2026
+
+- [x] `plans` table, `workspaces.plan` (Basic 1,000 / Ultimate 5,000), seller
+      cannot change it, admin can — DB tests shown failing with an update policy
+- [x] The assistant stops at the plan's limit, not a shared number — unit test
+      shown failing with the old fixed limit
+- [x] `guide` function reads the guide into steps and saves both; the guide
+      reaches `renderFacts` and grounds what it says — unit tests, shown failing
+      with the section removed
+- [x] Meter on the Shop page, plan switch on the admin page, guide page with
+      the diagram — widget tests shown failing
+- [ ] Guide reading measured against the real model (`npm run guide-eval`) —
+      **blocked**: the Anthropic key in `supabase/.env`, `.env.local` and the
+      staging secret is revoked (401, checked 26 October)
+- [ ] Deployed to staging (db push, `guide`, `meta-webhook`) — waiting on the
+      owner's go-ahead
+- [ ] **Seen** in Playwright: meter, guide page and diagram, admin plan switch,
+      both languages, both widths — built, unseen

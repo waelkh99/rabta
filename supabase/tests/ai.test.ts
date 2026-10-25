@@ -21,7 +21,6 @@ import {
   HANDOVER_LINE,
   isSpoken,
   MODEL,
-  MONTHLY_CEILING,
   DEFAULT_CURRENCY,
   MAX_PHOTOS,
   MAX_THUMBNAILS,
@@ -187,12 +186,16 @@ const minutesAgo = (minutes: number) =>
 const hoursAhead = (hours: number) =>
   new Date(NOW.getTime() + hours * 3_600_000).toISOString();
 
+/** Basic's replies a month. Any number would do; the plan supplies it. */
+const LIMIT = 1000;
+
 /** A conversation the AI is allowed to answer. Each test spoils one thing. */
 const open = (overrides: Partial<ReplyContext> = {}): ReplyContext => ({
   enabled: true,
   windowExpiresAt: hoursAhead(12),
   lastSellerReplyAt: null,
   aiRepliesThisMonth: 0,
+  aiReplyLimit: LIMIT,
   ...overrides,
 });
 
@@ -244,13 +247,13 @@ test("there is no limit on replies in a row", () => {
 test("the customer is told once when the ceiling is reached, not on every message", () => {
   // The hand-over line is itself an AI reply, so sending it pushes the count
   // one past the ceiling. That is the whole mechanism — there is no flag.
-  assert.equal(isSpoken("ceiling", open({ aiRepliesThisMonth: MONTHLY_CEILING })), true);
-  assert.equal(isSpoken("ceiling", open({ aiRepliesThisMonth: MONTHLY_CEILING + 1 })), false);
+  assert.equal(isSpoken("ceiling", open({ aiRepliesThisMonth: LIMIT })), true);
+  assert.equal(isSpoken("ceiling", open({ aiRepliesThisMonth: LIMIT + 1 })), false);
 });
 
 test("the customer is told once when the monthly ceiling is reached", () => {
-  assert.equal(isSpoken("ceiling", open({ aiRepliesThisMonth: MONTHLY_CEILING })), true);
-  assert.equal(isSpoken("ceiling", open({ aiRepliesThisMonth: MONTHLY_CEILING + 1 })), false);
+  assert.equal(isSpoken("ceiling", open({ aiRepliesThisMonth: LIMIT })), true);
+  assert.equal(isSpoken("ceiling", open({ aiRepliesThisMonth: LIMIT + 1 })), false);
 });
 
 test("nothing is said on a path where the send would fail anyway", () => {
@@ -305,7 +308,15 @@ test("a seller who left hours ago is not treated as present", () => {
 });
 
 test("the monthly ceiling stops the bill running away", () => {
-  assert.equal(guard(open({ aiRepliesThisMonth: MONTHLY_CEILING }), NOW), "ceiling");
+  assert.equal(guard(open({ aiRepliesThisMonth: LIMIT }), NOW), "ceiling");
+});
+
+test("the ceiling is the workspace's plan, not a number shared by everyone", () => {
+  // Ultimate past Basic's limit keeps answering; Basic at the same count stops.
+  assert.equal(guard(open({ aiRepliesThisMonth: 1000, aiReplyLimit: 5000 }), NOW), null);
+  assert.equal(guard(open({ aiRepliesThisMonth: 1000, aiReplyLimit: 1000 }), NOW), "ceiling");
+  assert.equal(isSpoken("ceiling", open({ aiRepliesThisMonth: 5000, aiReplyLimit: 5000 })), true);
+  assert.equal(isSpoken("ceiling", open({ aiRepliesThisMonth: 1000, aiReplyLimit: 5000 })), false);
 });
 
 test("the window is checked before the ceiling, so an old conversation is cheap to refuse", () => {
@@ -313,7 +324,7 @@ test("the window is checked before the ceiling, so an old conversation is cheap 
   // more honest explanation of the two.
   const doomed = open({
     windowExpiresAt: hoursAhead(-1),
-    aiRepliesThisMonth: MONTHLY_CEILING,
+    aiRepliesThisMonth: LIMIT,
   });
   assert.equal(guard(doomed, NOW), "window_closed");
 });

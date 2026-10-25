@@ -265,7 +265,7 @@ class _InboxPageState extends State<InboxPage> {
   /// screen — and a customer who wrote while they were in there is exactly the
   /// case this exists for.
   void _announce(List<Conversation> fresh) {
-    showWaitingCount('Rabta', _inbox.waitingCount(fresh));
+    showWaitingCount('Inboxara', _inbox.waitingCount(fresh));
 
     final alerts = alertsFor(_announced, fresh, openId: _open?.id);
     _announced = fresh;
@@ -282,7 +282,7 @@ class _InboxPageState extends State<InboxPage> {
   void dispose() {
     // Otherwise a seller who signs out is left looking at a tab still counting
     // customers they can no longer see.
-    showWaitingCount('Rabta', 0);
+    showWaitingCount('Inboxara', 0);
     _searchWait?.cancel();
     _authChanges?.cancel();
     final channel = _channel;

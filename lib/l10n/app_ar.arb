@@ -256,7 +256,7 @@
   },
   "alertsUnsupported": "التنبيهات غير متاحة هنا",
   "@alertsUnsupported": {
-    "description": "Safari on iPhone has no notification API for a site open in a tab — the seller has to add Rabta to the home screen first. Not the same as refused, and it must not read as an error."
+    "description": "Safari on iPhone has no notification API for a site open in a tab — the seller has to add Inboxara to the home screen first. Not the same as refused, and it must not read as an error."
   },
   "@escalatedNotSent": {
     "description": "The reply never reached the customer at all, which is the one of these the seller must act on fastest."
@@ -264,7 +264,7 @@
 
   "invite": "دعوة",
   "inviteTitle": "دعوة بائع",
-  "inviteBody": "يُنشئ هذا حساباً جديداً على ربطة. يختار صاحبه كلمة المرور بنفسه من الرابط، فلا نعرفها ولا تمر في محادثة.",
+  "inviteBody": "يُنشئ هذا حساباً جديداً على إنبوكسارا. يختار صاحبه كلمة المرور بنفسه من الرابط، فلا نعرفها ولا تمر في محادثة.",
   "inviteAction": "إنشاء دعوة",
   "inviteCreating": "جارٍ الإنشاء",
   "inviteLinkTitle": "الرابط جاهز",
@@ -286,7 +286,7 @@
   },
 
   "setPasswordTitle": "اختر كلمة المرور",
-  "setPasswordWelcome": "أهلاً بك في ربطة. اختر كلمة مرور لحسابك لتدخل بها من الآن فصاعداً.",
+  "setPasswordWelcome": "أهلاً بك في إنبوكسارا. اختر كلمة مرور لحسابك لتدخل بها من الآن فصاعداً.",
   "@setPasswordWelcome": {
     "description": "Arriving from an invitation. The account exists; it has no password yet."
   },
@@ -317,7 +317,7 @@
   "@noAccountsRow": {
     "description": "Where the conversation list would be, when nothing is connected yet."
   },
-  "accountsBody": "الحسابات التي تصل رسائلها إلى ربطة.",
+  "accountsBody": "الحسابات التي تصل رسائلها إلى إنبوكسارا.",
   "accountActive": "يستقبل الرسائل",
   "accountNeedsReconnect": "انقطع الاتصال، أعد الربط",
   "@accountNeedsReconnect": {
@@ -467,10 +467,10 @@
   "@resultsAccuracy": {"placeholders": {"read": {"type": "int"}, "corrected": {"type": "int"}}},
   "resultsFailed": "تعذّر تحميل النتائج. حاول مرة أخرى.",
   "resultsRetry": "حاول مرة أخرى",
-  "newVersion": "نسخة جديدة من ربطة جاهزة.",
+  "newVersion": "نسخة جديدة من إنبوكسارا جاهزة.",
   "reload": "إعادة التحميل",
   "admin": "الإدارة",
-  "adminTitle": "إدارة ربطة",
+  "adminTitle": "إدارة إنبوكسارا",
   "adminRefresh": "تحديث",
   "adminFailed": "تعذّر تحميل بيانات الإدارة.",
   "adminHealth": "حالة الخدمة",
@@ -519,7 +519,37 @@
   "dataDeletion": "حذف البيانات",
   "forgotPassword": "نسيت كلمة المرور؟",
   "forgotPasswordNeedEmail": "اكتب بريدك الإلكتروني أولاً، ثم اضغط «نسيت كلمة المرور؟».",
-  "forgotPasswordSent": "إذا كان لـ {email} حساب في ربطة، فقد أرسلنا إليه رابطاً لاختيار كلمة مرور جديدة.",
+  "forgotPasswordSent": "إذا كان لـ {email} حساب في إنبوكسارا، فقد أرسلنا إليه رابطاً لاختيار كلمة مرور جديدة.",
   "@forgotPasswordSent": {"placeholders": {"email": {"type": "String"}}},
-  "forgotPasswordFailed": "تعذّر إرسال الرابط. انتظر دقيقة ثم حاول مرة أخرى."
+  "forgotPasswordFailed": "تعذّر إرسال الرابط. انتظر دقيقة ثم حاول مرة أخرى.",
+  "planBasic": "الأساسية",
+  "planUltimate": "الشاملة",
+  "allowancePlan": "الباقة {plan}",
+  "@allowancePlan": {"placeholders": {"plan": {"type": "String"}}},
+  "allowanceUsed": "ردود المساعد هذا الشهر: {used} من {limit}",
+  "@allowanceUsed": {"placeholders": {"used": {"type": "String"}, "limit": {"type": "String"}}},
+  "allowanceNearly": "استُخدم معظم ردود هذا الشهر. عندما تنتهي، يحوّل المساعد الأسئلة الجديدة إليك حتى بداية الشهر القادم.",
+  "allowanceUsedUp": "انتهت ردود هذا الشهر. يحوّل المساعد الأسئلة الجديدة إليك حتى بداية الشهر القادم.",
+  "guideTitle": "توجيه المساعد",
+  "guideRowEmpty": "اكتب بكلماتك كيف تريد أن يتعامل مع المحادثات.",
+  "guideRowSet": "مفعّل. افتحه لترى كيف فهمك المساعد.",
+  "guideOpen": "فتح",
+  "guideBody": "اكتب كيف تريد أن يتعامل المساعد مع زبائنك، كما تشرح لموظف جديد. سيرسم لك كيف فهم كلامك، لتتأكد منه قبل أن يصل إلى زبائنك.",
+  "guideHint": "اسأل الزبون دايماً عن مقاسه أول إشي. إذا بدو يطلب، خذ اسمه ومنطقته ورقمه وحوّله إلي. أي حدا بشتكي حوّله إلي فوراً.",
+  "guideSave": "احفظ وارسم",
+  "guideSaving": "يقرأ المساعد كلامك…",
+  "guideUnderstood": "كيف فهمه المساعد",
+  "guideFix": "هناك خطأ؟ عدّل كلامك واحفظ مرة أخرى.",
+  "guideStale": "غيّرت النص. احفظ لترى الفهم الجديد.",
+  "guideNothing": "لا يوجد في النص توجيه للمساعد بعد.",
+  "guideStart": "زبون يكتب",
+  "guideAlways": "في كل محادثة",
+  "guideWhen": "إذا",
+  "guideHandover": "تصلك المحادثة",
+  "guideCannot": "لا يستطيع فعل هذا",
+  "guideSaved": "تم الحفظ. سيتبع المساعد هذا من الآن.",
+  "guideCleared": "حُذف التوجيه.",
+  "guideFailed": "تعذّرت قراءة التوجيه، فلم يتغيّر شيء. حاول مرة أخرى.",
+  "guideTooLong": "النص طويل جداً. اجعله أقل من 4000 حرف.",
+  "adminPlan": "الباقة"
 }

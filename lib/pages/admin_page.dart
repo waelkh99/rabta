@@ -167,7 +167,14 @@ class _AdminPageState extends State<AdminPage> {
                   children: [
                     _Health(overview: o),
                     _Section(l.adminSellers),
-                    for (final s in o.sellers) _Seller(seller: s),
+                    for (final s in o.sellers)
+                      _Seller(
+                        seller: s,
+                        onPlan: (plan) async {
+                          await widget.inbox.setPlan('${s['workspace_id']}', plan);
+                          if (mounted) setState(() => _overview = _load());
+                        },
+                      ),
                     _Section(l.adminEvents),
                     if (o.events.isEmpty) _Muted(l.adminNoEvents),
                     for (final e in o.events) _Event(event: e),
@@ -305,8 +312,9 @@ class _Muted extends StatelessWidget {
 }
 
 class _Seller extends StatelessWidget {
-  const _Seller({required this.seller});
+  const _Seller({required this.seller, required this.onPlan});
   final Map<String, dynamic> seller;
+  final ValueChanged<String> onPlan;
 
   @override
   Widget build(BuildContext context) {
@@ -395,10 +403,29 @@ class _Seller extends StatelessWidget {
               _Figure(l.adminLastSignIn, lastSignIn == null ? '—' : waitedFor(context, lastSignIn)),
               _Figure(l.adminProducts, '${s['products'] ?? 0}'),
               _Figure(l.adminAssistant, s['assistant_on'] == true ? l.adminOn : l.adminOff),
-              _Figure(l.adminAiReplies, '${s['ai_replies_month'] ?? 0}'),
+              _Figure(
+                l.adminAiReplies,
+                '${s['ai_replies_month'] ?? 0}${s['replies_limit'] == null ? '' : ' / ${s['replies_limit']}'}',
+              ),
               _Figure(l.adminAiCost, '\$${cost.toStringAsFixed(2)}'),
               _Figure(l.adminHandedOver, '${s['handed_over'] ?? 0}'),
               _Figure(l.adminOrdered, '${s['ordered_month'] ?? 0}'),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Text(l.adminPlan, style: Style.meta.copyWith(color: colors.muted)),
+              const SizedBox(width: 10),
+              SegmentedButton<String>(
+                showSelectedIcon: false,
+                segments: [
+                  ButtonSegment(value: 'basic', label: Text(l.planBasic)),
+                  ButtonSegment(value: 'ultimate', label: Text(l.planUltimate)),
+                ],
+                selected: {'${s['plan'] ?? 'basic'}'},
+                onSelectionChanged: (chosen) => onPlan(chosen.first),
+              ),
             ],
           ),
         ],

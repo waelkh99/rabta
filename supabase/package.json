@@ -12,6 +12,7 @@
     "admin": "node scripts/admin.mjs",
     "live": "node scripts/live-ai.ts",
     "outcomes": "node scripts/outcomes-eval.ts",
+    "guide-eval": "node scripts/guide-eval.ts",
     "signin": "node scripts/signin.mjs",
     "assistant": "node scripts/assistant.mjs",
     "catalog": "node scripts/catalog.mjs",

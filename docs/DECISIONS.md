@@ -3059,3 +3059,61 @@ Asked by the owner: the hand-drawn marks read as near misses. The glyphs are
 Simple Icons (CC0) path data, drawn with `flutter_svg` — one dependency, from
 the Flutter ecosystem's standard SVG package, in place of hand-writing an SVG
 path parser for arcs and packed numbers.
+
+### 2026-10-26 — Inboxara, set once in Latin
+
+The owner settled the name. Rabta's lockup set the Arabic word beside its
+transliteration because Rabta *was* an Arabic word; Inboxara is a Latin
+coinage, so the wordmark is "Inbox" in ink and "ara" in the accent, left to
+right in both interfaces, the way Careem or Talabat sit in an Arabic layout.
+Arabic copy writes it إنبوكسارا, as the strings already write إنستغرام. Only
+what users see was renamed (NEXT.md, Track A). Still Rabta: the app icon
+(the two rings were the knot in the old name — a brand decision for the
+owner), the support mailbox, the domain, and everything internal.
+
+### 2026-10-26 — Plans: Basic and Ultimate, counted in replies
+
+Asked by the owner, who left the limits to Claude. **Basic, 1,000 assistant
+replies a month; Ultimate, 5,000.** At the measured $0.0037 a reply on Sonnet 5
+that is about $4 and $18 of model at the limit, around 30 and 165 replies a
+day.
+
+- **Replies, not dollars or tokens.** A seller can act on "340 of 1,000".
+- **The count is the existing derived one** — AI messages since the start of
+  the UTC month — so the 19 September rule holds: no counter to drift. The
+  fixed 2,000 ceiling became the plan's number; at the limit the assistant
+  does what the ceiling already did, says once that it will get back to the
+  customer, and hands over.
+- **Limits live in a `plans` table**, changeable without a deploy. The plan
+  sits on `workspaces`, which has only a select policy, so a seller can read
+  it and not change it; admins use `admin_set_plan`. Proven in
+  `tests/plans.test.ts`, which fails if an update policy is added.
+- **No payment.** Buyers are invoiced directly; payments are out of scope.
+- New workspaces start on Basic. Reading how a conversation ended and reading
+  the guide are not counted against the plan; both are priced in `ai_usage`.
+
+### 2026-10-26 — The seller's guide: words in, diagram back
+
+Asked by the owner: the seller writes in plain words how the assistant should
+handle conversations, and sees it as a diagram. "Think of it as a way the shop
+owner can guide the AI agent."
+
+- **The words are the source; the diagram is read-only.** A wrong reading is
+  fixed by saying it differently. A flow editor is the tool a non-technical
+  seller cannot use.
+- **Read once, on save, by the `guide` function**, which stores the words and
+  the reading together (`shop.guide`, `shop.guide_steps`), so the diagram is
+  always the reading of the saved words. A failed reading saves nothing.
+- **The assistant gets both**, inside `renderFacts`: the words for the
+  seller's tone, the steps because they are what the seller checked. It
+  follows them over its own habits, never over four things: no terms of
+  endearment, nothing nobody wrote down, nobody else in the shop mentioned,
+  never leaving a customer with nothing.
+- **What it cannot do is shown, not dropped.** Calling, payments, orders,
+  following up later — set aside under "It can't do these" and never given
+  to the assistant as a step.
+- **Grounding:** the guide is in the facts, so a discount the seller wrote in
+  it is grounded exactly as one in "About" is. That corrects the proposal
+  sent on 26 October, which said such a step would be refused.
+- One guide per shop. Collected details (name, area, phone) stay in the
+  conversation; nothing is stored as an order.

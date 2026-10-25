@@ -1,14 +1,14 @@
-// The emails Supabase sends for Rabta: an invitation, a password reset, and a
+// The emails Supabase sends for Inboxara: an invitation, a password reset, and a
 // sign-in link. Arabic first, English under it.
 //
 //   RABTA_ENV=prod npm run email-templates            pushes them to production
 //   npm run email-templates -- --preview <folder>     writes them as .html files
 //
 // Bilingual rather than one language per seller, because the template cannot
-// know which language someone reads: an invited seller has never opened Rabta.
+// know which language someone reads: an invited seller has never opened Inboxara.
 //
 // Replaced Supabase's stock English emails on 26 September 2026. Those never
-// named Rabta and read like every "click this link" email people are taught to
+// named Inboxara and read like every "click this link" email people are taught to
 // distrust. Everything is inline-styled tables, because that is what email
 // clients render; there are no images, because many clients block them.
 //
@@ -63,7 +63,7 @@ function page({ ar, en }) {
 <tr><td align="center">
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:520px;background:${PAPER};border:1.5px solid ${INK};border-radius:18px;">
 <tr><td style="padding:24px 32px 0;font-family:${LATIN};font-size:20px;font-weight:bold;color:${INK};" dir="ltr">
-  Rabta <span style="color:${SAFFRON};">&#8734;</span> <span style="color:${VIOLET};">ربطة</span>
+  Inbox<span style="color:${VIOLET};">ara</span>
 </td></tr>
 ${block({ dir: "rtl", font: ARABIC, ...ar })}
 <tr><td style="padding:20px 32px 0;"><div style="border-top:1px solid #EBE3D6;"></div></td></tr>
@@ -81,51 +81,51 @@ ${block({ dir: "ltr", font: LATIN, ...en })}
 
 const templates = {
   invite: {
-    subject: "دعوة إلى ربطة · You're invited to Rabta",
+    subject: "دعوة إلى إنبوكسارا · You're invited to Inboxara",
     html: page({
       ar: {
-        title: "تمت دعوتك إلى ربطة",
-        body: "ربطة مكان واحد لكل رسائل زبائنك من إنستغرام وماسنجر. اضغط الزر لتختار كلمة المرور وتبدأ.",
+        title: "تمت دعوتك إلى إنبوكسارا",
+        body: "إنبوكسارا مكان واحد لكل رسائل زبائنك من إنستغرام وماسنجر. اضغط الزر لتختار كلمة المرور وتبدأ.",
         button: "قبول الدعوة",
         note: "الرابط يعمل مرة واحدة ولفترة محدودة. إذا لم تكن تتوقع هذه الدعوة، تجاهل الرسالة.",
       },
       en: {
-        title: "You're invited to Rabta",
-        body: "Rabta is one place for all your customer messages from Instagram and Messenger. Press the button to choose your password and get started.",
+        title: "You're invited to Inboxara",
+        body: "Inboxara is one place for all your customer messages from Instagram and Messenger. Press the button to choose your password and get started.",
         button: "Accept invitation",
         note: "The link works once, for a limited time. If you were not expecting this, you can ignore this email.",
       },
     }),
   },
   recovery: {
-    subject: "إعادة تعيين كلمة المرور · Reset your Rabta password",
+    subject: "إعادة تعيين كلمة المرور · Reset your Inboxara password",
     html: page({
       ar: {
         title: "إعادة تعيين كلمة المرور",
-        body: "وصلنا طلب لإعادة تعيين كلمة مرور حسابك في ربطة. اضغط الزر لتختار كلمة مرور جديدة.",
+        body: "وصلنا طلب لإعادة تعيين كلمة مرور حسابك في إنبوكسارا. اضغط الزر لتختار كلمة مرور جديدة.",
         button: "اختر كلمة مرور جديدة",
         note: "الرابط يعمل مرة واحدة ولفترة محدودة. إذا لم تطلب ذلك، تجاهل الرسالة؛ كلمة مرورك لم تتغير.",
       },
       en: {
         title: "Reset your password",
-        body: "We received a request to reset the password for your Rabta account. Press the button to choose a new one.",
+        body: "We received a request to reset the password for your Inboxara account. Press the button to choose a new one.",
         button: "Choose a new password",
         note: "The link works once, for a limited time. If you did not ask for this, ignore this email; your password has not changed.",
       },
     }),
   },
   magic_link: {
-    subject: "رابط الدخول إلى ربطة · Your Rabta sign-in link",
+    subject: "رابط الدخول إلى إنبوكسارا · Your Inboxara sign-in link",
     html: page({
       ar: {
         title: "رابط الدخول",
-        body: "اضغط الزر للدخول إلى ربطة.",
+        body: "اضغط الزر للدخول إلى إنبوكسارا.",
         button: "الدخول",
         note: "الرابط يعمل مرة واحدة ولفترة قصيرة. إذا لم تطلبه، تجاهل الرسالة.",
       },
       en: {
         title: "Your sign-in link",
-        body: "Press the button to sign in to Rabta.",
+        body: "Press the button to sign in to Inboxara.",
         button: "Sign in",
         note: "The link works once, for a short time. If you did not ask for it, ignore this email.",
       },

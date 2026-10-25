@@ -1,7 +1,7 @@
 // A service worker that exists only so notifications can be shown at all.
 //
 // Chrome for Android refuses `new Notification(...)` outright — the API is only
-// reachable through a service worker registration — so Rabta registers this one
+// reachable through a service worker registration — so Inboxara registers this one
 // and calls showNotification() on it. It caches nothing and intercepts no
 // requests; Flutter's own generated worker does the caching in release builds,
 // and the two do not overlap.
@@ -22,7 +22,7 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  // Bring the tab the seller already has, rather than opening a second Rabta.
+  // Bring the tab the seller already has, rather than opening a second Inboxara.
   // Matching on origin rather than on an exact URL, because the application is
   // a single page and its address carries state we do not want to reset.
   event.waitUntil(
