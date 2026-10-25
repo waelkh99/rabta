@@ -43,7 +43,7 @@ const ws = `workspace_id=eq.${workspace}`;
 
 const products = await get("products?" + ws + "&select=id,code,name,price,description,in_stock,category_id,photos,categories(name)&order=name");
 const offers = await get("offers?" + ws + "&select=name,kind,value,description,buy,get,category_ids,product_ids,starts_on,ends_on,enabled&order=created_at");
-const [shopRow] = await get("shop?" + ws + "&select=currency,delivery_note,locations,hours,about,price_stance");
+const [shopRow] = await get("shop?" + ws + "&select=currency,delivery_note,locations,hours,about,price_stance,guide,guide_steps");
 
 // Whatever Meta told us this customer is called, which is what decides how the
 // assistant addresses them in Arabic. Overridable so an ambiguous name can be
@@ -72,6 +72,7 @@ const facts = renderFacts({
     currency: shopRow.currency ?? "", deliveryNote: shopRow.delivery_note,
     locations: shopRow.locations, hours: shopRow.hours, about: shopRow.about,
     priceStance: shopRow.price_stance === "strict" ? "strict" : "notify",
+    guide: shopRow.guide, guideSteps: shopRow.guide_steps,
   } : null,
   zones: zones.map((z) => ({ name: z.name, fee: z.fee })),
   products: catalog,

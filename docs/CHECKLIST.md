@@ -1023,7 +1023,16 @@ Plan and log in `NEXT.md`.
       12/12 checks — dialect kept, follow-ups/calls/payments set aside, orders
       and complaints handed over, nothing invented from a non-guide. About
       $0.005 a reading (26 October, new key in `.env.local`)
-- [ ] Deployed to staging (db push, `guide`, `meta-webhook`) — waiting on the
-      owner's go-ahead
-- [ ] **Seen** in Playwright: meter, guide page and diagram, admin plan switch,
-      both languages, both widths — built, unseen
+- [x] Deployed to staging (db push, `guide`, `meta-webhook`), new Anthropic key
+      set on staging — 26 October
+- [x] **Seen** in Playwright on staging: meter ("0 of 1000", Basic) and guide
+      row; an Arabic guide saved through the deployed function and drawn back
+      (always / situations / comes to you / can't do) — English at 1366,
+      Arabic at 390
+- [ ] Admin plan switch — built, unit-tested, **unseen**: the Playwright
+      account is not an admin
+- [x] `npm run replay` with a guide (test shop, 8 products): greets and asks
+      what they want, takes name/area/phone then hands over with the details
+      in the reason. Fixed on the way: it told the customer "بحولك" (2/2 clean
+      after). **Open:** "ask the size before saying it's available" — 2/2 runs
+      still say available first

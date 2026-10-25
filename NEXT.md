@@ -397,3 +397,11 @@ source linked.
 - 2026-10-26 — Owner put a new Anthropic key in `supabase/.env.local`
   (works; `.env` still holds the dead one). `npm run guide-eval` passed 12/12
   against the real model. Staging's secret is still the dead key.
+- 2026-10-26 — With the owner's go-ahead: new Anthropic key on staging,
+  migration pushed, `guide` and `meta-webhook` deployed. Seen on staging: the
+  meter, an Arabic guide saved and drawn (English 1366, Arabic 390). Replay:
+  guide followed for greeting and order details + hand-over; fixed a leak
+  ("بحولك"); "ask before telling" ordering still not kept (owner to decide).
+  **Production's key is dead too** (`6165252a…`, the old `.env.local` one);
+  setting it was refused by the permission system — owner to run it.
+  Admin plan switch unseen.
