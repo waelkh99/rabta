@@ -394,3 +394,6 @@ source linked.
   tests pass, new ones shown failing first. Not deployed, not seen: the
   Anthropic key is revoked everywhere we hold it, and staging deploy waits
   on the owner.
+- 2026-10-26 — Owner put a new Anthropic key in `supabase/.env.local`
+  (works; `.env` still holds the dead one). `npm run guide-eval` passed 12/12
+  against the real model. Staging's secret is still the dead key.

@@ -1019,9 +1019,10 @@ Plan and log in `NEXT.md`.
       with the section removed
 - [x] Meter on the Shop page, plan switch on the admin page, guide page with
       the diagram — widget tests shown failing
-- [ ] Guide reading measured against the real model (`npm run guide-eval`) —
-      **blocked**: the Anthropic key in `supabase/.env`, `.env.local` and the
-      staging secret is revoked (401, checked 26 October)
+- [x] Guide reading measured against the real model (`npm run guide-eval`):
+      12/12 checks — dialect kept, follow-ups/calls/payments set aside, orders
+      and complaints handed over, nothing invented from a non-guide. About
+      $0.005 a reading (26 October, new key in `.env.local`)
 - [ ] Deployed to staging (db push, `guide`, `meta-webhook`) — waiting on the
       owner's go-ahead
 - [ ] **Seen** in Playwright: meter, guide page and diagram, admin plan switch,
