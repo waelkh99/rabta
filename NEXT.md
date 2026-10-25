@@ -405,3 +405,7 @@ source linked.
   **Production's key is dead too** (`6165252a…`, the old `.env.local` one);
   setting it was refused by the permission system — owner to run it.
   Admin plan switch unseen.
+- 2026-10-26 — Owner set the new Anthropic key on production; digest checked
+  (`a47116f1…`, matches `.env.prod`). Production's last AI reply was
+  26 September and no AI call has been attempted since, so the dead key
+  cost no customer an answer.
