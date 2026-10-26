@@ -416,3 +416,11 @@ source linked.
   three things it cannot override. Widget test shown failing without it;
   seen in Playwright, Arabic at 390, English at 1366. Web app is not
   deployed anywhere yet (staging is served locally for Playwright).
+- 2026-10-26 — The owner meant a writing tip, not the priority note: the
+  guide page now says to write steps plainly and spell out what matters.
+  Measured first: the plain "ask their size first" stopped the narration
+  (0/8) but the assistant then said "available" 8/8 — it does what is
+  written, nothing implied — so the tip says exactly that, not "plain
+  wording works better". Seen in Arabic at 390. Open: on the guide page the
+  text field's accessible name is the whole page (seen in the Playwright
+  tree); an explicit Semantics label did not change it, so it was removed.

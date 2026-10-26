@@ -96,7 +96,7 @@ void main() {
       expect(always, lessThan(complains));
     });
 
-    testWidgets('the page tells the seller their guide comes first', (tester) async {
+    testWidgets('the page tells the seller how to word a step', (tester) async {
       await tester.pumpWidget(MaterialApp(
         theme: rabtaTheme(brightness: Brightness.light),
         locale: const Locale('ar'),
@@ -105,7 +105,7 @@ void main() {
         // Never called: the page only reaches the server on save.
         home: GuidePage(inbox: Inbox(SupabaseClient('http://localhost', 'test', authOptions: const AuthClientOptions(autoRefreshToken: false))), shop: const Shop()),
       ));
-      expect(find.text(ar.guideFirst), findsOneWidget);
+      expect(find.text(ar.guideTip), findsOneWidget);
     });
 
     testWidgets('a reading with nothing in it says so', (tester) async {

@@ -2563,11 +2563,11 @@ abstract class L {
   /// **'الباقة'**
   String get adminPlan;
 
-  /// No description provided for @guideFirst.
+  /// No description provided for @guideTip.
   ///
   /// In ar, this message translates to:
-  /// **'ما تكتبه هنا له الأولوية. يتبعه المساعد قبل عاداته، إلا في ثلاثة أمور: لا يستخدم عبارات التحبب، ولا يذكر شيئاً لم تكتبه، ولا يترك زبوناً دون رد.'**
-  String get guideFirst;
+  /// **'نصيحة: اكتب كل خطوة ببساطة، كما تشرحها لموظف جديد، ووضّح كل ما يهمك. المساعد يفعل ما تكتبه بالضبط، لا أكثر.'**
+  String get guideTip;
 }
 
 class _LDelegate extends LocalizationsDelegate<L> {

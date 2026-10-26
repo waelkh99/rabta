@@ -53,11 +53,15 @@ class _GuidePageState extends State<GuidePage> {
         _saved = typed;
         _steps = steps;
       });
-      messenger.showSnackBar(SnackBar(content: Text(typed.isEmpty ? l.guideCleared : l.guideSaved)));
+      messenger.showSnackBar(
+        SnackBar(content: Text(typed.isEmpty ? l.guideCleared : l.guideSaved)),
+      );
     } on GuideRefused catch (refused) {
       messenger.showSnackBar(
         SnackBar(
-          content: Text(refused.reason == 'too_long' ? l.guideTooLong : l.guideFailed),
+          content: Text(
+            refused.reason == 'too_long' ? l.guideTooLong : l.guideFailed,
+          ),
           backgroundColor: context.rabta.urgent,
         ),
       );
@@ -95,24 +99,36 @@ class _GuidePageState extends State<GuidePage> {
                     children: [
                       Text(
                         l.guideBody,
-                        style: Style.preview.copyWith(color: colors.muted, height: 1.6),
+                        style: Style.preview.copyWith(
+                          color: colors.muted,
+                          height: 1.6,
+                        ),
                       ),
                       const SizedBox(height: 10),
-                      // The owner's call, 26 October: the seller knows their shop,
-                      // so the guide outranks the assistant's own habits. Said
-                      // here so a seller knows their words are not suggestions.
+                      // Measured 26 October with replay: the assistant does what a
+                      // step says and nothing it only implies. "Ask their size
+                      // first" got the size asked, and "available" said anyway, in
+                      // 8 runs of 8; holding availability back took saying so. So
+                      // the page tells sellers to spell out what matters.
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Padding(
                             padding: const EdgeInsets.only(top: 2),
-                            child: Icon(Icons.info_outline, size: 16, color: colors.accent),
+                            child: Icon(
+                              Icons.lightbulb_outline,
+                              size: 16,
+                              color: colors.accent,
+                            ),
                           ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              l.guideFirst,
-                              style: Style.meta.copyWith(color: colors.ink, height: 1.6),
+                              l.guideTip,
+                              style: Style.meta.copyWith(
+                                color: colors.ink,
+                                height: 1.6,
+                              ),
                             ),
                           ),
                         ],
@@ -124,12 +140,20 @@ class _GuidePageState extends State<GuidePage> {
                         minLines: 6,
                         maxLines: 14,
                         maxLength: 4000,
-                        textDirection: directionOf(value.text.isEmpty ? l.guideHint : value.text),
-                        style: Style.message.copyWith(color: colors.ink, height: 1.6),
+                        textDirection: directionOf(
+                          value.text.isEmpty ? l.guideHint : value.text,
+                        ),
+                        style: Style.message.copyWith(
+                          color: colors.ink,
+                          height: 1.6,
+                        ),
                         decoration: InputDecoration(
                           hintText: l.guideHint,
                           hintMaxLines: 4,
-                          hintStyle: Style.message.copyWith(color: colors.muted, height: 1.6),
+                          hintStyle: Style.message.copyWith(
+                            color: colors.muted,
+                            height: 1.6,
+                          ),
                           filled: true,
                           fillColor: colors.surface,
                           border: OutlineInputBorder(
@@ -146,6 +170,7 @@ class _GuidePageState extends State<GuidePage> {
                           ),
                         ),
                       ),
+
                       const SizedBox(height: 6),
                       Align(
                         alignment: AlignmentDirectional.centerStart,
@@ -156,7 +181,10 @@ class _GuidePageState extends State<GuidePage> {
                       ),
                       if (_saved.isNotEmpty && steps != null) ...[
                         const SizedBox(height: 36),
-                        Text(l.guideUnderstood, style: Style.heading.copyWith(color: colors.ink)),
+                        Text(
+                          l.guideUnderstood,
+                          style: Style.heading.copyWith(color: colors.ink),
+                        ),
                         const SizedBox(height: 4),
                         Text(
                           stale ? l.guideStale : l.guideFix,
@@ -200,7 +228,10 @@ class GuideDiagram extends StatelessWidget {
     final l = context.l;
 
     if (steps.isEmpty) {
-      return Text(l.guideNothing, style: Style.preview.copyWith(color: colors.muted));
+      return Text(
+        l.guideNothing,
+        style: Style.preview.copyWith(color: colors.muted),
+      );
     }
 
     // "Always" first: it applies before any situation does.
@@ -223,7 +254,10 @@ class GuideDiagram extends StatelessWidget {
             children: [
               Icon(Icons.chat_bubble_outline, size: 15, color: colors.onNight),
               const SizedBox(width: 8),
-              Text(l.guideStart, style: Style.name.copyWith(color: colors.onNight)),
+              Text(
+                l.guideStart,
+                style: Style.name.copyWith(color: colors.onNight),
+              ),
             ],
           ),
         ),
@@ -278,7 +312,10 @@ class _Branch extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (rule.when == null)
-                      Text(l.guideAlways, style: Style.name.copyWith(color: colors.ink))
+                      Text(
+                        l.guideAlways,
+                        style: Style.name.copyWith(color: colors.ink),
+                      )
                     else
                       Text.rich(
                         TextSpan(
@@ -302,10 +339,16 @@ class _Branch extends StatelessWidget {
                       children: [
                         for (var i = 0; i < rule.actions.length; i++) ...[
                           if (i > 0) _Arrow(color: colors.muted),
-                          _Step(text: rule.actions[i], fill: colors.raised, ink: colors.ink, edge: colors.assistant),
+                          _Step(
+                            text: rule.actions[i],
+                            fill: colors.raised,
+                            ink: colors.ink,
+                            edge: colors.assistant,
+                          ),
                         ],
                         if (rule.handover) ...[
-                          if (rule.actions.isNotEmpty) _Arrow(color: colors.muted),
+                          if (rule.actions.isNotEmpty)
+                            _Arrow(color: colors.muted),
                           _Step(
                             text: l.guideHandover,
                             fill: colors.accentSoft,
@@ -379,7 +422,8 @@ class _Arrow extends StatelessWidget {
 
   // arrow_forward mirrors itself in a right-to-left layout.
   @override
-  Widget build(BuildContext context) => Icon(Icons.arrow_forward, size: 15, color: color);
+  Widget build(BuildContext context) =>
+      Icon(Icons.arrow_forward, size: 15, color: color);
 }
 
 class _Cannot extends StatelessWidget {
@@ -406,7 +450,10 @@ class _Cannot extends StatelessWidget {
             children: [
               Icon(Icons.block, size: 16, color: colors.ink),
               const SizedBox(width: 8),
-              Text(l.guideCannot, style: Style.name.copyWith(color: colors.ink)),
+              Text(
+                l.guideCannot,
+                style: Style.name.copyWith(color: colors.ink),
+              ),
             ],
           ),
           for (final item in items) ...[
@@ -450,5 +497,6 @@ class _Elbow extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_Elbow old) => old.color != color || old.last != last || old.direction != direction;
+  bool shouldRepaint(_Elbow old) =>
+      old.color != color || old.last != last || old.direction != direction;
 }

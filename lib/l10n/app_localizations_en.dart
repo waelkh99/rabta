@@ -1413,6 +1413,6 @@ class LEn extends L {
   String get adminPlan => 'Plan';
 
   @override
-  String get guideFirst =>
-      'What you write here comes first. The assistant follows it over its own habits, with three exceptions: it never uses terms of endearment, never states anything you haven\'t written down, and never leaves a customer without a reply.';
+  String get guideTip =>
+      'Tip: write each step plainly, the way you would tell a new employee, and spell out everything that matters. The assistant does exactly what you write, no more.';
 }
