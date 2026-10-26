@@ -7,6 +7,7 @@ import 'package:rabta/l10n/app_localizations.dart';
 import 'package:rabta/pages/guide_page.dart';
 import 'package:rabta/pages/shop_page.dart';
 import 'package:rabta/theme.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 Widget _app(Widget child, {String locale = 'en'}) => MaterialApp(
       theme: rabtaTheme(brightness: Brightness.light),
@@ -93,6 +94,18 @@ void main() {
       final always = tester.getTopLeft(find.text(en.guideAlways)).dy;
       final complains = tester.getTopLeft(find.textContaining('the customer complains')).dy;
       expect(always, lessThan(complains));
+    });
+
+    testWidgets('the page tells the seller their guide comes first', (tester) async {
+      await tester.pumpWidget(MaterialApp(
+        theme: rabtaTheme(brightness: Brightness.light),
+        locale: const Locale('ar'),
+        supportedLocales: L.supportedLocales,
+        localizationsDelegates: L.localizationsDelegates,
+        // Never called: the page only reaches the server on save.
+        home: GuidePage(inbox: Inbox(SupabaseClient('http://localhost', 'test', authOptions: const AuthClientOptions(autoRefreshToken: false))), shop: const Shop()),
+      ));
+      expect(find.text(ar.guideFirst), findsOneWidget);
     });
 
     testWidgets('a reading with nothing in it says so', (tester) async {

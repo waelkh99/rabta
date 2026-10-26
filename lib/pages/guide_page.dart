@@ -97,6 +97,26 @@ class _GuidePageState extends State<GuidePage> {
                         l.guideBody,
                         style: Style.preview.copyWith(color: colors.muted, height: 1.6),
                       ),
+                      const SizedBox(height: 10),
+                      // The owner's call, 26 October: the seller knows their shop,
+                      // so the guide outranks the assistant's own habits. Said
+                      // here so a seller knows their words are not suggestions.
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: Icon(Icons.info_outline, size: 16, color: colors.accent),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              l.guideFirst,
+                              style: Style.meta.copyWith(color: colors.ink, height: 1.6),
+                            ),
+                          ),
+                        ],
+                      ),
                       const SizedBox(height: 14),
                       TextField(
                         controller: _text,

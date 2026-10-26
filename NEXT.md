@@ -412,3 +412,7 @@ source linked.
 - 2026-10-26 — Owner: the guide gets priority. Guided shops now get thinking
   and a last reminder; order kept 7/7 in replay, narration once in 7.
   Deployed `meta-webhook` to staging. Production not deployed.
+- 2026-10-26 — Guide page now says the seller's guide comes first, and the
+  three things it cannot override. Widget test shown failing without it;
+  seen in Playwright, Arabic at 390, English at 1366. Web app is not
+  deployed anywhere yet (staging is served locally for Playwright).
