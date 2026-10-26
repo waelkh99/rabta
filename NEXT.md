@@ -23,11 +23,15 @@ phase. In order:
   number is registered (`POST /{phone}/register`); Coexistence (seller keeps
   the WhatsApp Business app — needs `smb_message_echoes` + history
   subscription); templates for writing after the 24-hour window (not built).
-- **Then, the review phase, all at once:** Access Verification, the
-  Embedded Signup configuration and its end-to-end test, domain changes, privacy pages (add WhatsApp, new
-  name), full production deploy (production lacks the WhatsApp and
-  26 October migrations; also backups), webhook to production, screencasts
-  incl. `whatsapp_business_messaging` and `whatsapp_business_management`.
+- **Then, before any review:** domain changes, privacy pages (add WhatsApp,
+  new name), full production deploy (production lacks the WhatsApp and
+  26 October migrations; also backups), webhook to production, reviewer
+  accounts, app icon, 2FA for the portfolio's admins.
+- **Then the reviews, in this order (owner, 26 Oct):** 1. Access
+  Verification (Tech Provider). 2. WhatsApp: Embedded Signup configuration
+  and the real-number end-to-end test. 3. App Review, every permission
+  including `whatsapp_business_messaging` and `whatsapp_business_management`,
+  with screencasts recorded on production.
 
 The items below are the history behind this.
 
