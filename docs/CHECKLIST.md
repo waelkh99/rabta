@@ -1034,5 +1034,6 @@ Plan and log in `NEXT.md`.
 - [x] `npm run replay` with a guide (test shop, 8 products): greets and asks
       what they want, takes name/area/phone then hands over with the details
       in the reason. Fixed on the way: it told the customer "بحولك" (2/2 clean
-      after). **Open:** "ask the size before saying it's available" — 2/2 runs
-      still say available first
+      after). Ordering ("ask the size before saying it's available"): the guide
+      now outranks answering directly, with thinking on for guided shops —
+      kept 7/7; narrated the rule to the customer once in 7

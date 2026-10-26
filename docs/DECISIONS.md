@@ -3117,3 +3117,20 @@ owner can guide the AI agent."
   sent on 26 October, which said such a step would be refused.
 - One guide per shop. Collected details (name, area, phone) stay in the
   conversation; nothing is stored as an order.
+
+### 2026-10-26 — The seller's guide outranks "answer what was asked"
+
+Asked by the owner: "the shop owner knows best, so we give it priority." A
+guide saying "ask the size before saying whether it is available" now beats
+the standing rules about answering plainly. Measured with `npm run replay` on
+the test shop, the instructions alone moved it from 0 of 2 runs to about 3 of
+4, and two runs in four narrated the rule to the customer ("قبل ما أحكيلك عن
+التوفر"). So for a shop that has a guide:
+
+- **Thinking is on** (adaptive, with 1,600 tokens of room so it cannot cut the
+  reply off). About 4% more a reply, from the 20 September measurement. Shops
+  without a guide are unchanged.
+- **A short reminder goes last**, after the cache breakpoint, so it neither
+  splits the cache nor sits forty paragraphs from the reply.
+
+Result: the order was kept in 7 of 7 runs; the narration appeared once in 7.

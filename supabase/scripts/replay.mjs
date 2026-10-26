@@ -103,7 +103,7 @@ for (const line of lines) {
   turns.push(photo ? { inbound: true, text, image: photo[0] } : { inbound: true, text });
   console.log(`\n  customer > ${photo ? `[photo ${photo[0].split("/").pop()}] ` : ""}${photo ? (photo[1] ?? "") : line}`);
 
-  const out = await ask(env.ANTHROPIC_API_KEY, { facts, now: new Date(), examples, turns, customerName, products: catalog },
+  const out = await ask(env.ANTHROPIC_API_KEY, { facts, now: new Date(), examples, turns, customerName, products: catalog, think: process.env.REPLAY_THINK === "1" },
     fetch, env.ANTHROPIC_WORKSPACE_ID ?? "");
   if (out.status !== "decided") { console.log(`  !! ${out.status}`); break; }
 

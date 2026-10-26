@@ -51,6 +51,9 @@ export const HAIKU = "claude-haiku-4-5";
  */
 export const MAX_TOKENS = 400;
 
+/** Headroom for thinking on top of the reply itself. Billed only as used. */
+export const THINKING_ROOM = 1600;
+
 /** A seller who has typed in the last quarter of an hour is at their desk. */
 export const SELLER_PRESENT_MINUTES = 15;
 
@@ -132,6 +135,9 @@ export interface GuideSteps {
   cannot: { text: string; why: string }[];
 }
 
+/** Opens the guide in the facts; buildRequest looks for it. */
+export const GUIDE_HEADING = "How the seller wants conversations handled, in their own words:";
+
 /**
  * The guide as the assistant reads it: the seller's words, then the steps the
  * seller saw drawn and left standing. Both, because the words carry the
@@ -147,7 +153,7 @@ export function renderGuide(
   const words = guide?.trim();
   if (!words) return null;
 
-  const parts = [`How the seller wants conversations handled, in their own words:\n${words}`];
+  const parts = [`${GUIDE_HEADING}\n${words}`];
 
   const rules = steps?.rules ?? [];
   if (rules.length > 0) {
@@ -981,7 +987,12 @@ it wins: if it says to ask which size before anything else, ask; if it says a \
 kind of conversation goes to them, set handOver for it. When it puts things \
 in an order — ask one thing before telling another — keep that order even if \
 the customer asked for the second thing first: ask, and answer once they \
-reply. "Pass it to me", "حوّلها إلي" and the like mean handOver, nothing more; \
+reply. This outranks answering what you were asked, and every rule here about \
+answering plainly: the seller knows their shop. If it says to ask the size \
+before saying whether something is available, then "is it available?" gets \
+the size question and NOTHING about availability yet — not "yes, which \
+size?", not "available in black, which size?". Saying it is available and \
+then asking is exactly the order the seller told you not to use. "Pass it to me", "حوّلها إلي" and the like mean handOver, nothing more; \
 never tell the customer you are passing them on or transferring them. It \
 does not win over \
 four things — no terms of endearment, never stating something nobody wrote \
@@ -1268,9 +1279,11 @@ export interface RequestInput {
   /** Defaults to MODEL. Set by the comparison harness, not in production. */
   model?: string;
   /**
-   * Sonnet only, and only for measuring. Thinking is off by default because a
-   * two-sentence reply to a customer is not a reasoning problem — but whether
-   * that is true is exactly what the comparison is for.
+   * Sonnet only. Off by default because a two-sentence reply to a customer is
+   * not a reasoning problem — except for a shop with a guide, where it is on
+   * unless this says otherwise: measured 26 October, a guide's order ("ask the
+   * size before saying it's available") was kept cleanly in 4 runs of 4 with
+   * thinking and 2 of 4 without.
    */
   think?: boolean;
 }
@@ -1389,11 +1402,33 @@ export function buildRequest(input: RequestInput): Record<string, unknown> {
         "wrote them down, and it says nothing about what this customer reads.",
   });
 
+  // The guide's rules sit in the cached prefix, a long way from where the
+  // reply is written, and measured on 26 October the model kept its own
+  // habits over them: told to ask the size before saying whether a dress was
+  // available, it said "available" first in most runs. Said again here, last,
+  // only for a shop that has a guide.
+  if (input.facts.includes(GUIDE_HEADING)) {
+    system.push({
+      type: "text",
+      text: "This shop has written how it wants conversations handled (in the " +
+        "shop's facts). Before you write, check this message against every step " +
+        "of it and follow it, its order too, over any other rule here except the " +
+        "four it cannot override. Follow it silently. The customer must never " +
+        "hear that something is being held back or done in an order: no " +
+        "\"before I tell you\", no \"قبل ما أحكيلك\", no \"قبل ما قلك\", no " +
+        "\"first\". Ask the question on its own, as the natural next thing a " +
+        "shop would ask.",
+    });
+  }
+
   const model = input.model ?? MODEL;
+  const think = input.think ?? input.facts.includes(GUIDE_HEADING);
 
   return {
     model,
-    max_tokens: MAX_TOKENS,
+    // Thinking is counted against max_tokens; without room for it a long
+    // think would cut the reply off and the answer would be unusable.
+    max_tokens: think ? MAX_TOKENS + THINKING_ROOM : MAX_TOKENS,
     system,
     messages: withScreenshot(toMessages(input.turns), input),
     output_config: { format: { type: "json_schema", schema: DECISION_SCHEMA } },
@@ -1401,7 +1436,7 @@ export function buildRequest(input: RequestInput): Record<string, unknown> {
     // because the default there is adaptive. See the note above.
     ...(model === HAIKU
       ? {}
-      : { thinking: { type: input.think ? "adaptive" : "disabled" } }),
+      : { thinking: { type: think ? "adaptive" : "disabled" } }),
   };
 }
 

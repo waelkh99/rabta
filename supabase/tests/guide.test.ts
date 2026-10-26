@@ -110,3 +110,39 @@ test("the guide is part of the facts, so what the seller wrote there is grounded
   assert.notEqual(claimsAreGrounded(reply, without, []), null, "the guard should refuse it with no guide");
   assert.equal(claimsAreGrounded(reply, withGuide, []), null);
 });
+
+// -- how hard the assistant follows it ------------------------------------------
+
+test("a shop with a guide gets thinking, room for it, and a last reminder", async () => {
+  const { buildRequest, MAX_TOKENS } = await import("../functions/meta-webhook/ai.ts");
+  const turns = [{ inbound: true, text: "عندكم فستان؟" }];
+  const shop = {
+    currency: "دينار", deliveryNote: null, locations: null, hours: null, about: null,
+    priceStance: "notify" as const, guide: "اسأله عن مقاسه قبل ما تحكيله إذا متوفرة", guideSteps: null,
+  };
+  const guided = buildRequest({ facts: renderFacts({ shop, zones: [], products: [] }), now: new Date(), examples: [], turns }) as any;
+  const plain = buildRequest({ facts: renderFacts({ shop: { ...shop, guide: null }, zones: [], products: [] }), now: new Date(), examples: [], turns }) as any;
+
+  assert.deepEqual(guided.thinking, { type: "adaptive" });
+  assert.ok(guided.max_tokens > MAX_TOKENS);
+  assert.match(guided.system.at(-1).text, /written how it wants conversations handled/);
+
+  assert.deepEqual(plain.thinking, { type: "disabled" });
+  assert.equal(plain.max_tokens, MAX_TOKENS);
+  assert.doesNotMatch(plain.system.map((b: { text: string }) => b.text).join(" "), /written how it wants conversations handled/);
+});
+
+test("the reminder sits after the cache breakpoint, so a guide does not split the cache", async () => {
+  const { buildRequest } = await import("../functions/meta-webhook/ai.ts");
+  const shop = {
+    currency: "دينار", deliveryNote: null, locations: null, hours: null, about: null,
+    priceStance: "notify" as const, guide: "رحب بالزبون", guideSteps: null,
+  };
+  const body = buildRequest({
+    facts: renderFacts({ shop, zones: [], products: [] }), now: new Date(), examples: [],
+    turns: [{ inbound: true, text: "مرحبا" }],
+  }) as any;
+  const marked = body.system.findIndex((b: { cache_control?: unknown }) => b.cache_control);
+  const reminder = body.system.findIndex((b: { text: string }) => /written how it wants/.test(b.text));
+  assert.ok(marked >= 0 && reminder > marked);
+});

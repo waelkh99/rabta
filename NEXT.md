@@ -409,3 +409,6 @@ source linked.
   (`a47116f1…`, matches `.env.prod`). Production's last AI reply was
   26 September and no AI call has been attempted since, so the dead key
   cost no customer an answer.
+- 2026-10-26 — Owner: the guide gets priority. Guided shops now get thinking
+  and a last reminder; order kept 7/7 in replay, narration once in 7.
+  Deployed `meta-webhook` to staging. Production not deployed.
