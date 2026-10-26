@@ -7,10 +7,12 @@ after meeting the buyers.
 
 ## Next session — start here
 
-**From 27 October: the WhatsApp workflow** (owner, 26 Oct). In order:
-
-- **Owner, in parallel:** start Meta Access Verification (Tech Provider,
-  about 5 days); buy the domain; choose an app icon.
+**From 27 October: the WhatsApp workflow** (owner, 26 Oct). **Nothing in
+parallel:** finish all the building first, then do every Meta step (Access
+Verification, App Review) together at the end. Owner's call, for simplicity.
+Consequence: Embedded Signup can only be tested up to Meta's dialog until
+Tech Provider passes; the real-number end-to-end check moves to the review
+phase. In order:
 - **WhatsApp self-connect, the code:** Embedded Signup v4 is JavaScript-SDK
   only (`FB.login` with `config_id`, session-info message listener for
   `waba_id`/`phone_number_id`), so the redirect flow from 7 October in
@@ -21,7 +23,8 @@ after meeting the buyers.
   number is registered (`POST /{phone}/register`); Coexistence (seller keeps
   the WhatsApp Business app — needs `smb_message_echoes` + history
   subscription); templates for writing after the 24-hour window (not built).
-- **Then, for App Review:** domain changes, privacy pages (add WhatsApp, new
+- **Then, the review phase, all at once:** Access Verification, the
+  Embedded Signup configuration and its end-to-end test, domain changes, privacy pages (add WhatsApp, new
   name), full production deploy (production lacks the WhatsApp and
   26 October migrations; also backups), webhook to production, screencasts
   incl. `whatsapp_business_messaging` and `whatsapp_business_management`.
