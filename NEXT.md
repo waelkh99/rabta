@@ -7,14 +7,27 @@ after meeting the buyers.
 
 ## Next session — start here
 
-0. **(26 October) Plans and the assistant guide are built and unit-tested,
-   not deployed and not seen.** Needs, from the owner: a working Anthropic
-   key (the one in `supabase/.env`, `.env.local` and the staging secret is
-   revoked — the staging assistant cannot answer anyone), and the go-ahead
-   to deploy to staging: `supabase db push`, then
-   `supabase functions deploy guide meta-webhook`. Then `npm run guide-eval`
-   and Playwright (docs/CHECKLIST.md section 16). The app icon is still the
-   Rabta knot — the owner's call.
+**From 27 October: the WhatsApp workflow** (owner, 26 Oct). In order:
+
+- **Owner, in parallel:** start Meta Access Verification (Tech Provider,
+  about 5 days); buy the domain; choose an app icon.
+- **WhatsApp self-connect, the code:** Embedded Signup v4 is JavaScript-SDK
+  only (`FB.login` with `config_id`, session-info message listener for
+  `waba_id`/`phone_number_id`), so the redirect flow from 7 October in
+  `meta-oauth` and `lib/pages/accounts_page.dart` is reworked to it. Keep the
+  server-side code exchange, subscription and `business_account_id` handling.
+  Buildable and testable before Tech Provider passes, up to Meta's dialog.
+- **Decisions to raise before building:** who sets the PIN when a brand-new
+  number is registered (`POST /{phone}/register`); Coexistence (seller keeps
+  the WhatsApp Business app — needs `smb_message_echoes` + history
+  subscription); templates for writing after the 24-hour window (not built).
+- **Then, for App Review:** domain changes, privacy pages (add WhatsApp, new
+  name), full production deploy (production lacks the WhatsApp and
+  26 October migrations; also backups), webhook to production, screencasts
+  incl. `whatsapp_business_messaging` and `whatsapp_business_management`.
+
+The items below are the history behind this.
+
 1. **Blocked — the "Connect WhatsApp" button cannot work yet** (found
    11 October). Meta's Embedded Signup docs: "You must already be a Solution
    Partner or Tech Provider" — so the "WhatsApp Embedded Signup" login
