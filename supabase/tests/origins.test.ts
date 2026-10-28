@@ -56,3 +56,9 @@ test("no origin is allowed with a wildcard", () => {
     assert.notEqual(corsHeaders(origin)["access-control-allow-origin"], "*");
   }
 });
+
+test("inboxara.app is the default, and rabta.chat still works", () => {
+  assert.equal(APP_ORIGINS[0], "https://inboxara.app");
+  assert.equal(corsHeaders("https://rabta.chat")["access-control-allow-origin"], "https://rabta.chat");
+  assert.deepEqual(corsHeaders("https://inboxara.app.evil.com"), {});
+});

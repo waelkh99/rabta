@@ -18,8 +18,10 @@
  * Index 0 is the default for a flow that names no origin.
  */
 export const APP_ORIGINS = [
-  // Production. The domain since 26 September 2026; the Pages address it
-  // replaced stays, because Pages keeps serving it and old links point there.
+  // Production: inboxara.app since 28 October 2026, with the name. rabta.chat
+  // and the Pages address stay, because Pages keeps serving them and old links
+  // point there.
+  "https://inboxara.app",
   "https://rabta.chat",
   "https://rabta.pages.dev",
   // Development. The port is pinned in .vscode/launch.json and README.md for

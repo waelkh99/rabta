@@ -74,7 +74,7 @@ ${block({ dir: "ltr", font: LATIN, ...en })}
   <a href="{{ .ConfirmationURL }}" style="color:${VIOLET};word-break:break-all;">{{ .ConfirmationURL }}</a>
 </td></tr>
 </table>
-<p style="margin:16px 0 0;font-family:${LATIN};font-size:12px;color:${MUTED};">rabta.chat</p>
+<p style="margin:16px 0 0;font-family:${LATIN};font-size:12px;color:${MUTED};">inboxara.app</p>
 </td></tr></table>
 </body></html>`;
 }
