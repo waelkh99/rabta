@@ -508,6 +508,7 @@ source linked.
   14 permissions in the old draft were removed from this submission (not from
   the app) and go in a second review for Instagram/Messenger. Data handling:
   processors Supabase (Germany, US) and Anthropic (US), controller the
-  registered business, Jordan; no national security requests.
+  registered business, Jordan; no national security requests; all four
+  authority-request practices ticked, written down in `docs/AUTHORITY-REQUESTS.md`.
   When approved: the reminder above (config, webhook fields, WHATSAPP_SIGNUP,
   https test), then the real-number end-to-end test.
