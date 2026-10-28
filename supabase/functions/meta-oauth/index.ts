@@ -1,13 +1,14 @@
 // Connecting a seller's Meta accounts.
 //
-// Four routes:
+// Five routes:
 //
 //   /meta-oauth/start        answers with the address of Meta's approval page
 //   /meta-oauth/callback     exchanges the code and stores what it finds
+//   /meta-oauth/whatsapp     the same for WhatsApp, whose signup runs in the page
 //   /meta-oauth/disconnect   stops an account without losing its history
 //   /meta-oauth/check        marks accounts whose token Meta no longer accepts
 //
-// `start`, `disconnect` and `check` are called by the application and carry the
+// `start`, `whatsapp`, `disconnect` and `check` are called by the application and carry the
 // seller's own token; the workspace comes from that token and never from the
 // request. `callback` is the one Meta itself reaches, as a plain browser
 // navigation with no session, and the signed state is what protects it.
@@ -27,7 +28,14 @@ import { corsHeaders } from "../_shared/origins.ts";
 import { tokenExpired } from "../send-message/send.ts";
 import { createLog, describe } from "../_shared/log.ts";
 
-import { assetsFromScopes, type Granted, whatsappName } from "./assets.ts";
+import {
+  assetsFromScopes,
+  chosenBusinessAccounts,
+  chosenNumbers,
+  type Granted,
+  numberSetup,
+  whatsappName,
+} from "./assets.ts";
 import {
   isWorkspaceId,
   readState,
@@ -41,6 +49,11 @@ const CONFIG_ID = "1063344539629710";
 // Embedded Signup" variation, system-user token). A secret rather than a
 // constant only so it can be set without a deploy; absent, the button says
 // connecting failed rather than opening the wrong screen.
+//
+// WhatsApp's Embedded Signup (v4) runs only through Meta's JavaScript SDK: the
+// page calls FB.login with this config and gets back a code and, by
+// postMessage, the business account and number the seller chose. So there is
+// no redirect for it; the page posts both to /whatsapp.
 const WHATSAPP_CONFIG_ID = Deno.env.get("META_WHATSAPP_CONFIG_ID") ?? "";
 const GRAPH = "https://graph.facebook.com/v26.0";
 
@@ -80,6 +93,7 @@ Deno.serve(async (request: Request) => {
   // application, carrying the seller's own token.
   if (pathname.endsWith("/callback")) return await callback(searchParams);
   if (pathname.endsWith("/start")) return await start(request, cors);
+  if (pathname.endsWith("/whatsapp")) return await whatsapp(request, cors);
   if (pathname.endsWith("/disconnect")) return await disconnect(request, cors);
   if (pathname.endsWith("/check")) return await check(request, cors);
 
@@ -126,6 +140,14 @@ async function start(
   const seller = await sellerWorkspace(request);
   if (!seller) return json({ reason: "not_signed_in" }, 401, cors);
 
+  // ?kind=whatsapp answers with what the page needs to open WhatsApp's signup
+  // itself. Fetched before the button is pressed: a popup opened after a round
+  // trip is one the browser may block.
+  if (new URL(request.url).searchParams.get("kind") === "whatsapp") {
+    if (!WHATSAPP_CONFIG_ID) return json({ reason: "not_configured" }, 503, cors);
+    return json({ app_id: APP_ID, config_id: WHATSAPP_CONFIG_ID }, 200, cors);
+  }
+
   // Where the browser is sent once this is done. Rejected here, at the start,
   // so an origin we will not redirect to never reaches the point of being
   // signed into the state.
@@ -134,17 +156,9 @@ async function start(
   );
   if (originIndex === null) return json({ reason: "unknown_return" }, 400, cors);
 
-  // ?kind=whatsapp opens WhatsApp's signup instead of the Page screen. Both
-  // come back to the same callback, which tells them apart by what was granted.
-  const whatsapp = new URL(request.url).searchParams.get("kind") === "whatsapp";
-  if (whatsapp && !WHATSAPP_CONFIG_ID) return json({ reason: "not_configured" }, 503, cors);
-
   const dialog = new URL("https://www.facebook.com/v26.0/dialog/oauth");
   dialog.searchParams.set("client_id", APP_ID);
-  dialog.searchParams.set("config_id", whatsapp ? WHATSAPP_CONFIG_ID : CONFIG_ID);
-  if (whatsapp) {
-    dialog.searchParams.set("extras", JSON.stringify({ setup: {}, sessionInfoVersion: "3" }));
-  }
+  dialog.searchParams.set("config_id", CONFIG_ID);
   dialog.searchParams.set("redirect_uri", REDIRECT_URI);
   dialog.searchParams.set("response_type", "code");
   dialog.searchParams.set(
@@ -358,10 +372,6 @@ async function callback(params: URLSearchParams): Promise<Response> {
   // was granted against, and those have been reliable, so read from there.
   const granted = await grantedAssets(token.access_token);
 
-  if (granted.whatsappIds.length > 0) {
-    return await connectWhatsApp(workspaceId, returnOrigin, granted.whatsappIds, token.access_token);
-  }
-
   const pages = await fetchPages(granted.pageIds, token.access_token);
   if (pages.length === 0) {
     // The seller has no Page, or did not grant one on the asset screen. The two
@@ -460,36 +470,59 @@ async function grantedAssets(userToken: string): Promise<Granted> {
 }
 
 /**
- * The WhatsApp half of the callback: every number in every business account
- * the seller granted, each stored with the token, and each business account
- * subscribed so its messages reach the webhook.
+ * Connecting a WhatsApp number once the seller has finished Meta's signup in
+ * the page. The body carries the code from FB.login and what Meta's session
+ * info named: the business account, the number, and how the signup ended.
  *
- * ponytail: a number not yet registered for the Cloud API (a brand-new number,
- * not one moved from the WhatsApp Business app through Coexistence) also needs
- * POST /{phone}/register with a two-step PIN. Logged, not done — choosing a
- * PIN the seller does not know is a decision to make, not a default.
+ * The code lives 30 seconds, so the page posts it straight away. What the body
+ * names is a hint, not an authority: the token's own grants decide which
+ * business accounts are connected (assets.ts).
  */
-async function connectWhatsApp(
-  workspaceId: string,
-  returnOrigin: string,
-  businessAccountIds: string[],
-  accessToken: string,
+async function whatsapp(
+  request: Request,
+  cors: Record<string, string>,
 ): Promise<Response> {
-  const report: string[] = [];
-  const auth = { headers: { authorization: `Bearer ${accessToken}` } };
+  const seller = await sellerWorkspace(request);
+  if (!seller) return json({ reason: "not_signed_in" }, 401, cors);
+  const { workspaceId } = seller;
 
-  for (const waba of businessAccountIds) {
+  let body: { code?: unknown; waba_id?: unknown; phone_number_id?: unknown; event?: unknown };
+  try {
+    body = await request.json();
+  } catch {
+    return json({ reason: "bad_request" }, 400, cors);
+  }
+  if (typeof body.code !== "string" || !body.code) return json({ reason: "bad_request" }, 400, cors);
+
+  // A code from the JavaScript SDK is exchanged without a redirect_uri.
+  const tokenUrl = new URL(`${GRAPH}/oauth/access_token`);
+  tokenUrl.searchParams.set("client_id", APP_ID);
+  tokenUrl.searchParams.set("client_secret", APP_SECRET);
+  tokenUrl.searchParams.set("code", body.code);
+
+  const token = await fetch(tokenUrl).then((r) => r.json()).catch(() => null);
+  if (!token?.access_token) {
+    await log("error", "whatsapp_token_exchange_failed", { answer: token }, workspaceId);
+    return json({ reason: "failed" }, 502, cors);
+  }
+
+  const accessToken: string = token.access_token;
+  const auth = { headers: { authorization: `Bearer ${accessToken}` } };
+  const granted = await grantedAssets(accessToken);
+  const report: string[] = [];
+
+  for (const waba of chosenBusinessAccounts(granted.whatsappIds, body.waba_id)) {
     const numbers = await fetch(
       `${GRAPH}/${waba}/phone_numbers?fields=id,display_phone_number,verified_name,status`,
       auth,
     ).then((r) => r.json());
 
-    for (const phone of numbers?.data ?? []) {
+    const listed: { id: string; status?: string; verified_name?: string; display_phone_number?: string }[] =
+      numbers?.data ?? [];
+    for (const phone of chosenNumbers(listed, body.phone_number_id)) {
       await connect(workspaceId, "whatsapp", phone.id, whatsappName(phone), accessToken, waba);
       report.push(`WhatsApp: ${whatsappName(phone)} (${phone.id}) status=${phone.status}`);
-      if (phone.status && phone.status !== "CONNECTED") {
-        await log("warn", "whatsapp_number_not_registered", { phone: phone.id, status: phone.status }, workspaceId);
-      }
+      report.push(...await setUpNumber(phone.id, numberSetup(body.event, phone.status), auth));
     }
 
     const subscribe = await fetch(`${GRAPH}/${waba}/subscribed_apps`, { method: "POST", ...auth })
@@ -498,18 +531,58 @@ async function connectWhatsApp(
   }
 
   if (!report.some((line) => line.startsWith("WhatsApp:"))) {
-    await log("error", "connect_no_whatsapp_number", { businessAccountIds }, workspaceId);
-    return text(
-      `Almost there.
-
-No WhatsApp number was included. Go back to Inboxara, press Connect WhatsApp
-again, and choose the number you sell from.`,
-      200,
-    );
+    await log("error", "connect_no_whatsapp_number", { granted: granted.whatsappIds, event: body.event }, workspaceId);
+    return json({ reason: "no_number" }, 422, cors);
   }
 
   await log("info", "account_connected", { report }, workspaceId);
-  return Response.redirect(`${returnOrigin}/?connected=1`, 302);
+  return json({ connected: true }, 200, cors);
+}
+
+/**
+ * What a number needs before it receives anything; see numberSetup. A failure
+ * is reported, not fatal: the number is stored either way, and the report in
+ * ops_log says what is left to finish by hand.
+ *
+ * ponytail: the PIN is random and not kept. It only guards the number against
+ * being registered elsewhere, and the seller can reset it in WhatsApp Manager.
+ * Keep it if we ever need to register the same number again ourselves.
+ */
+async function setUpNumber(
+  phoneId: string,
+  setup: "sync" | "register" | "none",
+  auth: { headers: Record<string, string> },
+): Promise<string[]> {
+  const post = async (path: string, payload: Record<string, string>) => {
+    try {
+      return await fetch(`${GRAPH}/${phoneId}/${path}`, {
+        method: "POST",
+        headers: { ...auth.headers, "content-type": "application/json" },
+        body: JSON.stringify({ messaging_product: "whatsapp", ...payload }),
+      }).then((r) => r.json());
+    } catch (cause) {
+      return { error: describe(cause) };
+    }
+  };
+
+  const done = (what: string, answer: { success?: boolean }) =>
+    answer?.success ? `  ${what}` : `  ${what} FAILED: ${JSON.stringify(answer)}`;
+
+  if (setup === "register") {
+    const pin = String(crypto.getRandomValues(new Uint32Array(1))[0] % 1_000_000).padStart(6, "0");
+    return [done("registered", await post("register", { pin }))];
+  }
+
+  if (setup === "sync") {
+    // Both started inside Meta's 24 hours, or the seller has to onboard again.
+    // The history itself is not imported (owner, 28 Oct); the webhook skips it.
+    return [
+      done("contacts sync started", await post("smb_app_data", { sync_type: "smb_app_state_sync" })),
+      done("history sync started", await post("smb_app_data", { sync_type: "history" })),
+    ];
+  }
+
+  return [];
 }
 
 async function fetchPages(ids: string[], userToken: string): Promise<Page[]> {

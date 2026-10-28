@@ -1977,41 +1977,43 @@ class Inbox {
   /// The workspace is not passed. It comes from the seller's own token on the
   /// far side, because a workspace named in the request would let anyone start
   /// a connection into an inbox they do not own.
-  /// [whatsapp] opens WhatsApp's own signup rather than the Page screen.
-  Future<String> connectUrl({bool whatsapp = false}) async {
-    try {
-      final response = await _db.functions.invoke(
-        'meta-oauth/start',
-        method: HttpMethod.get,
-        queryParameters: {
-          'return': Uri.base.origin,
-          if (whatsapp) 'kind': 'whatsapp',
-        },
-      );
-
-      final url = (response.data as Map?)?['url'] as String?;
-      if (url == null) throw const ConnectFailed('failed');
-
-      return url;
-    } on FunctionException catch (error) {
-      final details = error.details;
-      final reason = details is Map ? details['reason'] : null;
-
-      throw ConnectFailed(reason is String ? reason : 'unreachable');
-    } on ConnectFailed {
-      rethrow;
-    } catch (_) {
-      throw const ConnectFailed('unreachable');
-    }
+  Future<String> connectUrl() async {
+    final data = await _oauth('meta-oauth/start', query: {'return': Uri.base.origin});
+    final url = data['url'];
+    if (url is! String) throw const ConnectFailed('failed');
+    return url;
   }
 
+  /// What the page needs to open WhatsApp's signup itself: the app and the
+  /// configuration. `not_configured` until that configuration exists.
+  Future<({String appId, String configId})> whatsappSignupConfig() async {
+    final data = await _oauth('meta-oauth/start', query: {'kind': 'whatsapp'});
+    final appId = data['app_id'], configId = data['config_id'];
+    if (appId is! String || configId is! String) throw const ConnectFailed('failed');
+    return (appId: appId, configId: configId);
+  }
+
+  /// Hands what WhatsApp's signup returned to the server, which connects the
+  /// number. Straight away: the code in it lives 30 seconds.
+  Future<void> connectWhatsApp(Map<String, Object?> signup) =>
+      _oauth('meta-oauth/whatsapp', body: signup);
+
   /// Stops an account receiving, without losing its conversations.
-  Future<void> disconnect(String accountId) async {
+  Future<void> disconnect(String accountId) =>
+      _oauth('meta-oauth/disconnect', body: {'account': accountId});
+
+  /// One call to `meta-oauth`. A GET with [query], a POST with [body]. Any
+  /// failure becomes a [ConnectFailed] carrying the server's reason.
+  Future<Map> _oauth(String route, {Map<String, String>? query, Object? body}) async {
     try {
-      await _db.functions.invoke(
-        'meta-oauth/disconnect',
-        body: {'account': accountId},
+      final response = await _db.functions.invoke(
+        route,
+        method: body == null ? HttpMethod.get : HttpMethod.post,
+        queryParameters: query,
+        body: body,
       );
+      final data = response.data;
+      return data is Map ? data : const {};
     } on FunctionException catch (error) {
       final details = error.details;
       final reason = details is Map ? details['reason'] : null;

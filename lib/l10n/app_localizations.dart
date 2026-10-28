@@ -1393,6 +1393,12 @@ abstract class L {
   /// **'ربط واتساب'**
   String get connectWhatsApp;
 
+  /// No description provided for @connectNoWhatsAppNumber.
+  ///
+  /// In ar, this message translates to:
+  /// **'لم يتم اختيار رقم واتساب. اضغط «ربط واتساب» مرة أخرى واختر الرقم الذي تبيع منه.'**
+  String get connectNoWhatsAppNumber;
+
   /// No description provided for @connectOpening.
   ///
   /// In ar, this message translates to:

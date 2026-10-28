@@ -46,6 +46,9 @@
     For more details:
     * https://docs.flutter.dev/platform-integration/web/initialization
   -->
+  <!-- WhatsApp's signup runs only through Meta's JavaScript SDK, which this
+       loads when the Connect WhatsApp button is shown, not before. -->
+  <script src="whatsapp_signup.js" defer></script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

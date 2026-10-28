@@ -761,6 +761,10 @@ class LEn extends L {
   String get connectWhatsApp => 'Connect WhatsApp';
 
   @override
+  String get connectNoWhatsAppNumber =>
+      'No WhatsApp number was chosen. Press Connect WhatsApp again and choose the number you sell from.';
+
+  @override
   String get connectOpening => 'Opening Meta';
 
   @override

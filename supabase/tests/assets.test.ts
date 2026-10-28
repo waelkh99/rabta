@@ -1,7 +1,13 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 
-import { assetsFromScopes, whatsappName } from "../functions/meta-oauth/assets.ts";
+import {
+  assetsFromScopes,
+  chosenBusinessAccounts,
+  chosenNumbers,
+  numberSetup,
+  whatsappName,
+} from "../functions/meta-oauth/assets.ts";
 
 test("Pages, Instagram accounts and WhatsApp accounts are told apart by scope", () => {
   const granted = assetsFromScopes([
@@ -40,4 +46,26 @@ test("a WhatsApp number is named by its business name and number", () => {
   );
   assert.equal(whatsappName({ display_phone_number: "+962 7 9000 0000" }), "+962 7 9000 0000");
   assert.equal(whatsappName({}), null);
+});
+
+test("the business account the browser names counts only if the token was granted it", () => {
+  assert.deepEqual(chosenBusinessAccounts(["w1", "w2"], "w2"), ["w2"]);
+  // Someone else's account named from the browser: fall back to what was granted.
+  assert.deepEqual(chosenBusinessAccounts(["w1"], "stranger"), ["w1"]);
+  assert.deepEqual(chosenBusinessAccounts(["w1", "w2"], undefined), ["w1", "w2"]);
+});
+
+test("the number the signup named is the one connected, when it is there", () => {
+  const numbers = [{ id: "a" }, { id: "b" }];
+  assert.deepEqual(chosenNumbers(numbers, "b"), [{ id: "b" }]);
+  assert.deepEqual(chosenNumbers(numbers, "gone"), numbers);
+  assert.deepEqual(chosenNumbers(numbers, undefined), numbers);
+});
+
+test("a Business app number syncs, a new one registers, a connected one is left alone", () => {
+  assert.equal(numberSetup("FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING", "CONNECTED"), "sync");
+  assert.equal(numberSetup("FINISH", "PENDING"), "register");
+  assert.equal(numberSetup("FINISH", undefined), "register");
+  assert.equal(numberSetup("FINISH", "CONNECTED"), "none");
+  assert.equal(numberSetup(undefined, "CONNECTED"), "none");
 });

@@ -1006,6 +1006,12 @@ Plan and log in `NEXT.md`.
       Embedded Signup needs Tech Provider status (found 11 October). Button
       hidden until then (`_whatsappSignup`), **seen** gone in both languages
       at both widths
+- [x] Signup reworked to Meta's JavaScript SDK (28 Oct): `web/whatsapp_signup.js`,
+      `meta-oauth/whatsapp`, Coexistence, random PIN for new numbers, sync
+      started for Business app numbers. **Seen** with Meta's answers stood in
+      for: the window opens from the click, a cancel does nothing, a finish
+      posts the code and reloads, a failure says so (English 1366, Arabic 390).
+      Button on with `--dart-define=WHATSAPP_SIGNUP=true`. Not deployed.
 - [ ] A real seller's number — blocked on the production decision
 
 ## 16. Plans and the assistant guide — started 26 October 2026

@@ -3134,3 +3134,25 @@ the test shop, the instructions alone moved it from 0 of 2 runs to about 3 of
   splits the cache nor sits forty paragraphs from the reply.
 
 Result: the order was kept in 7 of 7 runs; the narration appeared once in 7.
+
+### 2026-10-28 — WhatsApp signup: Coexistence, a PIN nobody sees, no templates
+
+Decided with the owner before reworking the signup to Meta's JavaScript SDK
+(Embedded Signup v4 has no redirect flow).
+
+- **Coexistence, without history.** A seller keeps the WhatsApp Business app on
+  the same number, and replies sent from the phone arrive as echoes. Meta gives
+  24 hours to start the contact and history sync, after which the seller has to
+  onboard again, so both are started on connecting and the history the webhook
+  receives is skipped. Importing it later means reconnecting.
+- **A brand-new number** is registered with a random PIN that is not kept. The
+  PIN only stops the number being registered elsewhere, and the seller can
+  reset it in WhatsApp Manager.
+- **No templates.** Writing after the 24-hour window stays unavailable; a
+  question for the buyer meetings.
+
+The page reports the business account and number the seller chose, but the
+server only connects ones the token was actually granted. The app needs the
+webhook fields `smb_message_echoes`, `history`, `smb_app_state_sync` and
+`account_update` ticked in the dashboard. `FB.login` refuses `http://` pages,
+so testing Meta's real window needs https.

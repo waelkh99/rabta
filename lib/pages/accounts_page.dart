@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../data.dart';
+import '../services/whatsapp_signup.dart';
 import '../widgets/platform_icon.dart';
 import '../strings.dart';
 import '../theme.dart';
@@ -33,20 +34,54 @@ Future<void> startConnecting(
   final colors = context.rabta;
 
   try {
-    final url = await inbox.connectUrl(whatsapp: whatsapp);
+    if (whatsapp) {
+      // Meta's window opens over this page, and the page posts what it hands
+      // back. Then a reload, which is where the Meta flow's redirect lands too.
+      final config = await prepareWhatsApp(inbox)!;
+      final signup = await openWhatsAppSignup(config.configId);
+      if (signup == null) return;
+      await inbox.connectWhatsApp(signup);
+      await launchUrl(Uri.base, webOnlyWindowName: '_self');
+      return;
+    }
+
+    final url = await inbox.connectUrl();
     await launchUrl(Uri.parse(url), webOnlyWindowName: '_self');
-  } on ConnectFailed catch (error) {
+  } catch (error) {
+    if (whatsapp) _whatsappReady = null;
+    final reason = error is ConnectFailed ? error.reason : null;
     messenger?.showSnackBar(
       SnackBar(
-        content: Text(
-          error.reason == 'not_signed_in'
-              ? l.connectFailedSignedOut
-              : l.connectFailed,
-        ),
+        content: Text(switch (reason) {
+          'not_signed_in' => l.connectFailedSignedOut,
+          'no_number' => l.connectNoWhatsAppNumber,
+          _ => l.connectFailed,
+        }),
         backgroundColor: colors.urgent,
       ),
     );
   }
+}
+
+/// Shown only once Inboxara is a Meta Tech Provider, which WhatsApp's signup
+/// requires (NEXT.md). Until then numbers are connected with
+/// `npm run connect-whatsapp`. Turned on for a build, to test it, with
+/// `--dart-define=WHATSAPP_SIGNUP=true`.
+const _whatsappSignup = bool.fromEnvironment('WHATSAPP_SIGNUP');
+
+Future<({String appId, String configId})>? _whatsappReady;
+
+/// Fetches WhatsApp's signup config and Meta's SDK while the button is on
+/// screen, so pressing it opens Meta's window at once — a window opened after
+/// a round trip is one the browser may block. Null when the button is hidden.
+Future<({String appId, String configId})>? prepareWhatsApp(Inbox inbox) {
+  if (!_whatsappSignup) return null;
+  return _whatsappReady ??= () async {
+    final config = await inbox.whatsappSignupConfig();
+    await loadWhatsAppSignup(config.appId);
+    return config;
+  }()
+    ..ignore();
 }
 
 /// What fills the reading pane when the seller has connected nothing yet.
@@ -64,6 +99,12 @@ class ConnectPrompt extends StatefulWidget {
 
 class _ConnectPromptState extends State<ConnectPrompt> {
   bool _opening = false;
+
+  @override
+  void initState() {
+    super.initState();
+    prepareWhatsApp(widget.inbox);
+  }
 
   Future<void> _connect({bool whatsapp = false}) async {
     setState(() => _opening = true);
@@ -104,8 +145,6 @@ class _ConnectPromptState extends State<ConnectPrompt> {
   }
 }
 
-const _whatsappSignup = false;
-
 /// Both ways in: Meta (Pages and Instagram) as the accent, WhatsApp beside it
 /// in outline, because the screen keeps one accent and most sellers start with
 /// a Page.
@@ -130,9 +169,6 @@ class ConnectButtons extends StatelessWidget {
           onPressed: onConnect == null ? null : () => onConnect(false),
           busy: busy,
         ),
-        // Hidden until Rabta is a Meta Tech Provider: WhatsApp's signup needs
-        // it, and until then the button could only say connecting failed.
-        // NEXT.md, B2. Numbers are connected with `npm run connect-whatsapp`.
         if (_whatsappSignup)
           OutlinedButton.icon(
             onPressed: onConnect == null ? null : () => onConnect(true),
@@ -186,6 +222,12 @@ class AccountsPage extends StatefulWidget {
 class _AccountsPageState extends State<AccountsPage> {
   late Future<List<Account>> _accounts = widget.inbox.accounts();
   String? _working;
+
+  @override
+  void initState() {
+    super.initState();
+    prepareWhatsApp(widget.inbox);
+  }
 
   Future<void> _disconnect(Account account) async {
     final l = context.l;

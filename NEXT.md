@@ -13,6 +13,10 @@ Verification, App Review) together at the end. Owner's call, for simplicity.
 Consequence: Embedded Signup can only be tested up to Meta's dialog until
 Tech Provider passes; the real-number end-to-end check moves to the review
 phase. In order:
+- **Done 28 Oct (code, not deployed):** the rework below, and the decisions
+  (Coexistence without history, random PIN, no templates — DECISIONS.md).
+  Owner: tick webhook fields `smb_message_echoes`, `history`,
+  `smb_app_state_sync`, `account_update` when the WhatsApp config exists.
 - **WhatsApp self-connect, the code:** Embedded Signup v4 is JavaScript-SDK
   only (`FB.login` with `config_id`, session-info message listener for
   `waba_id`/`phone_number_id`), so the redirect flow from 7 October in
@@ -444,3 +448,12 @@ source linked.
   wording works better". Seen in Arabic at 390. Open: on the guide page the
   text field's accessible name is the whole page (seen in the Playwright
   tree); an explicit Semantics label did not change it, so it was removed.
+- 2026-10-28 — WhatsApp signup reworked to the JavaScript SDK. Owner decided:
+  Coexistence without history, Inboxara sets a random PIN for new numbers, no
+  templates. `meta-oauth/whatsapp` takes the code + session info, connects only
+  granted business accounts, registers or starts the 24-hour sync; the old
+  redirect branch is gone. Button behind `--dart-define=WHATSAPP_SIGNUP=true`.
+  518 backend + 279 Flutter tests pass, new ones shown failing first. Seen in
+  Playwright with Meta stood in for (English 1366, Arabic 390); "Connect with
+  Meta" still reaches Facebook. `FB.login` refuses http pages, so the real
+  window needs https. Not deployed: `meta-oauth` to staging waits on the owner.

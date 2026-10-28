@@ -760,6 +760,10 @@ class LAr extends L {
   String get connectWhatsApp => 'ربط واتساب';
 
   @override
+  String get connectNoWhatsAppNumber =>
+      'لم يتم اختيار رقم واتساب. اضغط «ربط واتساب» مرة أخرى واختر الرقم الذي تبيع منه.';
+
+  @override
   String get connectOpening => 'جارٍ فتح ميتا';
 
   @override

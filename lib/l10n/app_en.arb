@@ -237,6 +237,7 @@
   "connectBody": "Instagram, Messenger and WhatsApp messages arrive here once you connect them. Anything sent before you connect stays in Meta's apps.",
   "connectAction": "Connect with Meta",
   "connectWhatsApp": "Connect WhatsApp",
+  "connectNoWhatsAppNumber": "No WhatsApp number was chosen. Press Connect WhatsApp again and choose the number you sell from.",
   "connectOpening": "Opening Meta",
   "connectAnother": "Connect another account",
   "noAccountsRow": "No account connected",
