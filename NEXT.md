@@ -468,3 +468,11 @@ source linked.
   checked by registry RDAP: inboxara.com taken (registered 30 Jul 2025 at
   name.com, no site answering); inboxara.app/.ai/.io/.chat/.co,
   getinboxara.com, inboxarahq.com, useinboxara.com free. Owner to buy one.
+- 2026-10-28 — inboxara.app bought (Cloudflare). Owner did: Pages custom
+  domain (serves the 21 Oct production build, still titled "Rabta"), Email
+  Routing support@inboxara.app → rabtaappsupport@gmail.com, Resend domain,
+  Supabase production Site URL/redirects/SMTP sender. Checked by DNS: MX,
+  SPF, Resend DKIM and send records match rabta.chat; **`_dmarc` TXT missing**.
+  Code: inboxara.app first in `origins.ts` (test shown failing without it),
+  email footer, legal pages now say support@inboxara.app (seen: English 1366,
+  Arabic 390). None of it live until the production deploy.
