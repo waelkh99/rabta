@@ -488,3 +488,18 @@ source linked.
   with WhatsApp and support@inboxara.app. Not done: the Meta webhook still
   points at staging, and the Meta app's domain/policy URLs still name
   rabta.chat — owner's dashboard steps, next.
+- 2026-10-28 — **Access Verification no longer exists** (Meta's page: "no longer
+  required"). Tech Provider = Business Verification (approved) + App Review for
+  advanced `whatsapp_business_messaging` and `whatsapp_business_management`,
+  from Use cases → WhatsApp → Customize → Tech Provider onboarding. The "In
+  review" there is the owner's unsent draft. WhatsApp webhook moved to
+  production (Messenger/Instagram still on staging); test number connected to
+  the demo shop on production (`WHATSAPP_*` copied into `.env.prod`). A message
+  from the owner's phone was answered by the assistant with the bag's photo on
+  production. Videos recorded and checked frame by frame (Desktop,
+  recording-1.mp4 send/receive 38 s, recording-2.mp4 template 95 s). Meta app
+  Basic settings: inboxara.app domain, policy URLs, support email, icon,
+  category; display name → Inboxara; ToS URL (was facebook.com) cleared;
+  Website platform added; JS SDK domain inboxara.app. Next: owner turns on
+  "Login with the JavaScript SDK", fills the review form (texts given in
+  chat), I check it, owner submits.
