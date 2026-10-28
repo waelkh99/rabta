@@ -476,3 +476,15 @@ source linked.
   Code: inboxara.app first in `origins.ts` (test shown failing without it),
   email footer, legal pages now say support@inboxara.app (seen: English 1366,
   Arabic 390). None of it live until the production deploy.
+- 2026-10-28 — **Production deployed from HEAD** (owner's go-ahead). One-off
+  dump first: `C:\Users\User\Documents\inboxara-backups\prod-before-2026-10-28-deploy.dump`
+  (pg_dump 18 via scoop; database only, storage files not included). Then
+  `db push` of the three missing migrations (6, 7, 26 Oct), all five
+  functions, email templates, `tool\deploy.ps1`. `.env.prod` APP_URL is now
+  https://inboxara.app. Checked: webhook verify 403 on a wrong token, oauth
+  callback 400 without state, send-message answers CORS for inboxara.app.
+  Seen on inboxara.app: admin page with plans (English 1366), demo shop inbox,
+  conversation, shop and guide pages (Arabic 390, English 1366), privacy page
+  with WhatsApp and support@inboxara.app. Not done: the Meta webhook still
+  points at staging, and the Meta app's domain/policy URLs still name
+  rabta.chat — owner's dashboard steps, next.

@@ -98,7 +98,8 @@ on a schedule (GitHub Actions if the repository is on GitHub).
 
 ## 2. Domain and hosting — closed 26 September 2026
 
-**Live at https://rabta.chat** (bought through Cloudflare Registrar), served by
+**Live at https://inboxara.app** since 28 October 2026 (rabta.chat still serves the
+same build). Before that: **https://rabta.chat** (bought through Cloudflare Registrar), served by
 Cloudflare Pages against the production project. `https://rabta.pages.dev`
 serves the same site and stays trusted, so no link breaks. The legal pages are
 at **https://rabta.chat/privacy** and **https://rabta.chat/data-deletion** (the
