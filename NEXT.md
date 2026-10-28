@@ -503,3 +503,11 @@ source linked.
   Website platform added; JS SDK domain inboxara.app. Next: owner turns on
   "Login with the JavaScript SDK", fills the review form (texts given in
   chat), I check it, owner submits.
+- 2026-10-28 — **WhatsApp App Review submitted** (Tech Provider): only
+  `whatsapp_business_messaging` and `whatsapp_business_management`; the other
+  14 permissions in the old draft were removed from this submission (not from
+  the app) and go in a second review for Instagram/Messenger. Data handling:
+  processors Supabase (Germany, US) and Anthropic (US), controller the
+  registered business, Jordan; no national security requests.
+  When approved: the reminder above (config, webhook fields, WHATSAPP_SIGNUP,
+  https test), then the real-number end-to-end test.
