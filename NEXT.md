@@ -15,8 +15,6 @@ Tech Provider passes; the real-number end-to-end check moves to the review
 phase. In order:
 - **Done 28 Oct (code, not deployed):** the rework below, and the decisions
   (Coexistence without history, random PIN, no templates — DECISIONS.md).
-  Owner: tick webhook fields `smb_message_echoes`, `history`,
-  `smb_app_state_sync`, `account_update` when the WhatsApp config exists.
 - **WhatsApp self-connect, the code:** Embedded Signup v4 is JavaScript-SDK
   only (`FB.login` with `config_id`, session-info message listener for
   `waba_id`/`phone_number_id`), so the redirect flow from 7 October in
@@ -33,7 +31,13 @@ phase. In order:
   accounts, app icon, 2FA for the portfolio's admins.
 - **Then the reviews, in this order (owner, 26 Oct):** 1. Access
   Verification (Tech Provider). 2. WhatsApp: Embedded Signup configuration
-  and the real-number end-to-end test. 3. App Review, every permission
+  and the real-number end-to-end test. **Reminder for the owner, once Tech
+  Provider passes:** create the WhatsApp Embedded Signup configuration and set
+  `META_WHATSAPP_CONFIG_ID`; in App Dashboard → WhatsApp → Configuration, tick
+  the webhook fields `smb_message_echoes`, `history`, `smb_app_state_sync` and
+  `account_update` (without them, replies sent from the seller's phone never
+  arrive); build with `WHATSAPP_SIGNUP=true`; test on an https address, since
+  `FB.login` refuses http pages. 3. App Review, every permission
   including `whatsapp_business_messaging` and `whatsapp_business_management`,
   with screencasts recorded on production.
 
