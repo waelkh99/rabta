@@ -7,42 +7,37 @@ after meeting the buyers.
 
 ## Next session — start here
 
-**From 27 October: the WhatsApp workflow** (owner, 26 Oct). **Nothing in
-parallel:** finish all the building first, then do every Meta step (Access
-Verification, App Review) together at the end. Owner's call, for simplicity.
-Consequence: Embedded Signup can only be tested up to Meta's dialog until
-Tech Provider passes; the real-number end-to-end check moves to the review
-phase. In order:
-- **Done 28 Oct (code, not deployed):** the rework below, and the decisions
-  (Coexistence without history, random PIN, no templates — DECISIONS.md).
-- **WhatsApp self-connect, the code:** Embedded Signup v4 is JavaScript-SDK
-  only (`FB.login` with `config_id`, session-info message listener for
-  `waba_id`/`phone_number_id`), so the redirect flow from 7 October in
-  `meta-oauth` and `lib/pages/accounts_page.dart` is reworked to it. Keep the
-  server-side code exchange, subscription and `business_account_id` handling.
-  Buildable and testable before Tech Provider passes, up to Meta's dialog.
-- **Decisions to raise before building:** who sets the PIN when a brand-new
-  number is registered (`POST /{phone}/register`); Coexistence (seller keeps
-  the WhatsApp Business app — needs `smb_message_echoes` + history
-  subscription); templates for writing after the 24-hour window (not built).
-- **Changed 28 Oct (owner): Access Verification starts as soon as the domain
-  is set**, not after the rest of this list — it checks the business, not the
-  app, and runs while the list is finished. App Review still waits for the end.
-- **Then, before any review:** domain changes, privacy pages (add WhatsApp,
-  new name), full production deploy (production lacks the WhatsApp and
-  26 October migrations; also backups), webhook to production, reviewer
-  accounts, app icon, 2FA for the portfolio's admins.
-- **Then the reviews, in this order (owner, 26 Oct):** 1. Access
-  Verification (Tech Provider). 2. WhatsApp: Embedded Signup configuration
-  and the real-number end-to-end test. **Reminder for the owner, once Tech
-  Provider passes:** create the WhatsApp Embedded Signup configuration and set
-  `META_WHATSAPP_CONFIG_ID`; in App Dashboard → WhatsApp → Configuration, tick
-  the webhook fields `smb_message_echoes`, `history`, `smb_app_state_sync` and
-  `account_update` (without them, replies sent from the seller's phone never
-  arrive); build with `WHATSAPP_SIGNUP=true`; test on an https address, since
-  `FB.login` refuses http pages. 3. App Review, every permission
-  including `whatsapp_business_messaging` and `whatsapp_business_management`,
-  with screencasts recorded on production.
+**Where things stand (28 October):** production runs HEAD at
+https://inboxara.app; the WhatsApp App Review (Tech Provider) is **submitted**,
+two permissions only. Access Verification no longer exists. Meta's WhatsApp
+webhook points at production, Messenger/Instagram's still at staging.
+
+**Waiting on Meta:** the WhatsApp review. If Meta asks a question or rejects,
+read it with the owner before replying. When approved, in order:
+1. Create the WhatsApp Embedded Signup configuration; `supabase secrets set
+   META_WHATSAPP_CONFIG_ID=<id>` on production.
+2. App Dashboard → WhatsApp → Configuration: tick webhook fields
+   `smb_message_echoes`, `history`, `smb_app_state_sync`, `account_update`
+   (without them a seller's phone replies never arrive).
+3. Build with `--dart-define=WHATSAPP_SIGNUP=true` and deploy.
+4. End to end with a real number on inboxara.app (https: `FB.login` refuses
+   http), both a WhatsApp Business app number (Coexistence) and a new one.
+
+**Can be done meanwhile, owner decides the order:**
+- **Second App Review — Instagram and Messenger:** `pages_messaging`,
+  `pages_show_list`, `pages_manage_metadata`, `instagram_business_basic`,
+  `instagram_business_manage_messages` (check which of `instagram_manage_messages`
+  and `public_profile` are still needed). Needs: their webhook moved to
+  production, a reviewer test account, one video per permission recorded on
+  inboxara.app.
+- **Remove unused permissions from the app** (Use cases → customize): ads_read,
+  ads_management, Marketing API Access Tier, instagram_manage_comments, and
+  check pages_read_engagement and business_management.
+- **2FA** for the business portfolio's admins.
+- Smaller: the demo login is still `demo@rabta.chat`; no Terms of Service page
+  (the field was cleared); production backups wait for the first customer
+  (owner, 28 Oct); `docs/name-options.pdf` and `docs/hub-name-options.pdf` are
+  untracked.
 
 The items below are the history behind this.
 
@@ -84,7 +79,7 @@ then). After resizing the browser, wait a few seconds before a screenshot.
 ## Status
 
 - [x] Step 0 — plan in the repo, pointed to from CLAUDE.md
-- [ ] A — naming brief (candidates, checks run, top 3)
+- [x] A — naming brief: superseded, the owner chose Inboxara (26 Oct); options PDFs from 11 Oct
 - [x] A — owner picks a name: **Inboxara** (26 Oct)
 - [x] A — rename what users see (26 Oct; seen in Playwright) — domain, icon and support mailbox wait on the owner
 - [x] B — owner added WhatsApp to the Meta app; test number +1 555-633-5647, IDs and a never-expiring system-user token in `supabase/.env` (checked against Graph 6 Oct); staging webhook verified for WhatsApp
