@@ -25,6 +25,9 @@ phase. In order:
   number is registered (`POST /{phone}/register`); Coexistence (seller keeps
   the WhatsApp Business app — needs `smb_message_echoes` + history
   subscription); templates for writing after the 24-hour window (not built).
+- **Changed 28 Oct (owner): Access Verification starts as soon as the domain
+  is set**, not after the rest of this list — it checks the business, not the
+  app, and runs while the list is finished. App Review still waits for the end.
 - **Then, before any review:** domain changes, privacy pages (add WhatsApp,
   new name), full production deploy (production lacks the WhatsApp and
   26 October migrations; also backups), webhook to production, reviewer
@@ -461,3 +464,7 @@ source linked.
   Playwright with Meta stood in for (English 1366, Arabic 390); "Connect with
   Meta" still reaches Facebook. `FB.login` refuses http pages, so the real
   window needs https. Not deployed: `meta-oauth` to staging waits on the owner.
+- 2026-10-28 — Owner: start Access Verification right after the domain. Domains
+  checked by registry RDAP: inboxara.com taken (registered 30 Jul 2025 at
+  name.com, no site answering); inboxara.app/.ai/.io/.chat/.co,
+  getinboxara.com, inboxarahq.com, useinboxara.com free. Owner to buy one.
