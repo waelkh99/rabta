@@ -12,8 +12,8 @@ https://inboxara.app; the WhatsApp App Review (Tech Provider) is **submitted**,
 two permissions only. Access Verification no longer exists. Meta's WhatsApp
 webhook points at production, Messenger/Instagram's still at staging.
 
-**Waiting on Meta:** the WhatsApp review. If Meta asks a question or rejects,
-read it with the owner before replying. When approved, in order:
+**WhatsApp review approved (16 November); steps 1–3 done, step 4 next.**
+Originally, in order:
 1. Create the WhatsApp Embedded Signup configuration; `supabase secrets set
    META_WHATSAPP_CONFIG_ID=<id>` on production.
 2. App Dashboard → WhatsApp → Configuration: tick webhook fields
@@ -24,10 +24,13 @@ read it with the owner before replying. When approved, in order:
    http), both a WhatsApp Business app number (Coexistence) and a new one.
 
 **Can be done meanwhile, owner decides the order:**
-- **Second App Review — Instagram and Messenger:** `pages_messaging`,
-  `pages_show_list`, `pages_manage_metadata`, `instagram_business_basic`,
-  `instagram_business_manage_messages` (check which of `instagram_manage_messages`
-  and `public_profile` are still needed). Needs: their webhook moved to
+- **Second App Review — Instagram and Messenger:** corrected 16 Nov against
+  Meta's Messenger Platform overview — the Facebook Login route (DECISIONS,
+  15 Sept) needs `pages_show_list`, `pages_manage_metadata`, `pages_messaging`,
+  `pages_read_engagement`, `business_management` (a dependency of
+  `pages_messaging`, to be said so in the review), `instagram_basic`,
+  `instagram_manage_messages`. The `instagram_business_*` names that stood here
+  are Instagram Login's, which this app does not use. Needs: their webhook moved to
   production, a reviewer test account, one video per permission recorded on
   inboxara.app.
 - **Remove unused permissions from the app** (Use cases → customize): ads_read,
@@ -507,3 +510,69 @@ source linked.
   authority-request practices ticked, written down in `docs/AUTHORITY-REQUESTS.md`.
   When approved: the reminder above (config, webhook fields, WHATSAPP_SIGNUP,
   https test), then the real-number end-to-end test.
+- 2026-11-14 — PC reset; toolchain reinstalled (Flutter 3.50 at C:\src\flutter,
+  Node 24, Deno, Supabase CLI, Python, gh; Playwright MCP). 519 backend + 279
+  Flutter tests pass; `flutter analyze` only shows deprecation notices from
+  Flutter 3.47's Material split. `pubspec.lock` moved with the SDK.
+- 2026-11-16 — **WhatsApp App Review approved.** Owner created the Embedded
+  Signup configuration (1847339703121125), set it on production as
+  `META_WHATSAPP_CONFIG_ID`, ticked the four webhook fields, and deployed;
+  `env.prod.json` now carries `"WHATSAPP_SIGNUP": true` so every production
+  build shows the button. Live bundle checked byte-identical to the local
+  build. Seen on inboxara.app (demo shop): "Connect WhatsApp" beside "Connect
+  with Meta", English 1280 and Arabic 390; pressing it opens Meta's real
+  dialog with this config_id and `whatsapp_business_app_onboarding` — closed
+  at Facebook's login, nothing connected. Also seen: the demo shop's old
+  "Rabta App" (Messenger) and "djangus_w" (Instagram) show Disconnected, which
+  is what raises the inbox's red banner. Next: step 4, real numbers end to end.
+- 2026-11-16 — **Step 4 skipped by the owner** (no spare number; not using
+  their own). Unproven against Meta: the `meta-oauth/whatsapp` callback with a
+  real code, registering a new number with a PIN, Coexistence echoes and the
+  24-hour sync, and disconnecting. Watch the first real seller's connection
+  (`ops_log`, `npm run events -- whatsapp_business_account`). Moving on to the
+  Instagram/Messenger App Review.
+- 2026-11-16 — Instagram/Messenger review prep. Owner: unused permissions
+  removed (`ads_management` stays in the use case, required by it, and is not
+  in login config 1063344539629710 nor to be submitted); Page and Instagram
+  webhooks moved to production; Rabta App Page + djangus_w reconnected on the
+  production demo shop. `instagram_basic` is in the config: the username came
+  through the Page field. **Bug found:** one reconnect hit Meta's transient
+  `subscribed_apps` error (code 2) and the seller was still sent back as
+  connected, with nothing ever going to arrive. Fixed, not deployed:
+  `meta-oauth/subscribe.ts` retries a transient answer once, and a Page still
+  unsubscribed gets a page in the app's design (Arabic then English, a way
+  back) instead of the redirect. 10 tests, shown failing against no retry,
+  retry-everything and no escaping; 529 backend pass. Page seen in Playwright
+  at 1280 and 390, light and dark. Deploy: `supabase functions deploy
+  meta-oauth` to staging, then production — owner runs it.
+- 2026-11-16 — Webhooks proven on production with Meta's dashboard "Test"
+  deliveries: #18 (page) and #19 (instagram), signature ok, processed. Real
+  Instagram DMs from accounts with no role on the app did not arrive —
+  expected before App Review (27 Sept entry). Adding an Instagram Tester needs
+  the sender to have a Facebook developer account; owner skipped it. **Still
+  unproven: a real Instagram DM end to end.** Send one from any account the
+  day the review passes. Messenger not tested today.
+- 2026-11-16 — Submission drafted: `docs/APP-REVIEW-MESSAGING.md` (the seven
+  permissions, two recordings, reviewer instructions). The Instagram recording
+  still needs a sender with a role (an Instagram Tester).
+- 2026-11-16 — **First real Instagram DM end to end** (event #20): a new
+  Instagram account linked in Accounts Center to the owner's Facebook (which
+  has the app through the business) — no Tester role needed; the Instagram
+  Testers role failed ("does not resolve", Basic Display is gone). Stored with
+  the customer's name, the assistant answered, the reply reached Instagram.
+  **Bug:** its echo was stored a second time as the seller's — the Send API
+  returns `new_ig_dm_item:…` and the echo carries `ig_dm_item:…` (Meta's
+  escaped base64). Fixed, not deployed: `_shared/mid.ts` stores one decoded
+  spelling from both `readSendResult` and `parse.ts`; 6 tests from the real ids,
+  shown failing; 535 backend pass. The duplicate row in the demo shop's
+  "Wael khaled" conversation is still there.
+- 2026-11-16 — **"Sort by"** in the inbox, at the owner's request: Needs a reply
+  (default, the two groups), Newest first, Unread first, Oldest first;
+  remembered per browser. In "Needs a reply" a closed reply window now goes
+  after every answerable conversation (the owner saw a new message land under
+  seven-week-old closed ones). 7 tests shown failing; 286 Flutter pass. Seen in
+  Playwright on production's demo shop, built locally: every option in
+  English at 1280, the menu and Oldest first in Arabic at 390, the choice
+  surviving a reload. Not seen: the closed-window rule with an open
+  conversation present (all of the demo shop's waiting ones are closed) —
+  look when the next message arrives. Not deployed.
