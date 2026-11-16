@@ -42,9 +42,8 @@ for Playwright is headed, and the owner signs in to it.
   permissions removed (16 Nov); `ads_management` stays, required by the use
   case — never submit it.
 - **2FA** for the business portfolio's admins.
-- **Two pending invitations with full access to the business portfolio**, to
-  `@tmpbox.net` addresses (seen 16 Nov in Business settings → People). Revoke
-  unless the owner sent them on purpose.
+- ~~Two pending invitations with full access to the business portfolio, to
+  `@tmpbox.net` addresses.~~ Revoked by the owner, 16 Nov.
 - Smaller: the demo login is still `demo@rabta.chat`; no Terms of Service page
   (the field was cleared); production backups wait for the first customer
   (owner, 28 Oct); `docs/name-options.pdf` and `docs/hub-name-options.pdf` are
