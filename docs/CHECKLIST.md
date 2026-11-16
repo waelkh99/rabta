@@ -78,9 +78,15 @@ here hold up everything else.
       objects, same verify token
 - [x] Subscribe to the `messages` and `messaging_postbacks` fields
 - [x] Connect a real Page and see a message arrive — 15 September, end to end
-- [ ] Connect a real Instagram account and see a message arrive
-- [ ] Business verification
-- [ ] App review for the messaging permissions
+- [x] Connect a real Instagram account and see a message arrive — 16 November,
+      on production: a DM from an Instagram account linked to the owner's
+      Facebook arrived, was answered by the assistant, and the reply reached
+      Instagram (events #20–#23). From accounts with no role on the app,
+      nothing arrives until App Review.
+- [x] Business verification — passed 26 October 2026
+- [ ] App review for the messaging permissions — WhatsApp approved
+      (16 November); Instagram/Messenger drafted in `docs/APP-REVIEW-MESSAGING.md`,
+      recordings next
 
 Until the last two are done, only accounts belonging to the app's own
 developers can connect. No real seller can use the product.
@@ -1002,17 +1008,20 @@ Plan and log in `NEXT.md`.
 - [x] Stop removes the link from the Accounts page and nothing more arrives;
       reconnecting brings it back — **seen** on staging
 - [x] `npm run connect-whatsapp -- <email>` connects a number by hand
-- [ ] "Connect WhatsApp" button end to end — built and deployed; **blocked**:
-      Embedded Signup needs Tech Provider status (found 11 October). Button
-      hidden until then (`_whatsappSignup`), **seen** gone in both languages
-      at both widths
+- [ ] "Connect WhatsApp" button end to end — Tech Provider review approved
+      16 November; configuration 1847339703121125 set on production, button
+      deployed (`"WHATSAPP_SIGNUP": true` in `env.prod.json`). **Seen** on
+      inboxara.app in English at 1280 and Arabic at 390; pressing it opens
+      Meta's real signup window with that configuration. **Not done:** a real
+      number through to the end — the owner skipped it (no spare number)
 - [x] Signup reworked to Meta's JavaScript SDK (28 Oct): `web/whatsapp_signup.js`,
       `meta-oauth/whatsapp`, Coexistence, random PIN for new numbers, sync
       started for Business app numbers. **Seen** with Meta's answers stood in
       for: the window opens from the click, a cancel does nothing, a finish
       posts the code and reloads, a failure says so (English 1366, Arabic 390).
       Button on with `--dart-define=WHATSAPP_SIGNUP=true`. Not deployed.
-- [ ] A real seller's number — blocked on the production decision
+- [ ] A real seller's number — unblocked (route (b), Tech Provider approved
+      16 November); waits on the first seller
 
 ## 16. Plans and the assistant guide — started 26 October 2026
 

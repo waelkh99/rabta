@@ -7,21 +7,29 @@ after meeting the buyers.
 
 ## Next session — start here
 
-**Where things stand (28 October):** production runs HEAD at
-https://inboxara.app; the WhatsApp App Review (Tech Provider) is **submitted**,
-two permissions only. Access Verification no longer exists. Meta's WhatsApp
-webhook points at production, Messenger/Instagram's still at staging.
+**Where things stand (16 November):** production runs HEAD at
+https://inboxara.app, functions and web both deployed. WhatsApp's App Review
+(Tech Provider) is **approved** and "Connect WhatsApp" is live; a real number
+end to end was skipped by the owner — watch the first seller's. **All three
+webhooks now point at production** (Messenger and Instagram moved 16 Nov).
+The first real Instagram DM arrived and was answered on 16 Nov.
 
-**WhatsApp review approved (16 November); steps 1–3 done, step 4 next.**
-Originally, in order:
-1. Create the WhatsApp Embedded Signup configuration; `supabase secrets set
-   META_WHATSAPP_CONFIG_ID=<id>` on production.
-2. App Dashboard → WhatsApp → Configuration: tick webhook fields
-   `smb_message_echoes`, `history`, `smb_app_state_sync`, `account_update`
-   (without them a seller's phone replies never arrive).
-3. Build with `--dart-define=WHATSAPP_SIGNUP=true` and deploy.
-4. End to end with a real number on inboxara.app (https: `FB.login` refuses
-   http), both a WhatsApp Business app number (Coexistence) and a new one.
+**Tomorrow — the Instagram/Messenger App Review.** Everything is in
+`docs/APP-REVIEW-MESSAGING.md`. In order:
+1. Owner decides the reviewer's login (recommended: the demo shop, which has
+   the Rabta App Page and djangus_w connected and real conversations).
+2. Owner records the two videos on inboxara.app, in English. The Instagram
+   sender is the owner's new Instagram account linked in Accounts Center to
+   their Facebook — that is what got a DM delivered before approval (the
+   Instagram Tester role does not work any more). Messenger: the owner's own
+   Facebook account.
+3. I check the videos frame by frame, then the form texts; owner submits only
+   the seven permissions.
+
+Production working notes for a session: `RABTA_ENV=prod npm run events --
+instagram` shows deliveries; production deploys are run by the owner (the
+command line needs `SUPABASE_ACCESS_TOKEN` from `.env.prod`); the browser
+for Playwright is headed, and the owner signs in to it.
 
 **Can be done meanwhile, owner decides the order:**
 - **Second App Review — Instagram and Messenger:** corrected 16 Nov against
@@ -30,13 +38,13 @@ Originally, in order:
   `pages_read_engagement`, `business_management` (a dependency of
   `pages_messaging`, to be said so in the review), `instagram_basic`,
   `instagram_manage_messages`. The `instagram_business_*` names that stood here
-  are Instagram Login's, which this app does not use. Needs: their webhook moved to
-  production, a reviewer test account, one video per permission recorded on
-  inboxara.app.
-- **Remove unused permissions from the app** (Use cases → customize): ads_read,
-  ads_management, Marketing API Access Tier, instagram_manage_comments, and
-  check pages_read_engagement and business_management.
+  are Instagram Login's, which this app does not use. Webhook moved and unused
+  permissions removed (16 Nov); `ads_management` stays, required by the use
+  case — never submit it.
 - **2FA** for the business portfolio's admins.
+- **Two pending invitations with full access to the business portfolio**, to
+  `@tmpbox.net` addresses (seen 16 Nov in Business settings → People). Revoke
+  unless the owner sent them on purpose.
 - Smaller: the demo login is still `demo@rabta.chat`; no Terms of Service page
   (the field was cleared); production backups wait for the first customer
   (owner, 28 Oct); `docs/name-options.pdf` and `docs/hub-name-options.pdf` are
@@ -576,3 +584,14 @@ source linked.
   surviving a reload. Not seen: the closed-window rule with an open
   conversation present (all of the demo shop's waiting ones are closed) —
   look when the next message arrives. Not deployed.
+- 2026-11-16 — Deployed (meta-webhook, send-message, meta-oauth, web). Checked
+  on production: a new DM (#22) stored under the decoded id, the assistant's
+  reply stored once, its echo (#23) recognised as a duplicate; the row shows
+  "The assistant answered" again. Duplicate row from #21 deleted. **Found:**
+  inboxara.app serves the `.js` files with `max-age=14400` although
+  `web/_headers` says `no-cache` (rabta.pages.dev sends `no-cache`): the
+  zone's Browser Cache TTL overrides it, so a seller keeps the old build for
+  up to 4 hours after a deploy. Owner: Cloudflare → inboxara.app → Caching →
+  Configuration → Browser Cache TTL → "Respect Existing Headers".
+  **Done by the owner the same day;** checked: every file, plain and
+  cache-busted, now `no-cache`.
