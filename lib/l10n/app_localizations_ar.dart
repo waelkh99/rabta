@@ -1007,6 +1007,21 @@ class LAr extends L {
   String get clearSearch => 'مسح البحث';
 
   @override
+  String get sortBy => 'الترتيب';
+
+  @override
+  String get sortNeedsReply => 'بانتظار الرد';
+
+  @override
+  String get sortNewest => 'الأحدث أولاً';
+
+  @override
+  String get sortUnread => 'غير المقروءة أولاً';
+
+  @override
+  String get sortOldest => 'الأقدم أولاً';
+
+  @override
   String get reconnectBanner =>
       'توقّف أحد حساباتك عن استقبال الرسائل. أعد ربطه حتى تصلك رسائل الزبائن.';
 

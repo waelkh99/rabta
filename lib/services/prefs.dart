@@ -34,5 +34,13 @@ bool get alertsWanted => store.read(_alerts) != 'off';
 
 set alertsWanted(bool on) => store.write(_alerts, on ? 'on' : 'off');
 
+/// The inbox order the seller last chose from "Sort by", by name. Anything
+/// unrecognised — nothing saved, or a name from an older version — is null,
+/// which the inbox reads as its default.
+String? get savedSort => store.read(_sort);
+
+set savedSort(String? name) => store.write(_sort, name);
+
+const _sort = 'rabta.sort';
 const _language = 'rabta.language';
 const _alerts = 'rabta.alerts';

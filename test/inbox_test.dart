@@ -49,6 +49,87 @@ Conversation _conversation({
 }
 
 void main() {
+  group('closed reply windows and "Sort by"', () {
+    test('a customer who can still be answered comes before a closed window, '
+        'however long the closed one has waited', () {
+      // The 16 November case: a new Instagram message landed under
+      // seven-week-old conversations nobody could answer any more.
+      final order = inboxOrder([
+        _conversation(id: 'closed-old', inboundAgo: const Duration(days: 49)),
+        _conversation(id: 'closed', inboundAgo: const Duration(hours: 30)),
+        _conversation(id: 'new', inboundAgo: const Duration(minutes: 2)),
+        _conversation(id: 'open-old', inboundAgo: const Duration(hours: 20)),
+      ], now: _now);
+
+      expect(order.map((c) => c.id), ['open-old', 'new', 'closed-old', 'closed']);
+    });
+
+    test('a hand-over whose window has closed does not jump the open ones', () {
+      final order = inboxOrder([
+        _conversation(
+          id: 'handed-over-closed',
+          inboundAgo: const Duration(days: 3),
+          aiState: 'escalated',
+        ),
+        _conversation(id: 'open', inboundAgo: const Duration(hours: 1)),
+        _conversation(
+          id: 'handed-over-open',
+          inboundAgo: const Duration(minutes: 5),
+          aiState: 'escalated',
+        ),
+      ], now: _now);
+
+      expect(order.map((c) => c.id),
+          ['handed-over-open', 'open', 'handed-over-closed']);
+    });
+
+    final mixed = [
+      _conversation(id: 'waiting-old', inboundAgo: const Duration(hours: 20)),
+      _conversation(
+        id: 'answered-new',
+        inboundAgo: const Duration(hours: 2),
+        repliedAgo: const Duration(minutes: 1),
+      ),
+      _conversation(id: 'waiting-new', inboundAgo: const Duration(minutes: 10)),
+      _conversation(
+        id: 'answered-old',
+        inboundAgo: const Duration(hours: 9),
+        repliedAgo: const Duration(hours: 8),
+      ),
+    ];
+
+    test('"Needs a reply" is the inbox order', () {
+      expect(
+        sortConversations(mixed, InboxSort.needsReply, now: _now).map((c) => c.id),
+        inboxOrder(mixed, now: _now).map((c) => c.id),
+      );
+    });
+
+    test('"Newest first" is by latest message, waiting or not', () {
+      expect(sortConversations(mixed, InboxSort.newest).map((c) => c.id),
+          ['answered-new', 'waiting-new', 'answered-old', 'waiting-old']);
+    });
+
+    test('"Oldest first" is the exact reverse', () {
+      expect(sortConversations(mixed, InboxSort.oldest).map((c) => c.id),
+          ['waiting-old', 'answered-old', 'waiting-new', 'answered-new']);
+    });
+
+    test('"Unread first" puts unread on top, newest first within each part', () {
+      // The helper marks a conversation unread when nobody has replied.
+      expect(sortConversations(mixed, InboxSort.unread).map((c) => c.id),
+          ['waiting-new', 'waiting-old', 'answered-new', 'answered-old']);
+    });
+
+    test('sorting never loses or duplicates a conversation', () {
+      for (final sort in InboxSort.values) {
+        final ids = sortConversations(mixed, sort, now: _now).map((c) => c.id);
+        expect(ids.toSet(), mixed.map((c) => c.id).toSet(), reason: sort.name);
+        expect(ids.length, mixed.length, reason: sort.name);
+      }
+    });
+  });
+
   group('inbox order', () {
     test('conversations awaiting a reply come before answered ones', () {
       final order = inboxOrder([

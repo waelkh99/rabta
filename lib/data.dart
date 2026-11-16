@@ -1355,10 +1355,21 @@ List<Message> mergeMessages(List<Message> stored, List<Message> pending) {
 /// such a conversation apart from the rest (23 September 2026). Oldest first
 /// within each part, so neither part starves.
 ///
-/// Pure, so the ordering can be tested without a database.
-List<Conversation> inboxOrder(List<Conversation> all) {
+/// Inside each of those, a conversation whose reply window has closed goes
+/// after every one that can still be answered (owner, 16 November 2026). It
+/// cannot be answered at all, so at the top it only pushes the customer who
+/// just wrote to the bottom — which is what happened, under seven-week-old
+/// conversations, the first time a real Instagram message arrived.
+///
+/// Pure, so the ordering can be tested without a database. [now] is for tests.
+List<Conversation> inboxOrder(List<Conversation> all, {DateTime? now}) {
+  final at = now ?? DateTime.now().toUtc();
+  bool closed(Conversation c) =>
+      c.windowExpiresAt != null && !c.windowExpiresAt!.isAfter(at);
+
   final waiting = all.where((c) => c.awaitingReply).toList()
     ..sort((a, b) {
+      if (closed(a) != closed(b)) return closed(a) ? 1 : -1;
       if (a.escalated != b.escalated) return a.escalated ? -1 : 1;
       return a.lastInboundAt!.compareTo(b.lastInboundAt!);
     });
@@ -1371,6 +1382,38 @@ List<Conversation> inboxOrder(List<Conversation> all) {
     });
 
   return [...waiting, ...answered];
+}
+
+/// The orders the seller can choose from the list's "Sort by" menu (owner,
+/// 16 November 2026). [needsReply] is the default and the only one that keeps
+/// the two groups; the others are one list.
+enum InboxSort { needsReply, newest, unread, oldest }
+
+/// [all] in the order the seller chose. Pure, like [inboxOrder].
+List<Conversation> sortConversations(
+  List<Conversation> all,
+  InboxSort sort, {
+  DateTime? now,
+}) {
+  int newestFirst(Conversation a, Conversation b) {
+    final left = a.lastMessageAt, right = b.lastMessageAt;
+    if (left == null || right == null) {
+      return left == right ? 0 : (left == null ? 1 : -1);
+    }
+    return right.compareTo(left);
+  }
+
+  return switch (sort) {
+    InboxSort.needsReply => inboxOrder(all, now: now),
+    InboxSort.newest => [...all]..sort(newestFirst),
+    InboxSort.oldest => [...all]..sort((a, b) => newestFirst(b, a)),
+    InboxSort.unread => [...all]
+      ..sort((a, b) {
+        final ua = a.unreadCount > 0, ub = b.unreadCount > 0;
+        if (ua != ub) return ua ? -1 : 1;
+        return newestFirst(a, b);
+      }),
+  };
 }
 
 /// Whether the list should show its two group labels.

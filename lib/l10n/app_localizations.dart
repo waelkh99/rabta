@@ -1819,6 +1819,36 @@ abstract class L {
   /// **'مسح البحث'**
   String get clearSearch;
 
+  /// No description provided for @sortBy.
+  ///
+  /// In ar, this message translates to:
+  /// **'الترتيب'**
+  String get sortBy;
+
+  /// No description provided for @sortNeedsReply.
+  ///
+  /// In ar, this message translates to:
+  /// **'بانتظار الرد'**
+  String get sortNeedsReply;
+
+  /// No description provided for @sortNewest.
+  ///
+  /// In ar, this message translates to:
+  /// **'الأحدث أولاً'**
+  String get sortNewest;
+
+  /// No description provided for @sortUnread.
+  ///
+  /// In ar, this message translates to:
+  /// **'غير المقروءة أولاً'**
+  String get sortUnread;
+
+  /// No description provided for @sortOldest.
+  ///
+  /// In ar, this message translates to:
+  /// **'الأقدم أولاً'**
+  String get sortOldest;
+
   /// No description provided for @reconnectBanner.
   ///
   /// In ar, this message translates to:

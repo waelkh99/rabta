@@ -24,6 +24,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'accounts_page.dart';
 import 'admin_page.dart';
 import '../services/alerts.dart';
+import '../services/prefs.dart' as prefs;
 import '../data.dart';
 import '../widgets/details_panel.dart';
 import 'invite_page.dart';
@@ -96,6 +97,15 @@ class _InboxPageState extends State<InboxPage> {
   /// What the seller typed into search, and the conversations whose older
   /// messages matched it on the server.
   String _query = '';
+
+  /// The seller's "Sort by" choice, remembered by this browser.
+  InboxSort _sort = InboxSort.values.asNameMap()[prefs.savedSort] ??
+      InboxSort.needsReply;
+
+  void _sortBy(InboxSort sort) {
+    prefs.savedSort = sort == InboxSort.needsReply ? null : sort.name;
+    setState(() => _sort = sort);
+  }
   Set<String> _historyHits = const {};
   Timer? _searchWait;
 
@@ -486,9 +496,14 @@ class _InboxPageState extends State<InboxPage> {
 
             final list = _ConversationList(
               conversations: all,
-              shown: searchConversations(all, _query, inHistory: _historyHits),
+              shown: sortConversations(
+                searchConversations(all, _query, inHistory: _historyHits),
+                _sort,
+              ),
               searching: _query.trim().isNotEmpty,
               onSearch: _search,
+              sort: _sort,
+              onSort: _sortBy,
               reconnect: _accounts?.any((a) => a.status == 'needs_reconnect') ??
                   false,
               waiting: _inbox.waitingCount(all),
@@ -630,6 +645,8 @@ class _ConversationList extends StatelessWidget {
     required this.shown,
     required this.searching,
     required this.onSearch,
+    required this.sort,
+    required this.onSort,
     required this.reconnect,
     required this.waiting,
     required this.openId,
@@ -649,6 +666,10 @@ class _ConversationList extends StatelessWidget {
   final bool searching;
   final ValueChanged<String> onSearch;
 
+  /// The order [shown] is in. Only the default keeps the two groups.
+  final InboxSort sort;
+  final ValueChanged<InboxSort> onSort;
+
   /// An account has stopped receiving. Said above everything else, because an
   /// inbox that has gone quiet for this reason looks exactly like a quiet day.
   final bool reconnect;
@@ -664,8 +685,10 @@ class _ConversationList extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.rabta;
     // Search results are one list in the usual order. Group labels over a
-    // filtered handful would count the wrong things.
+    // filtered handful would count the wrong things. The other sorts are one
+    // list by definition.
     final showGroups = !searching &&
+        sort == InboxSort.needsReply &&
         showGroupLabels(waiting: waiting, total: conversations.length);
 
     return Container(
@@ -683,7 +706,13 @@ class _ConversationList extends StatelessWidget {
             inbox: inbox,
           ),
           if (reconnect) _ReconnectBanner(onReconnect: onAccounts),
-          if (conversations.isNotEmpty) _SearchField(onChanged: onSearch),
+          if (conversations.isNotEmpty)
+            Row(
+              children: [
+                Expanded(child: _SearchField(onChanged: onSearch)),
+                _SortButton(sort: sort, onSort: onSort),
+              ],
+            ),
           Expanded(
             child: conversations.isEmpty
                 ? _Notice(
@@ -790,6 +819,79 @@ class _ReconnectBanner extends StatelessWidget {
   }
 }
 
+/// "Sort by", beside the search field (owner, 16 November 2026). Tinted when
+/// the order is not the default, so a list that looks unfamiliar says why.
+class _SortButton extends StatelessWidget {
+  const _SortButton({required this.sort, required this.onSort});
+
+  final InboxSort sort;
+  final ValueChanged<InboxSort> onSort;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.rabta;
+    final l = context.l;
+    final changed = sort != InboxSort.needsReply;
+
+    String label(InboxSort s) => switch (s) {
+          InboxSort.needsReply => l.sortNeedsReply,
+          InboxSort.newest => l.sortNewest,
+          InboxSort.unread => l.sortUnread,
+          InboxSort.oldest => l.sortOldest,
+        };
+
+    return Padding(
+      padding: const EdgeInsetsDirectional.fromSTEB(0, 12, 12, 8),
+      child: MenuAnchor(
+        alignmentOffset: const Offset(0, 4),
+        menuChildren: [
+          Padding(
+            padding: const EdgeInsetsDirectional.fromSTEB(16, 12, 16, 6),
+            child: Text(
+              l.sortBy,
+              style: Style.meta.copyWith(
+                color: colors.muted,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          for (final s in InboxSort.values)
+            MenuItemButton(
+              onPressed: () => onSort(s),
+              trailingIcon: s == sort
+                  ? Icon(Icons.check, size: 16, color: colors.accent)
+                  : const SizedBox(width: 16),
+              child: Text(
+                label(s),
+                style: Style.preview.copyWith(
+                  color: colors.ink,
+                  fontWeight: s == sort ? FontWeight.w700 : null,
+                ),
+              ),
+            ),
+        ],
+        // A label rather than a tooltip: the tooltip opened under the menu as
+        // a dark sliver, and screen readers read the name twice.
+        builder: (context, menu, _) => Semantics(
+          button: true,
+          label: changed ? '${l.sortBy}: ${label(sort)}' : l.sortBy,
+          excludeSemantics: true,
+          onTap: () => menu.isOpen ? menu.close() : menu.open(),
+          child: IconButton(
+            onPressed: () => menu.isOpen ? menu.close() : menu.open(),
+            style: IconButton.styleFrom(
+              backgroundColor: changed ? colors.accentSoft : colors.ground,
+              foregroundColor: changed ? colors.accent : colors.muted,
+              fixedSize: const Size(44, 44),
+            ),
+            icon: const Icon(Icons.swap_vert, size: 20),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _SearchField extends StatefulWidget {
   const _SearchField({required this.onChanged});
 
@@ -813,7 +915,8 @@ class _SearchFieldState extends State<_SearchField> {
     final colors = context.rabta;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      // The sort button sits at the end of the same row.
+      padding: const EdgeInsetsDirectional.fromSTEB(16, 12, 4, 8),
       child: TextField(
         controller: _controller,
         onChanged: (value) {

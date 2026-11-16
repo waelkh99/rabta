@@ -1007,6 +1007,21 @@ class LEn extends L {
   String get clearSearch => 'Clear search';
 
   @override
+  String get sortBy => 'Sort by';
+
+  @override
+  String get sortNeedsReply => 'Needs a reply';
+
+  @override
+  String get sortNewest => 'Newest first';
+
+  @override
+  String get sortUnread => 'Unread first';
+
+  @override
+  String get sortOldest => 'Oldest first';
+
+  @override
   String get reconnectBanner =>
       'One of your accounts has stopped receiving messages. Reconnect it so customers\' messages reach you.';
 
