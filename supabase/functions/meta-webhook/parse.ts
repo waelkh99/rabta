@@ -7,6 +7,8 @@
 //
 // Free of Deno-specific APIs so the same code runs under test.
 
+import { canonicalMid } from "../_shared/mid.ts";
+
 export type Platform = "instagram" | "messenger" | "whatsapp";
 export type Direction = "inbound" | "outbound";
 
@@ -86,7 +88,10 @@ export function parseWebhookPayload(payload: unknown): ParseResult {
         continue;
       }
 
-      const mid = asString(message.mid);
+      // The same spelling readSendResult stores, so an Instagram echo of our
+      // own reply is recognised as a duplicate — see _shared/mid.ts.
+      const raw = asString(message.mid);
+      const mid = raw ? canonicalMid(raw) : raw;
       if (!mid) {
         skipped.push("message had no mid");
         continue;

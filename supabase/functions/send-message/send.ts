@@ -12,6 +12,8 @@
 // Deliberately free of Deno-specific APIs so the same code runs in Supabase
 // Edge Functions and in the test harness.
 
+import { canonicalMid } from "../_shared/mid.ts";
+
 export const GRAPH = "https://graph.facebook.com/v26.0";
 
 /**
@@ -148,7 +150,8 @@ export function readSendResult(
     error?: { message?: string; code?: number; error_subcode?: number };
   };
 
-  if (result?.message_id) return { mid: result.message_id };
+  // Instagram spells the id differently here than in the echo; see _shared/mid.ts.
+  if (result?.message_id) return { mid: canonicalMid(result.message_id) };
   // WhatsApp answers with a list, one per recipient.
   const wamid = result?.messages?.[0]?.id;
   if (wamid) return { mid: wamid };

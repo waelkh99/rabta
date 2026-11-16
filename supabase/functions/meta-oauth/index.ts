@@ -42,6 +42,7 @@ import {
   returnOriginIndex,
   signState,
 } from "./state.ts";
+import { notSubscribedPage, subscribePage } from "./subscribe.ts";
 
 const APP_ID = "1759728245295705";
 const CONFIG_ID = "1063344539629710";
@@ -399,6 +400,7 @@ Messenger conversations can reach Inboxara.`,
   }
 
   const report: string[] = [];
+  let unsubscribed = 0;
 
   for (const page of pages) {
     // Meta can return a Page without a name. Null is what the column means by
@@ -406,26 +408,27 @@ Messenger conversations can reach Inboxara.`,
     await connect(workspaceId, "messenger", page.id, page.name ?? null, page.access_token);
     report.push(`Messenger: ${page.name} (${page.id})`);
 
-    const subscribe = await fetch(
+    const subscribe = await subscribePage(
+      (url) => fetch(url, { method: "POST" }).then((r) => r.json()),
       `${GRAPH}/${page.id}/subscribed_apps` +
         `?subscribed_fields=${SUBSCRIBED_FIELDS}` +
         `&access_token=${encodeURIComponent(page.access_token)}`,
-      { method: "POST" },
-    ).then((r) => r.json());
+    );
+    if (!subscribe.ok) unsubscribed++;
 
     report.push(
-      subscribe.success
+      subscribe.ok
         ? `  subscribed: ${SUBSCRIBED_FIELDS}`
-        : `  SUBSCRIPTION FAILED: ${JSON.stringify(subscribe)}`,
+        : `  SUBSCRIPTION FAILED: ${JSON.stringify(subscribe.answer)}`,
     );
 
-    // Reading instagram_business_account off the Page needs instagram_basic,
-    // which this configuration does not request, so it is usually absent. The
-    // granted scopes carry the id regardless.
+    // Reading instagram_business_account off the Page needs instagram_basic.
+    // The configuration requests it since at least 16 November 2026, when the
+    // username arrived through this field on production. The granted scopes
+    // are kept as a fallback for a token without it.
     //
     // ponytail: with one Page, any granted Instagram account belongs to it.
-    // Pair them through the Page field once instagram_basic is requested, which
-    // is also what multiple Pages will need.
+    // Several Pages without instagram_basic would need the Page field.
     const instagram = page.instagram_business_account ??
       (pages.length === 1 && granted.instagramIds.length > 0
         ? { id: granted.instagramIds[0], username: undefined }
@@ -454,6 +457,17 @@ Messenger conversations can reach Inboxara.`,
   // Only on success. A seller whose connection did not work keeps the page
   // that says why, because dropping them back into an inbox that looks no
   // different is the one outcome they cannot act on.
+  // A Page that is not subscribed receives nothing, so "connected" would be
+  // untrue. The accounts are stored either way; pressing Connect again
+  // re-subscribes them.
+  if (unsubscribed > 0) {
+    await log("error", "connect_not_subscribed", { report }, workspaceId);
+    return new Response(notSubscribedPage(returnOrigin), {
+      status: 200,
+      headers: { "content-type": "text/html; charset=utf-8" },
+    });
+  }
+
   await log("info", "account_connected", { report }, workspaceId);
 
   return Response.redirect(`${returnOrigin}/?connected=1`, 302);
