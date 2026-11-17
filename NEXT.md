@@ -26,7 +26,15 @@ the texts offer to add the reviewer's own account as a Tester.
 1. ~~Build fix (a)~~ **Built 17 Nov:** migration
    `20261117000001_account_moves_conversations.sql` (a trigger), 5 tests in
    `tests/account-move.test.ts` shown failing without it; 540 backend pass.
-   **Not yet pushed** to staging or production — `supabase db push`, owner runs.
+   **Applied 18 Nov** on staging (`supabase db push --remote`, staging's own
+   token and password from `.env.local`) and on production (through the
+   Management API, `POST /v1/projects/{ref}/database/query` with the access
+   token from `.env.prod`, in one transaction that also records the version in
+   `supabase_migrations.schema_migrations`). Checked: trigger installed,
+   recorded, latest migration `20261117000001`, 13 conversations all still in
+   their account's shop. **`SUPABASE_DB_PASSWORD` in `.env.prod` is wrong**
+   (owner chose not to reset it), so `db push` cannot reach production; use the
+   Management API route. CLI 3.1 needs `--remote` or it targets a local stack.
 2. Remove "Manage comments" (`instagram_manage_comments`) from login
    configuration 1063344539629710 — it still appears on Meta's permission
    screen though it is not used or requested.
