@@ -14,17 +14,23 @@ end to end was skipped by the owner — watch the first seller's. **All three
 webhooks now point at production** (Messenger and Instagram moved 16 Nov).
 The first real Instagram DM arrived and was answered on 16 Nov.
 
-**Tomorrow — the Instagram/Messenger App Review.** Everything is in
-`docs/APP-REVIEW-MESSAGING.md`. In order:
-1. Owner decides the reviewer's login (recommended: the demo shop, which has
-   the Rabta App Page and djangus_w connected and real conversations).
-2. Owner records the two videos on inboxara.app, in English. The Instagram
-   sender is the owner's new Instagram account linked in Accounts Center to
-   their Facebook — that is what got a DM delivered before approval (the
-   Instagram Tester role does not work any more). Messenger: the owner's own
-   Facebook account.
-3. I check the videos frame by frame, then the form texts; owner submits only
-   the seven permissions.
+**Waiting on Meta — the Instagram/Messenger App Review, submitted 17 November**
+(seven permissions; WhatsApp's two renewed alongside; "most within 20 days").
+What was sent is in `docs/APP-REVIEW-MESSAGING.md`. If Meta asks a question or
+rejects, read it with the owner before replying. Likeliest question: a tester
+account — the owner chose not to give one (a second personal Facebook account
+in their own name was refused and would break Facebook's one-account rule);
+the texts offer to add the reviewer's own account as a Tester.
+
+**After the decision, in order:**
+1. Build fix (a): a Page's conversations and messages move with it when another
+   shop connects it (see the 17 Nov log entry).
+2. Remove "Manage comments" (`instagram_manage_comments`) from login
+   configuration 1063344539629710 — it still appears on Meta's permission
+   screen though it is not used or requested.
+3. Change the demo shop's password (it went to Meta's reviewers) and its
+   `demo@rabta.chat` login.
+4. On approval: a DM from an account with no role on the app, end to end.
 
 Production working notes for a session: `RABTA_ENV=prod npm run events --
 instagram` shows deliveries; production deploys are run by the owner (the
@@ -594,3 +600,26 @@ source linked.
   Configuration → Browser Cache TTL → "Respect Existing Headers".
   **Done by the owner the same day;** checked: every file, plain and
   cache-busted, now `no-cache`.
+- 2026-11-17 — Recording for App Review. **Bug found:** a Page connected from a
+  second shop takes its `connected_accounts` row with it (upsert on
+  platform+external_id) but its conversations keep the old `workspace_id`, and
+  a returning customer's message is added to that old conversation (unique
+  account_id+customer_external_id) — invisible to both shops (the list and
+  send-message both inner-join the account under RLS). Seen with the owner's
+  own Messenger "Hello" (event #28) landing in "My workspace" after Rabta App
+  moved to the demo shop. That conversation deleted; no other mismatches on
+  production (12 checked). **Owner decided (a):** a Page's conversations and
+  their messages move with it to the shop that connects it — as in Meta's own
+  Page inbox. To build after the review: in `meta-oauth` `connect()`, when the
+  account's workspace changes, move its conversations and messages; tests;
+  DECISIONS entry.
+- 2026-11-17 — **Instagram/Messenger App Review submitted.** Videos (owner's
+  Desktop, checked frame by frame): "Review - Connecting" (42 s: Edit settings
+  → Page → Instagram account → permission list → Accounts "Receiving
+  messages"), "Review - Instagram (connect + messaging)" (84 s) and "Review -
+  Messenger (connect + messaging)" (88 s) — Meta's form asks the messaging
+  videos to show the business granting access too. Reviewer login: the demo
+  shop. No tester account (owner's decision). Data handling as declared for
+  WhatsApp. Seen on the way: the closed-window order live (a new DM at the top
+  of "Waiting for a reply"), Messenger end to end on production with the
+  customer's name and photo.

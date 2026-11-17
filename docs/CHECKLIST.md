@@ -85,8 +85,8 @@ here hold up everything else.
       nothing arrives until App Review.
 - [x] Business verification — passed 26 October 2026
 - [ ] App review for the messaging permissions — WhatsApp approved
-      (16 November); Instagram/Messenger drafted in `docs/APP-REVIEW-MESSAGING.md`,
-      recordings next
+      (16 November); Instagram/Messenger **submitted 17 November**, seven
+      permissions, waiting on Meta (`docs/APP-REVIEW-MESSAGING.md`)
 
 Until the last two are done, only accounts belonging to the app's own
 developers can connect. No real seller can use the product.

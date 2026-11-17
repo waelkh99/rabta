@@ -1,5 +1,17 @@
 # App Review — Instagram and Messenger
 
+**Submitted 17 November 2026.** What changed from this draft when the form was
+filled in: Meta's form now asks for the use in each permission's card, and for
+`pages_messaging` and `instagram_manage_messages` (on behalf of other
+businesses) the descriptions were rewritten to say plainly that other
+businesses use Inboxara for their own accounts, and the videos were joined so
+each shows the business connecting and then the messaging.
+`pages_read_engagement` was described as reading the Page's name and a
+customer's name and picture, with the Messenger video; `business_management`
+only as the dependency Meta documents, with no Business Manager API use.
+No tester account was given; the texts offer to add the reviewer's own.
+The reviewer instructions also state which Graph endpoints Inboxara calls.
+
 Drafted 16 November 2026 for the second App Review, after WhatsApp's was
 approved. Copy each block into the matching field of Meta's form. Permissions
 and their reasons are checked against Meta's Messenger Platform overview
