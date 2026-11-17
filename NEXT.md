@@ -34,8 +34,8 @@ the texts offer to add the reviewer's own account as a Tester.
 
 **Supabase free plan pauses idle projects** (owner had to restore them, 17 Nov).
 `.github/workflows/keep-alive.yml` asks both projects for a row once a day and
-fails — GitHub emails — if either does not answer. Needs four repository
-secrets (named in the file). The repo is public, so GitHub turns the schedule
+fails — GitHub emails — if either does not answer. Secrets added by the owner
+and the first run passed for both projects (17 Nov, run 44173056651). The repo is public, so GitHub turns the schedule
 off after 60 days without commits; Supabase Pro (no pausing, daily backups) is
 the real fix, the owner's call.
 
