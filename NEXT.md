@@ -23,8 +23,10 @@ in their own name was refused and would break Facebook's one-account rule);
 the texts offer to add the reviewer's own account as a Tester.
 
 **After the decision, in order:**
-1. Build fix (a): a Page's conversations and messages move with it when another
-   shop connects it (see the 17 Nov log entry).
+1. ~~Build fix (a)~~ **Built 17 Nov:** migration
+   `20261117000001_account_moves_conversations.sql` (a trigger), 5 tests in
+   `tests/account-move.test.ts` shown failing without it; 540 backend pass.
+   **Not yet pushed** to staging or production — `supabase db push`, owner runs.
 2. Remove "Manage comments" (`instagram_manage_comments`) from login
    configuration 1063344539629710 — it still appears on Meta's permission
    screen though it is not used or requested.

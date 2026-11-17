@@ -3156,3 +3156,26 @@ server only connects ones the token was actually granted. The app needs the
 webhook fields `smb_message_echoes`, `history`, `smb_app_state_sync` and
 `account_update` ticked in the dashboard. `FB.login` refuses `http://` pages,
 so testing Meta's real window needs https.
+
+### 2026-11-17 — A Page's conversations move with it to the shop that connects it
+
+Found while recording for App Review: the Rabta App Page, first connected from
+the owner's own shop in September, was connected from the demo shop. The
+account row moved (the upsert is on platform + external_id), its conversations
+did not, and the owner's new Messenger message was added to the old
+conversation, where neither shop could see it. A returning customer's message
+would have vanished the same way for any seller whose Page changed shop.
+
+**Decided by the owner: the conversations and their messages move with the
+Page** (option a), as they do in Meta's own Page inbox, where whoever manages a
+Page sees all of its history. The alternative — the new shop starts empty and
+the history stays hidden in the old one — was more private for the old shop but
+cost the seller the context of every returning customer, and a Page usually
+changes shop inside one business (staff, a new account, the owner reconnecting).
+
+Built as a database trigger (`20261117000001_account_moves_conversations.sql`),
+so it holds whichever path moves the account, in the same transaction. It runs
+with the caller's rights, not `security definer`: sellers cannot move accounts
+at all, and if that ever changed, the trigger still could not move another
+shop's conversations. `ai_usage` and `ops_log` stay with the shop that wrote
+them.
