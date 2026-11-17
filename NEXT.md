@@ -32,6 +32,13 @@ the texts offer to add the reviewer's own account as a Tester.
    `demo@rabta.chat` login.
 4. On approval: a DM from an account with no role on the app, end to end.
 
+**Supabase free plan pauses idle projects** (owner had to restore them, 17 Nov).
+`.github/workflows/keep-alive.yml` asks both projects for a row once a day and
+fails — GitHub emails — if either does not answer. Needs four repository
+secrets (named in the file). The repo is public, so GitHub turns the schedule
+off after 60 days without commits; Supabase Pro (no pausing, daily backups) is
+the real fix, the owner's call.
+
 Production working notes for a session: `RABTA_ENV=prod npm run events --
 instagram` shows deliveries; production deploys are run by the owner (the
 command line needs `SUPABASE_ACCESS_TOKEN` from `.env.prod`); the browser

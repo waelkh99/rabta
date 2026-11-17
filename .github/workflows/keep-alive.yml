@@ -1,0 +1,59 @@
+# Keeps the Supabase projects from being paused for inactivity.
+#
+# The free plan pauses a project after about a week with no activity, and a
+# paused production project fails everything: Meta's webhook deliveries, a
+# seller signing in, an App Review reviewer looking at the demo shop. Found
+# 17 November 2026, during the Instagram/Messenger review.
+#
+# Once a day this asks each project for one row of `plans` with the publishable
+# key. Row level security only lets signed-in users read that table, so the
+# answer is an empty list — but Postgres runs the query, which is the activity
+# that counts. Nothing is read or changed.
+#
+# If a project does not answer 200, the job fails and GitHub emails the repo
+# owner: a paused project is noticed instead of discovered by a customer.
+#
+# Limits, so nobody mistakes this for a guarantee:
+# - GitHub may run a scheduled job late, and in a public repository it turns
+#   scheduled workflows off after 60 days with no commits (with a warning email
+#   first). Any commit turns it back on, or "Enable workflow" in the Actions tab.
+# - A paid Supabase plan never pauses; this is the free alternative.
+#
+# Needs four repository secrets (Settings → Secrets and variables → Actions):
+# PROD_SUPABASE_URL, PROD_SUPABASE_PUBLISHABLE_KEY, STAGING_SUPABASE_URL,
+# STAGING_SUPABASE_PUBLISHABLE_KEY — the same values as env.prod.json / env.json.
+
+name: Keep Supabase awake
+
+on:
+  schedule:
+    - cron: "17 6 * * *" # daily, 06:17 UTC; off the hour, when GitHub is least busy
+  workflow_dispatch: # "Run workflow" button, to test or wake a project by hand
+
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false # one paused project must not hide the other's result
+      matrix:
+        project: [production, staging]
+    steps:
+      - name: Ask ${{ matrix.project }} for one row
+        env:
+          URL: ${{ matrix.project == 'production' && secrets.PROD_SUPABASE_URL || secrets.STAGING_SUPABASE_URL }}
+          KEY: ${{ matrix.project == 'production' && secrets.PROD_SUPABASE_PUBLISHABLE_KEY || secrets.STAGING_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          if [ -z "$URL" ] || [ -z "$KEY" ]; then
+            echo "::error::The ${{ matrix.project }} secrets are missing — see the comment at the top of this file."
+            exit 1
+          fi
+          status=$(curl -sS -o body.txt -w '%{http_code}' --retry 3 --retry-delay 20 \
+            -H "apikey: $KEY" "${URL%/}/rest/v1/plans?select=id&limit=1")
+          echo "HTTP $status: $(head -c 200 body.txt)"
+          if [ "$status" != "200" ]; then
+            echo "::error::${{ matrix.project }} answered HTTP $status — it may be paused. Restore it in the Supabase dashboard."
+            exit 1
+          fi
